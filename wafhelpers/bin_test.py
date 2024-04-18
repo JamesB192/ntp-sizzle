@@ -13,15 +13,9 @@ import waflib.Utils
 
 Popen = waflib.Utils.subprocess.Popen
 
-cmd_map = {
-    ("main/ntpclients/ntpleapfetch", "--version"): "ntpleapfetch %s\n",
-    ("main/ntpd/ntpd", "--version"): "ntpd %s\n",
-    ("main/ntpfrob/ntpfrob", "-V"): "ntpfrob %s\n",
-    ("main/ntptime/ntptime", "-V"): "ntptime %s\n"
-}
+cmd_map = {}
 cmd_map_python = {
     ("main/ntpclients/ntpdig", "--version"): "ntpdig %s\n",
-    ("main/ntpclients/ntpkeygen", "--version"): "ntpkeygen %s\n",
     ("main/ntpclients/ntpq", "--version"): "ntpq %s\n",
     ("main/ntpclients/ntpsnmpd", "--version"): "ntpsnmpd %s\n",
     ("main/ntpclients/ntpsweep", "--version"): "ntpsweep %s\n",

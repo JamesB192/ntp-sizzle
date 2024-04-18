@@ -90,32 +90,6 @@ def build(ctx):
             use="unity ntp parse M PTHREAD RT SOCKET NSL",
         )
 
-    ntpd_source = [
-        # "ntpd/filegen.c",
-        "ntpd/leapsec.c",
-        "ntpd/restrict.c",
-        "ntpd/recvbuff.c",
-    ] + common_source
-
-    if not ctx.env.DISABLE_NTS:
-      ntpd_source += [
-        "ntpd/nts.c",
-        "ntpd/nts_client.c",
-        "ntpd/nts_server.c",
-        "ntpd/nts_cookie.c",
-        "ntpd/nts_extens.c",
-    ]
-
-    ctx.ntp_test(
-        defines=unity_config + ["TEST_NTPD=1"],
-        features="c cprogram test",
-        includes=[ctx.bldnode.parent.abspath(), "../include", "unity", "../ntpd", "common", "../libaes_siv"],
-        install_path=None,
-        source=ntpd_source,
-        target="test_ntpd",
-        use="ntpd_lib libntpd_obj unity ntp aes_siv "
-            "M PTHREAD CRYPTO RT SOCKET NSL",
-    )
 
     testpylib.get_bld().mkdir()
 

@@ -56,15 +56,6 @@ def build(ctx):
         "ntp_util.c",
     ]
 
-    if not ctx.env.DISABLE_NTS:
-      libntpd_source += [
-        "nts.c",
-        "nts_server.c",
-        "nts_client.c",
-        "nts_cookie.c",
-        "nts_extens.c",
-    ]
-
     ctx(
         features="c",
         includes=[ctx.bldnode.parent.abspath(), "../include", "../libaes_siv"],
