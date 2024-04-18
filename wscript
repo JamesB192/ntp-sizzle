@@ -628,7 +628,7 @@ int main(int argc, char **argv) {
         check_sizeof(ctx, header, sizeof)
 
     # Parts of attic need libssl
-    if not ctx.options.disable_nts or ctx.options.enable_attic:
+    if not ctx.options.spork or ctx.options.enable_attic:
         # Check via pkg-config first, then fall back to a direct search
         if not ctx.check_cfg(
             package='libssl', uselib_store='SSL',
@@ -801,7 +801,7 @@ int main(int argc, char **argv) {
     if ctx.options.enable_attic:
         ctx.env.ENABLE_ATTIC = True
 
-    if ctx.options.disable_nts:
+    if True:
         ctx.env.DISABLE_NTS = True
         ctx.define("DISABLE_NTS", 1,
                    comment="Disable NTS")
@@ -885,7 +885,7 @@ int main(int argc, char **argv) {
                 msg("WARNING: This system has a 32-bit time_t.")
                 msg("WARNING: Your ntpd will fail on 2038-01-19T03:14:07Z.")
 
-    if not ctx.env.DISABLE_NTS:
+    if False:
         from wafhelpers.openssl import check_libssl_tls13
         from wafhelpers.openssl import check_openssl_bad_version
         from wafhelpers.openssl import dump_openssl_version
@@ -1046,7 +1046,6 @@ def afterparty(ctx):
 
 python_scripts = set([
     "ntpclients/ntpdig.py",
-    "ntpclients/ntpkeygen.py",
     "ntpclients/ntpq.py",
     "ntpclients/ntpsweep.py",
     "ntpclients/ntptrace.py",
@@ -1099,7 +1098,7 @@ def build(ctx):
         install_path=None,
     )
 
-    scripts = ["ntpclients/ntpleapfetch"] + list(python_scripts)
+    scripts = list(python_scripts)
 
     ctx(
         features="subst",
@@ -1124,8 +1123,6 @@ def build(ctx):
     ctx.manpage(1, "ntpclients/ntpq-man.adoc")
     ctx.manpage(1, "ntpclients/ntpsweep-man.adoc")
     ctx.manpage(1, "ntpclients/ntptrace-man.adoc")
-    ctx.manpage(8, "ntpclients/ntpkeygen-man.adoc")
-    ctx.manpage(8, "ntpclients/ntpleapfetch-man.adoc")
     ctx.manpage(8, "ntpclients/ntpwait-man.adoc")
     ctx.manpage(8, "ntpclients/ntpsnmpd-man.adoc")
 

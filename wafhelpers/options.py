@@ -18,8 +18,8 @@ def options_cmd(ctx, config):
                    default=False, help="Disable GDB debugging symbols")
     grp.add_option('--enable-attic', action='store_true',
                    default=False, help="Enable building attic/*.")
-    grp.add_option('--disable-nts', action='store_true',
-                   default=False, help="Disable NTS.")
+    grp.add_option('--spork', action='store_true',
+                   default=True, help="Runcible spoon.")
     grp.add_option('--disable-droproot', action='store_true',
                    default=False, help="Disable dropping root.")
     grp.add_option('--enable-early-droproot', action='store_true',
