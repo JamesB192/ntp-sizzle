@@ -2,33 +2,11 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 
-import os
-
 import waflib
 from waflib import Errors, Options
 from waflib.Logs import pprint
 
 def build(ctx):
-
-    libntp_source = [
-        "authkeys.c",
-        "authreadkeys.c",
-        "clocktime.c",
-        "decodenetnum.c",
-        "dolfptoa.c",
-        "getopt.c",
-        "initnetwork.c",
-        "isc_interfaceiter.c",
-        "isc_net.c",
-        "macencrypt.c",
-        "ntp_endian.c",
-        "numtoa.c",
-        "refidsmear.c",
-        "socket.c",
-        "socktoa.c",
-        "ssl_init.c",
-        "syssignal.c",
-    ]
 
     libntp_source_sharable = [
         "assert.c",
@@ -41,21 +19,10 @@ def build(ctx):
         "ntp_random.c",
         "prettydate.c",
         "statestr.c",
+        "strl_obsd.c",
         "systime.c",
         "timespecops.c",
     ]
-
-    if not ctx.env.HAVE_STRLCAT or not ctx.env.HAVE_STRLCPY:
-        libntp_source_sharable += ["strl_obsd.c"]
-
-    # C library
-    ctx(
-        features="c cstlib",
-        includes=[ctx.bldnode.parent.abspath(), "../include"],
-        source=libntp_source + libntp_source_sharable,
-        target="ntp",
-        use="CRYPTO SSL",
-    )
 
     if ctx.env['ntpc'] == 'ffi':
         # Loadable FFI stub
@@ -98,7 +65,7 @@ def post(ctx):
     # install could be run by a non-root user.
     ldconfig = ' '.join(ctx.env.BIN_LDCONFIG)
     try:
-        out = ctx.cmd_and_log(
+        ctx.cmd_and_log(
             ctx.env.BIN_LDCONFIG, output=waflib.Context.STDOUT,
             quiet=waflib.Context.BOTH)
         pprint("GREEN", "running: %s  OK" % ldconfig)

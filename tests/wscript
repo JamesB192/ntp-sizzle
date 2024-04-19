@@ -35,39 +35,6 @@ def build(ctx):
         "common/sockaddrtest.c",
     ]
 
-    # libntp/
-    libntp_source = [
-        "libntp/authkeys.c",
-        "libntp/ntp_calendar.c",
-        "libntp/ntp_endian.c",
-        "libntp/ntp_random.c",
-        "libntp/clocktime.c",
-        "libntp/decodenetnum.c",
-        "libntp/dolfptoa.c",
-        "libntp/hextolfp.c",
-        "libntp/lfpfunc.c",
-        "libntp/lfptostr.c",
-        "libntp/macencrypt.c",
-        "libntp/numtoa.c",
-        "libntp/prettydate.c",
-        "libntp/refidsmear.c",
-        "libntp/socktoa.c",
-        "libntp/statestr.c",
-        "libntp/timespecops.c",
-        "libntp/vi64ops.c",
-        "libntp/ymd2yd.c"
-    ] + common_source
-
-    ctx.ntp_test(
-        features="c cprogram test",
-        target="test_libntp",
-        install_path=None,
-        defines=unity_config + ["TEST_LIBNTP=1"],
-        includes=[ctx.bldnode.parent.abspath(), "../include", "unity", "common"],
-        use="unity ntp parse M PTHREAD CRYPTO RT SOCKET NSL",
-        source=libntp_source,
-    )
-
     if ctx.env.REFCLOCK_GENERIC or ctx.env.REFCLOCK_TRIMBLE:
         # libparse available/required with generic and Trimble refclocks
 
