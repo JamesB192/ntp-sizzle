@@ -10,10 +10,13 @@ import ctypes.util
 import errno
 import os
 import os.path
+import re
 import sys
+import time
 import ntp.poly
 
 LIB = 'ntpc'
+PIVOT = 1703823396
 
 
 def _fmt():
@@ -47,9 +50,11 @@ def _dlo(paths):
         try:
             lib = ctypes.CDLL(ntpc_path, use_errno=True)
             wrap_version = "@NTPSEC_VERSION_EXTENDED@"
-            clib_version = ntp.poly.polystr(ctypes.c_char_p.in_dll(lib, 'version').value)
+            clib_version = ntp.poly.polystr(
+                ctypes.c_char_p.in_dll(lib, 'version').value)
             if clib_version != wrap_version:
-                sys.stderr.write("ntp.ntpc wrong version '%s' != '%s'\n" % (clib_version, wrap_version))
+                sys.stderr.write("ntp.ntpc wrong version '%s' != '%s'\n" % (
+                    clib_version, wrap_version))
             return lib
         except OSError:
             pass
@@ -111,17 +116,6 @@ def statustoa(i_type, i_st):
     return ntp.poly.polystr(mid_str)
 
 
-def prettydate(in_string):
-    """Convert a time stamp to something readable."""
-    mid_str = _lfp_wrap(_prettydate, in_string)
-    return ntp.poly.polystr(mid_str)
-
-
-def lfptofloat(in_string):
-    """NTP l_fp to Python-style float time."""
-    return _lfp_wrap(_lfptofloat, in_string)
-
-
 def msyslog(level, in_string):
     """Log send a message to terminal or output."""
     mid_bytes = ntp.poly.polybytes(in_string)
@@ -137,14 +131,6 @@ _setprogname = _ntpc.ntpc_setprogname
 _setprogname.restype = None
 _setprogname.argtypes = [ctypes.c_char_p]
 
-_prettydate = _ntpc.ntpc_prettydate
-_prettydate.restype = ctypes.c_char_p
-_prettydate.argtypes = [ctypes.c_char_p]
-
-_lfptofloat = _ntpc.ntpc_lfptofloat
-_lfptofloat.restype = ctypes.c_double
-_lfptofloat.argtypes = [ctypes.c_char_p]
-
 # Status string display from peer status word.
 _statustoa = _ntpc.statustoa
 _statustoa.restype = ctypes.c_char_p
@@ -159,3 +145,50 @@ adj_systime.argtypes = [ctypes.c_double]
 step_systime = _ntpc.ntpc_step_systime
 step_systime.restype = ctypes.c_bool
 step_systime.argtypes = [ctypes.c_double]
+
+# Convert an ntp time32_t to a unix timespec near pivot time.
+ntpcal_ntp_to_time = _ntpc.ntpcal_ntp_to_time
+ntpcal_ntp_to_time.restype = ctypes.c_ulonglong
+ntpcal_ntp_to_time.argtypes = [ctypes.c_ulong, ctypes.c_ulong]
+
+
+def ihextolfp(istring):
+    """Convert an ascii hex string to an l_fp."""
+    pat = r" *(0[xX])?([0-9A-Fa-f]{8}).?([0-9A-Fa-f]{8})[ \n\0]*"
+    hits = re.match(pat, istring)
+    if not hits:
+        raise ValueError("ill-formed hex date")
+    l_fp = int(hits.group(2), 16)
+    l_fp <<= 32
+    l_fp |= int(hits.group(3), 16)
+    return l_fp
+
+
+def lfp_stamp_to_tspec(when, pivot=PIVOT):
+    """Convert an l_fp to a unix timespec near pivot time.
+
+    absolute (timestamp) conversion. Input is time in NTP epoch, output
+    is in UN*X epoch. The NTP time stamp will be expanded around the
+    pivot time p.
+    """
+    x = (when >> 32) & 0xffffffff
+    sec = ntpcal_ntp_to_time(x, pivot)
+    return [sec, (when & 0xffffffff) * 1000000000 / 4294967296]
+
+
+def prettydate(in_string):
+    """Convert a time stamp to something readable."""
+    lfp = ihextolfp(in_string[2:])
+    ts = lfp_stamp_to_tspec(lfp)
+    rfc = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(ts[0]))
+    return "%08x.%08x %s.%03dZ" % (
+        (lfp >> 32) & 0xffffffff,
+        lfp & 0xffffffff,
+        rfc, int(ts[1]/1e6))
+
+
+def lfptofloat(in_string):
+    """NTP l_fp to Python-style float time."""
+    l_fp = ihextolfp(in_string[2:])
+    tspec = lfp_stamp_to_tspec(l_fp)
+    return tspec[0] + (tspec[1] / 1e9)
