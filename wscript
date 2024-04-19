@@ -1061,7 +1061,6 @@ def build(ctx):
     ctx.load('rtems_trace', tooldir='wafhelpers/')
 
     if ctx.variant == "host":
-        ctx.recurse("ntpd")
         return
 
     if ctx.cmd == "build":
