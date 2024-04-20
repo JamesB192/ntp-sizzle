@@ -17,6 +17,8 @@ import ntp.magic
 import ntp.poly
 
 PIVOT = 1703823396
+MILLION = int(1e6)
+BILLION = int(1e9)
 
 
 def _fmt():
@@ -122,16 +124,6 @@ _setprogname = _ntpc.ntpc_setprogname
 _setprogname.restype = None
 _setprogname.argtypes = [ctypes.c_char_p]
 
-# Adjust system time by slewing.
-adj_systime = _ntpc.ntpc_adj_systime
-adj_systime.restype = ctypes.c_bool
-adj_systime.argtypes = [ctypes.c_double]
-
-# Adjust system time by stepping.
-step_systime = _ntpc.ntpc_step_systime
-step_systime.restype = ctypes.c_bool
-step_systime.argtypes = [ctypes.c_double]
-
 # Convert an ntp time32_t to a unix timespec near pivot time.
 ntpcal_ntp_to_time = _ntpc.ntpcal_ntp_to_time
 ntpcal_ntp_to_time.restype = ctypes.c_ulonglong
@@ -159,7 +151,7 @@ def lfp_stamp_to_tspec(when, pivot=PIVOT):
     """
     x = (when >> 32) & 0xffffffff
     sec = ntpcal_ntp_to_time(x, pivot)
-    return [sec, (when & 0xffffffff) * 1000000000 / 4294967296]
+    return [sec, (when & 0xffffffff) * BILLION / 4294967296]
 
 
 def prettydate(in_string):
@@ -178,9 +170,6 @@ def lfptofloat(in_string):
     l_fp = ihextolfp(in_string[2:])
     tspec = lfp_stamp_to_tspec(l_fp)
     return tspec[0] + (tspec[1] / 1e9)
-
-
-# --- === *** === ---
 
 
 clock_codes = [
@@ -331,3 +320,36 @@ typical = {
     ntp.control.TYPE_PEER: peer_status,
     ntp.control.TYPE_SYS: sys_status,
 }
+
+
+def lfp_stamp_to_tval(when, pivot=PIVOT):
+    """Convert an l_fp to a unix timeval near pivot time.
+
+    absolute (timeval) conversion. Input is time in NTP epoch, output
+    is in UN*X epoch. The NTP time stamp will be expanded around the
+    pivot time.
+    """
+    x = (when >> 32) & 0xffffffff
+    sec = ntpcal_ntp_to_time(x, pivot)
+    return [sec, (when & 0xffffffff) * MILLION / 4294967296]
+
+
+def step_systime(bigstep, pivot=PIVOT):
+    # Adjust system time by stepping.
+    tval = lfp_stamp_to_tval(bigstep, pivot)
+    retval = _ntpc.dumbstep(*tval)
+    if retval == 0:
+        return True
+    return False
+
+
+def adj_systime(bigstep, pivot=PIVOT):
+    # Adjust system time by slewing.
+    tspec = lfp_stamp_to_tspec(bigstep, pivot)
+    retval = _ntpc._dumbslew(*tspec)
+    if retval == 0:
+        return True
+    return False
+
+
+# --- === *** === ---

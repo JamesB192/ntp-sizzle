@@ -57,23 +57,12 @@ ntpc_setprogname(char *s)
 	progname = strdup(s);
 }
 
-bool
-ntpc_adj_systime(double adjustment)
-{
-	return adj_systime(adjustment, adjtime) ? 1 : 0;
+int dumbslew(int64_t s, int32_t us) {
+    struct timeval step = {s, us};
+    return adjtime(&step, NULL);
 }
 
-bool
-ntpc_step_systime(double adjustment)
-{
-	doubletime_t full_adjustment;
-
-	/*
-	 * What we really want is for Python to parse a long double.
-	 * As this is, it's a potential source of problems in the Python
-	 * utilities if and when the time difference between the Unix epoch
-	 * and now exceeds the range of a double.
-	 */
-	full_adjustment = adjustment;
-	return step_systime(full_adjustment);
+int dumbstep(int64_t s, int32_t ns) {
+    struct timespec step = {s, ns};
+    return clock_settime(CLOCK_REALTIME, &step);
 }
