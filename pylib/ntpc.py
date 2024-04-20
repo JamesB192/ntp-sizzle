@@ -65,51 +65,25 @@ def _importado(lib="c", hook=None):
             if callable(hook):
                 hook(lib)
             return lib
-        except OSError:
-            pass
+        except OSError as e:
+            raise e  # pass
     raise OSError("Can't find %s library" % lib)
 
 
 _ntpc = _importado('ntpc', hook=ntpc_version)
-_c = _importado('c')
-
-
-progname = ctypes.c_char_p.in_dll(_ntpc, 'progname')
-# log_sys = ctypes.c_bool.in_dll(_ntpc, 'syslogit')
-# log_term = ctypes.c_bool.in_dll(_ntpc, 'termlogit')
-# log_pid = ctypes.c_bool.in_dll(_ntpc, 'termlogit_pid')
-# log_time = ctypes.c_bool.in_dll(_ntpc, 'msyslog_include_timestamp')
 
 TYPE_SYS = ctypes.c_int.in_dll(_ntpc, 'SYS_TYPE').value
 TYPE_PEER = ctypes.c_int.in_dll(_ntpc, 'PEER_TYPE').value
 TYPE_CLOCK = ctypes.c_int.in_dll(_ntpc, 'CLOCK_TYPE').value
 
-
-def setprogname(in_string):
-    """Set program name for logging purposes."""
-    mid_bytes = ntp.poly.polybytes(in_string)
-    _setprogname(mid_bytes)
-
-
-def msyslog(level, in_string):
-    """Log send a message to terminal or output."""
-    mid_bytes = ntp.poly.polybytes(in_string)
-    _msyslog(level, mid_bytes)
-
-
-# Set return type and argument types of hidden ffi handlers
-_msyslog = _ntpc.msyslog
-_msyslog.restype = None
-_msyslog.argtypes = [ctypes.c_int, ctypes.c_char_p]
-
-_setprogname = _ntpc.ntpc_setprogname
-_setprogname.restype = None
-_setprogname.argtypes = [ctypes.c_char_p]
-
 # Convert an ntp time32_t to a unix timespec near pivot time.
 ntpcal_ntp_to_time = _ntpc.ntpcal_ntp_to_time
 ntpcal_ntp_to_time.restype = ctypes.c_ulonglong
 ntpcal_ntp_to_time.argtypes = [ctypes.c_ulong, ctypes.c_ulong]
+
+
+def setprogname(_):
+    pass
 
 
 def ihextolfp(istring):
