@@ -2105,7 +2105,7 @@ class TestAuthenticator(unittest.TestCase):
                                       '891b108289c3f6725a01a10f697c1b4c')
         key3 = ''
         self.assertEqual(f(pkt, 0x0d, 'aes', key1), mac1)
-        self.assertEqual(f(pkt, 0x0e, 'aes-256', key2), mac2)
+        self.assertEqual(f(pkt, 0x0e, 'aes256', key2), mac2)
         self.assertEqual(f(pkt, 0x0f, 'neun', key3), False)
 
     def test_have_mac(self):
@@ -2120,7 +2120,7 @@ class TestAuthenticator(unittest.TestCase):
     def test_verify_mac(self):
         cls = self.target()
         cls.passwords[0x0d] = (
-            'aes-128', ntp.util.hexstr2octets('2f3badbb640bf975fec519df8a83e829'))
+            'aes128', ntp.util.hexstr2octets('2f3badbb640bf975fec519df8a83e829'))
         good_pkt = ('240300e80000139a00000ae8cc0286a2'
                     'e25c0c4dfff93ee2e25c0cca53f45000'
                     'e25c0cca54048d79e25c0cca5408646b'
