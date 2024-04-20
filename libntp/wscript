@@ -6,6 +6,7 @@ import waflib
 from waflib import Errors, Options
 from waflib.Logs import pprint
 
+
 def build(ctx):
 
     libntp_source_sharable = [
@@ -24,27 +25,16 @@ def build(ctx):
         "timespecops.c",
     ]
 
-    if ctx.env['ntpc'] == 'ffi':
-        # Loadable FFI stub
-        ctx(
-            features="c cshlib",
-            includes=[ctx.bldnode.parent.abspath(), "../include"],
-            source=["ntp_c.c", "pymodule-mac.c"] + libntp_source_sharable,
-            target="../ntpc",  # Put the output in the parent directory
-            use="M RT CRYPTO",
-            vnum=ctx.env['ntpcver'],
-        )
-        ctx.add_post_fun(post)
-    elif ctx.env['ntpc'] == 'ext':
-        # Loadable Python extension
-        ctx(
-            features="c cshlib pyext",
-            install_path='${PYTHONARCHDIR}/ntp',
-            includes=[ctx.bldnode.parent.abspath(), "../include"],
-            source=["pymodule.c", "pymodule-mac.c"] + libntp_source_sharable,
-            target="../pylib/ntpc",  # Put the output in the pylib directory
-            use="M RT CRYPTO",
-        )
+    ctx(
+        features="c cshlib",
+        includes=[ctx.bldnode.parent.abspath(), "../include"],
+        source=["ntp_c.c", "pymodule-mac.c"] + libntp_source_sharable,
+        target="../ntpc",  # Put the output in the parent directory
+        use="M RT CRYPTO",
+        vnum=ctx.env['ntpcver'],
+    )
+    ctx.add_post_fun(post)
+
 
 def post(ctx):
     if not (ctx.cmd == 'install' and ctx.env.BIN_LDCONFIG):
