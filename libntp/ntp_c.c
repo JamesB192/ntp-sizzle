@@ -26,8 +26,6 @@
 #include "pymodule-mac.h"
 
 void ntpc_setprogname(char*);
-char *ntpc_prettydate(char*);
-double ntpc_lfptofloat(char*);
 bool ntpc_adj_systime(double);
 bool ntpc_step_systime(double);
 
@@ -57,34 +55,6 @@ ntpc_setprogname(char *s)
 	termlogit_pid = false;
 	msyslog_include_timestamp = false;
 	progname = strdup(s);
-}
-
-char *
-ntpc_prettydate(char *s)
-{
-	l_fp ts;
-
-	if (false == hextolfp(s+2, &ts)) {
-		errno = EINVAL;
-		return strdup("ERROR");
-	}
-	errno = 0;
-	return prettydate(ts);
-}
-
-double
-ntpc_lfptofloat(char *s)
-{
-	l_fp ts;
-	struct timespec tt;
-
-	if (false == hextolfp(s+2, &ts)) {
-		errno = EINVAL;
-		return -0;
-	}
-	errno = 0;
-	tt = lfp_stamp_to_tspec(ts, time(NULL));
-	return tt.tv_sec + (tt.tv_nsec * S_PER_NS);
 }
 
 bool
