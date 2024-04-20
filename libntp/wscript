@@ -8,29 +8,11 @@ from waflib.Logs import pprint
 
 
 def build(ctx):
-
-    libntp_source_sharable = [
-        "assert.c",
-        "clockwork.c",
-        "emalloc.c",
-        "hextolfp.c",
-        "lib_strbuf.c",
-        "msyslog.c",
-        "ntp_calendar.c",
-        "ntp_random.c",
-        "prettydate.c",
-        "statestr.c",
-        "strl_obsd.c",
-        "systime.c",
-        "timespecops.c",
-    ]
-
     ctx(
         features="c cshlib",
         includes=[ctx.bldnode.parent.abspath(), "../include"],
-        source=["ntp_c.c", "pymodule-mac.c"] + libntp_source_sharable,
+        source=["ntp_c.c"],
         target="../ntpc",  # Put the output in the parent directory
-        use="M RT CRYPTO",
         vnum=ctx.env['ntpcver'],
     )
     ctx.add_post_fun(post)
