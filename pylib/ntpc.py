@@ -7,7 +7,6 @@
 from __future__ import absolute_import
 import ctypes
 import ctypes.util
-import errno
 import os
 import os.path
 import re
@@ -17,7 +16,6 @@ import ntp.control
 import ntp.magic
 import ntp.poly
 
-LIB = 'ntpc'
 PIVOT = 1703823396
 
 
@@ -32,38 +30,45 @@ def _fmt():
     return 'lib%s.so'
 
 
-def _importado():
+def ntpc_version(lib):
+    wrap_version = "@NTPSEC_VERSION_EXTENDED@"
+    clib_version = ntp.poly.polystr(
+        ctypes.c_char_p.in_dll(lib, 'version').value)
+    if clib_version != wrap_version:
+        sys.stderr.write("%s wrong version '%s' != '%s'\n" % (
+            lib, clib_version, wrap_version))
+
+
+def _importado(lib="c", hook=None):
     """Load the ntpc library or throw an OSError trying."""
-    ntpc_paths = []         # places to look
+    lib_paths = [         # places to look
+        os.path.join(os.path.abspath(x), _fmt() % lib)
+        for x in [
+            os.path.dirname(os.path.realpath(ntp.__path__[0])),
+            os.path.realpath("@LIBDIR@"),
+            ]
+        ]
 
-    j = __file__.split(os.sep)[:-1]
-    ntpc_paths.append(os.sep.join(j + [_fmt() % LIB]))
+    lib_path = ctypes.util.find_library(lib)
+    if lib_path:
+        lib_paths.append(lib_path)
 
-    ntpc_path = ctypes.util.find_library(LIB)
-    if ntpc_path:
-        ntpc_paths.append(ntpc_path)
-
-    return _dlo(ntpc_paths)
-
-
-def _dlo(paths):
-    """Try opening library from a list."""
-    for ntpc_path in paths:
+    for lib_path in lib_paths:
         try:
-            lib = ctypes.CDLL(ntpc_path, use_errno=True)
-            wrap_version = "@NTPSEC_VERSION_EXTENDED@"
-            clib_version = ntp.poly.polystr(
-                ctypes.c_char_p.in_dll(lib, 'version').value)
-            if clib_version != wrap_version:
-                sys.stderr.write("ntp.ntpc wrong version '%s' != '%s'\n" % (
-                    clib_version, wrap_version))
+            sys.stderr.write("INFO: try library: %s\n" % lib_path)
+            lib = ctypes.CDLL(lib_path, use_errno=True)
+            if callable(hook):
+                hook(lib)
             return lib
         except OSError:
             pass
-    raise OSError("Can't find %s library" % LIB)
+    raise OSError("Can't find %s library" % lib)
 
 
-_ntpc = _importado()
+_ntpc = _importado('ntpc', hook=ntpc_version)
+_c = _importado('c')
+
+
 progname = ctypes.c_char_p.in_dll(_ntpc, 'progname')
 # log_sys = ctypes.c_bool.in_dll(_ntpc, 'syslogit')
 # log_term = ctypes.c_bool.in_dll(_ntpc, 'termlogit')
