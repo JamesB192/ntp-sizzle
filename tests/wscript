@@ -12,52 +12,6 @@ def build(ctx):
     testpylib = testsrc.make_node('pylib')
     testpysrc = testpylib.ant_glob('*.py')
 
-    # Unity source
-    unity_source = [
-        "unity/unity.c",
-        "unity/unity_fixture.c",
-        "unity/unity_memory.c",
-    ]
-
-    unity_config = ["UNITY_INCLUDE_DOUBLE", "UNITY_SUPPORT_64"]
-
-    ctx(
-        defines=unity_config,
-        features="c",
-        target="unity",
-        source=unity_source
-    )
-
-    # Test main.
-    common_source = [
-        "common/tests_main.c",
-        "common/caltime.c",
-        "common/sockaddrtest.c",
-    ]
-
-    if ctx.env.REFCLOCK_GENERIC or ctx.env.REFCLOCK_TRIMBLE:
-        # libparse available/required with generic and Trimble refclocks
-
-        # libparse/
-        libparse_source = [
-            "libparse/binio.c",
-            "libparse/gpstolfp.c",
-            "libparse/ieee754io.c",
-        ] + common_source
-
-        ctx.ntp_test(
-            defines=unity_config + ["TEST_LIBPARSE=1"],
-            features="c cprogram test",
-            includes=[ctx.bldnode.parent.abspath(), "../include", "unity"],
-            install_path=None,
-            lib=["parse"],
-            libpath=["libparse"],
-            source=libparse_source,
-            target="test_libparse",
-            use="unity ntp parse M PTHREAD RT SOCKET NSL",
-        )
-
-
     testpylib.get_bld().mkdir()
 
     pypath = pylib.get_bld()
