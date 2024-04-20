@@ -102,16 +102,6 @@ def setprogname(in_string):
     _setprogname(mid_bytes)
 
 
-def _lfp_wrap(callback, in_string):
-    """NTP l_fp to other Python-style format."""
-    mid_bytes = ntp.poly.polybytes(in_string)
-    out_value = callback(mid_bytes)
-    err = ctypes.get_errno()
-    if err == errno.EINVAL:
-        raise ValueError('ill-formed hex date')
-    return out_value
-
-
 def msyslog(level, in_string):
     """Log send a message to terminal or output."""
     mid_bytes = ntp.poly.polybytes(in_string)
@@ -126,11 +116,6 @@ _msyslog.argtypes = [ctypes.c_int, ctypes.c_char_p]
 _setprogname = _ntpc.ntpc_setprogname
 _setprogname.restype = None
 _setprogname.argtypes = [ctypes.c_char_p]
-
-# Status string display from peer status word.
-_statustoa = _ntpc.statustoa
-_statustoa.restype = ctypes.c_char_p
-_statustoa.argtypes = [ctypes.c_int, ctypes.c_int]
 
 # Adjust system time by slewing.
 adj_systime = _ntpc.ntpc_adj_systime
