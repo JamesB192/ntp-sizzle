@@ -135,6 +135,7 @@ NTPSEC_PY_MODULE_INIT(c)
         PyObject *m;
         // Create the module and add the functions
         NTPSEC_PY_MODULE_DEF(m, "ntpc", module_doc, c_methods)
+        PyModule_AddStringConstant(m, "version", version);
         if (m == NULL)
                 return NTPSEC_PY_MODULE_ERROR_VAL;
         return NTPSEC_PY_MODULE_SUCCESS_VAL(m);
