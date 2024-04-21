@@ -5,12 +5,7 @@
 
 """Access libntp funtions from Python."""
 from __future__ import absolute_import
-import ctypes
-import ctypes.util
-import os
-import os.path
 import re
-import sys
 import time
 import cryptography.hazmat.primitives.hashes
 import cryptography.hazmat.primitives.ciphers
@@ -53,7 +48,7 @@ def lfp_stamp_to_tspec(when, pivot=PIVOT):
     pivot time p.
     """
     x = (when >> 32) & 0xffffffff
-    sec = ntpcal_ntp_to_time(x, pivot)
+    sec = c.lfp2timet(x, pivot)
     return [sec, (when & 0xffffffff) * BILLION / 4294967296]
 
 
