@@ -4,4 +4,6 @@ build
 *.o
 *.egg-info/
 dist
-
+*.pyc
+*.pyo
+tmp/
