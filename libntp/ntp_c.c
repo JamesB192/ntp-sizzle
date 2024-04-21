@@ -8,29 +8,45 @@
 /* This include has to come early or we get warnings from redefining
  * _POSIX_C_SOURCE and _XOPEN_SOURCE on some systems.
  */
-#include "config.h"
+#ifdef PYEXT
+ #define PY_SSIZE_T_CLEAN
+ #include <Python.h>
+ #if PY_MAJOR_VERSION >= 3
+  #define NTPSEC_PY_MODULE_INIT(name) PyMODINIT_FUNC PyInit_##name(void)
+  #define NTPSEC_PY_MODULE_DEF(mod, name, doc, methods) \
+    static struct PyModuleDef moduledef = { \
+        PyModuleDef_HEAD_INIT, name, doc, -1, methods, NULL, NULL, NULL, NULL}; \
+    mod = PyModule_Create(&moduledef);
+  #define NTPSEC_PY_MODULE_ERROR_VAL NULL
+  #define NTPSEC_PY_MODULE_SUCCESS_VAL(val) val
+  #define NTPSEC_PY_BYTE_FORMAT "y#"
+ #else /* !Python 3 */
+  #define NTPSEC_PY_MODULE_INIT(name) PyMODINIT_FUNC init##name(void)
+  #define NTPSEC_PY_MODULE_DEF(mod, name, doc, methods) \
+    mod = Py_InitModule3(name, methods, doc);
+  #define NTPSEC_PY_MODULE_ERROR_VAL
+  #define NTPSEC_PY_MODULE_SUCCESS_VAL(val)
+  #define NTPSEC_PY_BYTE_FORMAT "s#"
+ #endif /* !Python 3 */
+#endif // PYEXT
 
-#include <_types/_uint64_t.h>
 #include <stdint.h>
 #include <sys/time.h>
 
-#ifndef time64_t
- #warning time64_t undefined setting to uint64_t
- #define time64_t uint64_t
-#endif
+#ifndef UNUSED_ARG
+ #define UNUSED_ARG(arg) (void)(arg)
+#endif // UNUSED_ARG
 
 int dumbslew(int64_t s, int32_t us);
 int dumbstep(int64_t s, int32_t ns);
-time64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot);
+uint64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot);
 
 const char *version = "2024.04.18";
 int   SYS_TYPE = 1;
 int  PEER_TYPE = 2;
 int CLOCK_TYPE = 3;
 
-/*
- * Client utility functions
- */
+// Client utility functions
 
 int dumbslew(int64_t s, int32_t us) {
     struct timeval step = {s, us};
@@ -52,8 +68,8 @@ int dumbstep(int64_t s, int32_t ns) {
  * the shift is 2^31, we can do some *very* fast math without explicit
  * divisions.
  */
-time64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot) {
-    time64_t res;
+uint64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot) {
+    uint64_t res;
 
     res  = (uint64_t)pivot;
     res  = res - 0x80000000;                 // unshift of half range
@@ -63,3 +79,66 @@ time64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot) {
 
     return res;
 }
+
+#ifdef PYEXT
+
+static PyObject *py_slew(PyObject *self, PyObject *args)
+{
+        int64_t s;
+        int32_t frac;
+        UNUSED_ARG(self);
+        if (!PyArg_ParseTuple(args, "lq", &s, &frac))
+                return NULL;
+        return Py_BuildValue("i", dumbslew(s, frac));
+}
+
+static PyObject *py_step(PyObject *self, PyObject *args)
+{
+        int64_t s;
+        int32_t frac;
+        UNUSED_ARG(self);
+        if (!PyArg_ParseTuple(args, "lq", &s, &frac))
+                return NULL;
+        return Py_BuildValue("i", dumbstep(s, frac));
+}
+
+static PyObject *py_lfp2timet(PyObject *self, PyObject *args)
+{
+        uint32_t l_fp;
+        time_t pivot;
+        UNUSED_ARG(self);
+        if (!PyArg_ParseTuple(args, "Ll", &l_fp, &pivot))
+                return NULL;
+        return Py_BuildValue("Q", ntpcal_ntp_to_time(l_fp, pivot));
+}
+
+//uint64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot);
+
+static PyMethodDef c_methods[] = {
+    {"slew",        py_slew,       METH_VARARGS,
+     PyDoc_STR("Adjust the time by changing the rate.")},
+    {"step",        py_step,       METH_VARARGS,
+     PyDoc_STR("Step to a new time.")},
+    {"lfp2timet",   py_lfp2timet,  METH_VARARGS,
+     PyDoc_STR("Convert a NTP era l_fp to a POSIX timestamp.")},
+    {NULL,          NULL, 0, NULL}          // sentinel
+}; // List of functions defined in the module
+
+PyDoc_STRVAR(module_doc,
+    "Contain time functions for time adjustment and conversion."
+);
+
+// banish pointless compiler warnings on various Python versions
+extern PyMODINIT_FUNC initntpc(void);
+extern PyMODINIT_FUNC PyInit_ntpc(void);
+
+NTPSEC_PY_MODULE_INIT(c)
+{
+        PyObject *m;
+        // Create the module and add the functions
+        NTPSEC_PY_MODULE_DEF(m, "ntpc", module_doc, c_methods)
+        if (m == NULL)
+                return NTPSEC_PY_MODULE_ERROR_VAL;
+        return NTPSEC_PY_MODULE_SUCCESS_VAL(m);
+}
+#endif // PYEXT
