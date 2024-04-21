@@ -10,20 +10,23 @@
  */
 #include "config.h"
 
-#include "ntp.h"
-#include "ntp_control.h"
+#include <_types/_uint64_t.h>
+#include <stdint.h>
+#include <sys/time.h>
+
+#ifndef time64_t
+ #warning time64_t undefined setting to uint64_t
+ #define time64_t uint64_t
+#endif
 
 int dumbslew(int64_t s, int32_t us);
 int dumbstep(int64_t s, int32_t ns);
 time64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot);
 
-/* Don't include anything from OpenSSL */
-
-const char *version = NTPSEC_VERSION_EXTENDED;
-const char *progname = "libntpc";
-int   SYS_TYPE = TYPE_SYS;
-int  PEER_TYPE = TYPE_PEER;
-int CLOCK_TYPE = TYPE_CLOCK;
+const char *version = "2024.04.18";
+int   SYS_TYPE = 1;
+int  PEER_TYPE = 2;
+int CLOCK_TYPE = 3;
 
 /*
  * Client utility functions
@@ -52,11 +55,11 @@ int dumbstep(int64_t s, int32_t ns) {
 time64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot) {
     time64_t res;
 
-    settime64s(res, pivot);
-    settime64u(res, time64u(res)-0x80000000);	 // unshift of half range
-    ntp	-= (uint32_t)2208988800;		 // warp into UN*X domain
-    ntp	-= time64lo(res);			 // cycle difference
-    settime64u(res, time64u(res)+(uint64_t)ntp); // get expanded time
+    res  = (uint64_t)pivot;
+    res  = res - 0x80000000;                 // unshift of half range
+    ntp	-= (uint32_t)2208988800;             // warp into UN*X domain
+    ntp	-= (uint32_t)((res) & 0xffffffffUL); // cycle difference
+    res  = res + (uint64_t)ntp;              // get expanded time
 
     return res;
 }
