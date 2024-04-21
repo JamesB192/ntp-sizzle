@@ -10,12 +10,15 @@ setup(
     author_email='JamesB.fe80@gmail.com',
     maintainer='James Browning',
     maintainer_email='JamesB.fe80@gmail.com',
-    license='BSDD 2-Clause License',
+    license='BSD 2-Clause License',
     url='https://github.com/JamesB192/ntp-sizzle.git',
+    long_description="README.md",
+    long_description_content_type="text/markdown",
     ext_modules=[
         Extension(
             name="ntp.c",
             sources=["ntp_c.c"],
+            extra_compile_args=["-DPYEXT=1"],
         ),
     ],
     install_requires=[
@@ -47,7 +50,7 @@ setup(
     classifiers=[
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 2',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: BSD-2-Clause',
         'Operating System :: POSIX',
         'Development Status :: 5 - Production/Stable',        
     ],

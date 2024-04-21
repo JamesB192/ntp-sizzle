@@ -18,68 +18,15 @@ import cryptography.hazmat.primitives.cmac
 import ntp.control
 import ntp.magic
 import ntp.poly
+import ntp.c as c
 
 PIVOT = 1703823396
 MILLION = int(1e6)
 BILLION = int(1e9)
 
-
-def _fmt():
-    """Produce library naming scheme."""
-    if sys.platform.startswith('darwin'):
-        return 'lib%s.dylib'
-    if sys.platform.startswith('win32'):
-        return '%s.dll'
-    if sys.platform.startswith('cygwin'):
-        return 'lib%s.dll'
-    return 'lib%s.so'
-
-
-def ntpc_version(lib):
-    wrap_version = "2024.04.21"
-    clib_version = ntp.poly.polystr(
-        ctypes.c_char_p.in_dll(lib, 'version').value)
-    if clib_version != wrap_version:
-        sys.stderr.write("%s wrong version '%s' != '%s'\n" % (
-            lib, clib_version, wrap_version))
-
-
-def _importado(lib="c", hook=None):
-    """Load the ntpc library or throw an OSError trying."""
-    lib_paths = [         # places to look
-        os.path.join(os.path.abspath(x), _fmt() % lib)
-        for x in [
-            os.path.dirname(os.path.realpath(ntp.__path__[0])),
-            os.path.realpath("/usr/local/lib"),
-            ]
-        ]
-
-    lib_path = ctypes.util.find_library(lib)
-    if lib_path:
-        lib_paths.append(lib_path)
-
-    for lib_path in lib_paths:
-        try:
-            sys.stderr.write("INFO: try library: %s\n" % lib_path)
-            lib = ctypes.CDLL(lib_path, use_errno=True)
-            if callable(hook):
-                hook(lib)
-            return lib
-        except OSError as e:
-            raise e  # pass
-    raise OSError("Can't find %s library" % lib)
-
-
-_ntpc = _importado('ntpc', hook=ntpc_version)
-
-TYPE_SYS = ctypes.c_int.in_dll(_ntpc, 'SYS_TYPE').value
-TYPE_PEER = ctypes.c_int.in_dll(_ntpc, 'PEER_TYPE').value
-TYPE_CLOCK = ctypes.c_int.in_dll(_ntpc, 'CLOCK_TYPE').value
-
-# Convert an ntp time32_t to a unix timespec near pivot time.
-ntpcal_ntp_to_time = _ntpc.ntpcal_ntp_to_time
-ntpcal_ntp_to_time.restype = ctypes.c_ulonglong
-ntpcal_ntp_to_time.argtypes = [ctypes.c_ulong, ctypes.c_ulong]
+TYPE_SYS   = 1
+TYPE_PEER  = 2
+TYPE_CLOCK = 3
 
 
 def setprogname(_):
@@ -286,14 +233,14 @@ def lfp_stamp_to_tval(when, pivot=PIVOT):
     pivot time.
     """
     x = (when >> 32) & 0xffffffff
-    sec = ntpcal_ntp_to_time(x, pivot)
+    sec = c.lfp2timet(x, pivot)
     return [sec, (when & 0xffffffff) * MILLION / 4294967296]
 
 
 def step_systime(bigstep, pivot=PIVOT):
     # Adjust system time by stepping.
     tval = lfp_stamp_to_tval(bigstep, pivot)
-    retval = _ntpc.dumbstep(*tval)
+    retval = c.step(*tval)
     if retval == 0:
         return True
     return False
@@ -302,7 +249,7 @@ def step_systime(bigstep, pivot=PIVOT):
 def adj_systime(bigstep, pivot=PIVOT):
     # Adjust system time by slewing.
     tspec = lfp_stamp_to_tspec(bigstep, pivot)
-    retval = _ntpc._dumbslew(*tspec)
+    retval = c.slew(*tspec)
     if retval == 0:
         return True
     return False

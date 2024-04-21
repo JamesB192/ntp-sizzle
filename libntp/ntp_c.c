@@ -85,7 +85,7 @@ static PyObject *py_slew(PyObject *self, PyObject *args)
         int64_t s;
         int32_t frac;
         UNUSED_ARG(self);
-        if (!PyArg_ParseTuple(args, "lq", &s, &frac))
+        if (!PyArg_ParseTuple(args, "Li", &s, &frac))
                 return NULL;
         return Py_BuildValue("i", dumbslew(s, frac));
 }
@@ -95,7 +95,7 @@ static PyObject *py_step(PyObject *self, PyObject *args)
         int64_t s;
         int32_t frac;
         UNUSED_ARG(self);
-        if (!PyArg_ParseTuple(args, "lq", &s, &frac))
+        if (!PyArg_ParseTuple(args, "Li", &s, &frac))
                 return NULL;
         return Py_BuildValue("i", dumbstep(s, frac));
 }
@@ -105,9 +105,9 @@ static PyObject *py_lfp2timet(PyObject *self, PyObject *args)
         uint32_t l_fp;
         time_t pivot;
         UNUSED_ARG(self);
-        if (!PyArg_ParseTuple(args, "Ll", &l_fp, &pivot))
+        if (!PyArg_ParseTuple(args, "Ii", &l_fp, &pivot))
                 return NULL;
-        return Py_BuildValue("Q", ntpcal_ntp_to_time(l_fp, pivot));
+        return Py_BuildValue("K", ntpcal_ntp_to_time(l_fp, pivot));
 }
 
 //uint64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot);
