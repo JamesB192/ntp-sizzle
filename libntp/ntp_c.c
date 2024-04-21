@@ -19,14 +19,12 @@
     mod = PyModule_Create(&moduledef);
   #define NTPSEC_PY_MODULE_ERROR_VAL NULL
   #define NTPSEC_PY_MODULE_SUCCESS_VAL(val) val
-  #define NTPSEC_PY_BYTE_FORMAT "y#"
  #else /* !Python 3 */
   #define NTPSEC_PY_MODULE_INIT(name) PyMODINIT_FUNC init##name(void)
   #define NTPSEC_PY_MODULE_DEF(mod, name, doc, methods) \
     mod = Py_InitModule3(name, methods, doc);
   #define NTPSEC_PY_MODULE_ERROR_VAL
   #define NTPSEC_PY_MODULE_SUCCESS_VAL(val)
-  #define NTPSEC_PY_BYTE_FORMAT "s#"
  #endif /* !Python 3 */
 #endif // PYEXT
 
@@ -41,7 +39,7 @@ int dumbslew(int64_t s, int32_t us);
 int dumbstep(int64_t s, int32_t ns);
 uint64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot);
 
-const char *version = "2024.04.18";
+const char *version = "2024.04.21";
 int   SYS_TYPE = 1;
 int  PEER_TYPE = 2;
 int CLOCK_TYPE = 3;
