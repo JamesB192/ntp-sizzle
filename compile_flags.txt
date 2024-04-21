@@ -1,3 +1,4 @@
 -Ibuild
--Iinclude
+-I/opt/homebrew/opt/python3/Frameworks/Python.framework/Headers
 -std=c99
+-DPYEXT=1
