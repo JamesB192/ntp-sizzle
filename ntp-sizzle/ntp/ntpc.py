@@ -25,6 +25,7 @@ TYPE_CLOCK = 3
 
 
 def setprogname(_):
+    """"Take the name of the script being called and do nothing."""
     pass
 
 
@@ -156,6 +157,7 @@ peer_st_bits = [
 
 
 def getcode(tab, key):
+    """Interpet a code table to report a code there or synth."""
     try:
         tab2 = [x[0] for x in tab]
         key2 = tab2.index(key)
@@ -165,6 +167,7 @@ def getcode(tab, key):
 
 
 def sys_status(st):
+    """Report the system status string bits."""
     return [
         getcode(leap_codes, (st >> 14) & 0x3),
         getcode(sync_codes, (st >> 8) & 0x3f),
@@ -174,6 +177,7 @@ def sys_status(st):
 
 
 def peer_status(st):
+    """Report the peer status string bits."""
     pst = 0xff & (st >> 8)
     ret = [
         decode_bitflags(pst, ", ", peer_st_bits),
@@ -186,6 +190,7 @@ def peer_status(st):
 
 
 def clock_status(st):
+    """Report the reference clock status string bits."""
     return [
         getevents((st >> 4) & 0xf),
         getcode(clock_codes, st & 0xf),
@@ -193,6 +198,7 @@ def clock_status(st):
 
 
 def statustoa(typeof, st):
+    """Return the status string from a given type and status word(?)."""
     return ', '.join(typical[typeof](st)) if typeof in typical else ""
 
 
@@ -206,6 +212,7 @@ def getevents(cnt):
 
 
 def decode_bitflags(bits, sep2, tab):
+    """Return a string with expanded bit-vectors; This is not snprintb."""
     pieces = []
     for row in tab:
         if row[0] & bits:
@@ -233,7 +240,7 @@ def lfp_stamp_to_tval(when, pivot=PIVOT):
 
 
 def step_systime(bigstep, pivot=PIVOT):
-    # Adjust system time by stepping.
+    """Adjust system time by stepping."""
     tval = lfp_stamp_to_tval(bigstep, pivot)
     retval = c.step(*tval)
     if retval == 0:
@@ -242,7 +249,7 @@ def step_systime(bigstep, pivot=PIVOT):
 
 
 def adj_systime(bigstep, pivot=PIVOT):
-    # Adjust system time by slewing.
+    """Adjust system time by slewing."""
     tspec = lfp_stamp_to_tspec(bigstep, pivot)
     retval = c.slew(*tspec)
     if retval == 0:
