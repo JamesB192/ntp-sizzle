@@ -10,7 +10,7 @@ setup(
     author_email='JamesB.fe80@gmail.com',
     maintainer='James Browning',
     maintainer_email='JamesB.fe80@gmail.com',
-    license='BSD 2-Clause License',
+    license='BSD-2-Clause License',
     url='https://github.com/JamesB192/ntp-sizzle.git',
     long_description="README.md",
     long_description_content_type="text/markdown",
@@ -48,30 +48,24 @@ setup(
         'scripts/ntpwait',
     ],
     classifiers=[
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 2',
-        'License :: OSI Approved :: BSD-2-Clause',
+        'Programming Language :: Python :: 3.13',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 2.6',
+        'License :: OSI Approved :: BSD License',
         'Operating System :: POSIX',
         'Development Status :: 5 - Production/Stable',        
     ],
     project_urls = {
-        # 'Bug Tracker':' 'https://github.com/jamesb192/ntp-sizzle',
+        'Bug Tracker': 'https://github.com/jamesb192/ntp-sizzle',
         'IRC': 'https://web.libera.chat/',
-        # 'Project': 'https://github.com/jamesb192/ntp-sizzle',
-        # 'Support': 'https://gpsd.io/SUPPORT.html',
+        'Project': 'https://github.com/jamesb192/ntp-sizzle',
         'TipLink': 'https://www.patreon.com/JamesB192',
     }
 )
-
-"""
-[metadata]
-long_description = file: README.md
-long_description_content_type = text/markdown
-
-[options]
-package_dir =
-    = src
-packages = gps
-scripts = @SCRIPTS@
-
-"""
