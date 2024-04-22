@@ -25,11 +25,11 @@ This module is a Fork of NTPsecs' 'ntp' python module for installs not blessed b
 There are none; deal with it. In particular, DON'T clog the NTPsec community support asking for help with this.
 
 ## Credit
-The members of the NTP and NTPsec communities who have worked so hard on the clients, libntp and its' spiritual successor the ntp Pytnon module.
+The members of the NTP and NTPsec communities who have worked so hard on the clients, libntp and its' spiritual successor the ntp Python module.
 
 ## LICENSE
 
-This parent software (The clients and ntp module of NTPsec) is released under the terms and conditions of the BSD-2-Clause License, including a copy in the file gps/COPYING.
+This parent software (The clients and ntp module of NTPsec) is released under the terms and conditions of the BSD-2-Clause License, including a copy in the file COPYING.
 
 The parent software and its bits are Copyrighted by the NTPsec project.
 

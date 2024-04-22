@@ -1,6 +1,10 @@
 """Build a PyPI package containing library and scripts for NTPsec use."""
 
+from pathlib import Path
 from setuptools import Extension, find_packages, setup
+
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.markdown").read_text()
 
 setup(
     name='ntp-sizzle',
@@ -12,7 +16,7 @@ setup(
     maintainer_email='JamesB.fe80@gmail.com',
     license='BSD-2-Clause License',
     url='https://github.com/JamesB192/ntp-sizzle.git',
-    long_description="README.md",
+    long_description=long_description,
     long_description_content_type="text/markdown",
     ext_modules=[
         Extension(
