@@ -181,7 +181,7 @@ def peer_status(st):
         getevents((st >> 4) & 0xf),
     ]
     if (st & ~ntp.magic.PEER_EVENT) != ntp.magic.EVNT_UNSPEC:
-        ret.append(getcode(peer_codes, 128 + (st & 0xf)))  # FIXME
+        ret.append(getcode(peer_codes, 128 | (st & 0xf)))
     return ret
 
 
