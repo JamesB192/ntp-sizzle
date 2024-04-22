@@ -71,5 +71,6 @@ setup(
         'IRC': 'https://web.libera.chat/',
         'Project': 'https://github.com/jamesb192/ntp-sizzle',
         'TipLink': 'https://www.patreon.com/JamesB192',
-    }
+    },
+    data_files=["COPYING", ["COPYING"]],
 )
