@@ -304,3 +304,5 @@ def mac(data, key, name):
         work.update(ntp.poly.polybytes(data))
         return work.finalize()[:20]
     return b''
+
+ntp.util.stdversioncheck(c.version)

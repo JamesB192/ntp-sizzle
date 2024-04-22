@@ -39,7 +39,7 @@ int dumbslew(int64_t s, int32_t us);
 int dumbstep(int64_t s, int32_t ns);
 uint64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot);
 
-const char *version = "2024.04.21";
+const char *version = "2024.04.22";
 int   SYS_TYPE = 1;
 int  PEER_TYPE = 2;
 int CLOCK_TYPE = 3;

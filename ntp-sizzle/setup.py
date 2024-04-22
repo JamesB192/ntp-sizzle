@@ -4,7 +4,7 @@ from setuptools import Extension, find_packages, setup
 
 setup(
     name='ntp-sizzle',
-    version='2024.04.21',
+    version='2024.04.22',
     description='A standalone fork of NTP tools originally from NTPsec',
     author='James Browning',
     author_email='JamesB.fe80@gmail.com',
