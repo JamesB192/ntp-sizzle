@@ -17,11 +17,11 @@ try:
     import ntp.packet
     import ntp.util
     import ntp.agentx_packet
+
     ax = ntp.agentx_packet
     from ntp.agentx import PacketControl
 except ImportError as e:
-    sys.stderr.write(
-        "ntpsnmpd: can't find Python NTP library.\n")
+    sys.stderr.write("ntpsnmpd: can't find Python NTP library.\n")
     sys.stderr.write("%s\n" % e)
     sys.exit(1)
 
@@ -30,11 +30,9 @@ except ImportError as e:
 ntp.util.deunicode_units()
 
 logfp = sys.stderr
-nofork = False
-debug = 0
-defaultTimeout = 30
-
-log = (lambda msg, msgdbg: ntp.util.dolog(logfp, msg, debug, msgdbg))
+NO_FORK = False
+DEBUG = 0
+DEFAULT_TIMEOUT = 30
 
 ntpRootOID = (1, 3, 6, 1, 2, 1, 197)  # mib-2 . 197, aka: NTPv4-MIB
 
@@ -45,8 +43,14 @@ DEFHOST = "localhost"
 DEFLOG = "ntpsnmpd.log"
 
 
+def log(msg, msgdbg):
+    ntp.util.dolog(logfp, msg, DEBUG, msgdbg)
+
+
 class DataSource(ntp.agentx.MIBControl):
-    def __init__(self, hostname=DEFHOST, settingsFile=None, notifySpin=0.1):
+    def __init__(
+        self, hostname=DEFHOST, settings_file=None, notify_spin=0.1
+    ):
         # This is defined as a dict tree because it is simpler, and avoids
         # certain edge cases
         # OIDs are relative from ntp root
@@ -64,122 +68,203 @@ class DataSource(ntp.agentx.MIBControl):
         self.addNode((0, 8))  # ntpEntNotifHeartbeat
         # block 1
         # block 1, 1
-        self.addNode((1, 1, 1, 0),  # ntpNetSoftwareName utf8str
-                     (lambda oid: self.cbr_systemInfo(oid, "name")))
-        self.addNode((1, 1, 2, 0),  # ntpEntSoftwareVersion utf8str
-                     (lambda oid: self.cbr_systemInfo(oid, "version")))
-        self.addNode((1, 1, 3, 0),  # ntpEntSoftwareVendor utf8str
-                     (lambda oid: self.cbr_systemInfo(oid, "vendor")))
-        self.addNode((1, 1, 4, 0),  # ntpEntSystemType utf8str
-                     (lambda oid: self.cbr_systemInfo(oid, "system")))
-        self.addNode((1, 1, 5, 0),  # ntpEntTimeResolution uint32
-                     self.cbr_timeResolution)
-        self.addNode((1, 1, 6, 0),  # ntpEntTimePrecision int32
-                     self.cbr_timePrecision)
-        self.addNode((1, 1, 7, 0),  # ntpEntTimeDistance DisplayString
-                     self.cbr_timeDistance)
+        self.addNode(
+            (1, 1, 1, 0),  # ntpNetSoftwareName utf8str
+            (lambda oid: self.cbr_system_info(oid, "name")),
+        )
+        self.addNode(
+            (1, 1, 2, 0),  # ntpEntSoftwareVersion utf8str
+            (lambda oid: self.cbr_system_info(oid, "version")),
+        )
+        self.addNode(
+            (1, 1, 3, 0),  # ntpEntSoftwareVendor utf8str
+            (lambda oid: self.cbr_system_info(oid, "vendor")),
+        )
+        self.addNode(
+            (1, 1, 4, 0),  # ntpEntSystemType utf8str
+            (lambda oid: self.cbr_system_info(oid, "system")),
+        )
+        self.addNode(
+            (1, 1, 5, 0),
+            self.cbr_time_resolution,  # ntpEntTimeResolution uint32
+        )
+        self.addNode(
+            (1, 1, 6, 0), self.cbr_time_precision
+        )  # ntpEntTimePrecision int32
+        self.addNode(
+            (1, 1, 7, 0),
+            self.cbr_time_distance,  # ntpEntTimeDistance DisplayString
+        )
         # block 1, 2
-        self.addNode((1, 2, 1, 0),  # ntpEntStatusCurrentMode INTEGER {...}
-                     self.cbr_statusCurrentMode)
-        self.addNode((1, 2, 2, 0),  # ntpEntStatusStratum NtpStratum
-                     self.cbr_statusStratum)
-        self.addNode((1, 2, 3, 0),  # ntpEntStatusActiveRefSourceId uint32
-                     self.cbr_statusActiveRefSourceID)
-        self.addNode((1, 2, 4, 0),  # ntpEntStatusActiveRefSourceName utf8str
-                     self.cbr_statusActiveRefSourceName)
-        self.addNode((1, 2, 5, 0),  # ntpEntStatusActiveOffset DisplayString
-                     self.cbr_statusActiveOffset)
-        self.addNode((1, 2, 6, 0),  # ntpEntStatusNumberOfRefSources unit32
-                     self.cbr_statusNumRefSources)
-        self.addNode((1, 2, 7, 0),  # ntpEntStatusDispersion DisplayString
-                     self.cbr_statusDispersion)
-        self.addNode((1, 2, 8, 0),  # ntpEntStatusEntityUptime TimeTicks
-                     self.cbr_statusEntityUptime)
-        self.addNode((1, 2, 9, 0),  # ntpEntStatusDateTime NtpDateTime
-                     self.cbr_statusDateTime)
-        self.addNode((1, 2, 10, 0),  # ntpEntStatusLeapSecond NtpDateTime
-                     self.cbr_statusLeapSecond)
-        self.addNode((1, 2, 11, 0),  # ntpEntStatusLeapSecondDirection int32
-                     self.cbr_statusLeapSecDirection)
-        self.addNode((1, 2, 12, 0),  # ntpEntStatusInPkts Counter32
-                     self.cbr_statusInPkts)
-        self.addNode((1, 2, 13, 0),  # ntpEntStatusOutPkts Counter32
-                     self.cbr_statusOutPkts)
-        self.addNode((1, 2, 14, 0),  # ntpEntStatusBadVersion Counter32
-                     self.cbr_statusBadVersion)
-        self.addNode((1, 2, 15, 0),  # ntpEntStatusProtocolError Counter32
-                     self.cbr_statusProtocolError)
-        self.addNode((1, 2, 16, 0),  # ntpEntStatusNotifications Counter32
-                     self.cbr_statusNotifications)
-        self.addNode((1, 2, 17, 1, 1))  # ntpEntStatPktMode INTEGER {...}
+        self.addNode(
+            (1, 2, 1, 0),  # ntpEntStatusCurrentMode INTEGER {...}
+            self.cbr_status_current_mode,
+        )
+        self.addNode(
+            (1, 2, 2, 0),
+            self.cbr_status_stratum,  # ntpEntStatusStratum NtpStratum
+        )
+        self.addNode(
+            (1, 2, 3, 0),  # ntpEntStatusActiveRefSourceId uint32
+            self.cbr_status_active_ref_source_id,
+        )
+        self.addNode(
+            (1, 2, 4, 0),  # ntpEntStatusActiveRefSourceName utf8str
+            self.cbr_status_active_ref_source_name,
+        )
+        self.addNode(
+            (1, 2, 5, 0),  # ntpEntStatusActiveOffset DisplayString
+            self.cbr_status_active_offset,
+        )
+        self.addNode(
+            (1, 2, 6, 0),  # ntpEntStatusNumberOfRefSources unit32
+            self.cbr_status_num_ref_sources,
+        )
+        self.addNode(
+            (1, 2, 7, 0),  # ntpEntStatusDispersion DisplayString
+            self.cbr_status_dispersion,
+        )
+        self.addNode(
+            (1, 2, 8, 0),  # ntpEntStatusEntityUptime TimeTicks
+            self.cbr_status_entity_uptime,
+        )
+        self.addNode(
+            (1, 2, 9, 0),
+            self.cbr_status_date_time,  # ntpEntStatusDateTime NtpDateTime
+        )
+        self.addNode(
+            (1, 2, 10, 0),  # ntpEntStatusLeapSecond NtpDateTime
+            self.cbr_status_leap_second,
+        )
+        self.addNode(
+            (1, 2, 11, 0),  # ntpEntStatusLeapSecondDirection int32
+            self.cbr_status_leap_sec_direction,
+        )
+        self.addNode(
+            (1, 2, 12, 0),
+            self.cbr_status_in_pkts,  # ntpEntStatusInPkts Counter32
+        )
+        self.addNode(
+            (1, 2, 13, 0),
+            self.cbr_status_out_pkts,  # ntpEntStatusOutPkts Counter32
+        )
+        self.addNode(
+            (1, 2, 14, 0),
+            self.cbr_status_bad_version,  # ntpEntStatusBadVersion Counter32
+        )
+        self.addNode(
+            (1, 2, 15, 0),  # ntpEntStatusProtocolError Counter32
+            self.cbr_status_protocol_error,
+        )
+        self.addNode(
+            (1, 2, 16, 0),  # ntpEntStatusNotifications Counter32
+            self.cbr_status_notifications,
+        )
+        self.addNode(
+            (1, 2, 17, 1, 1)
+        )  # ntpEntStatPktMode INTEGER {...}
         self.addNode((1, 2, 17, 1, 2))  # ntpEntStatPktSent Counter32
         self.addNode((1, 2, 17, 1, 3))  # ntpEntStatPktRecived Counter32
         # block 1, 3
-        self.addNode((1, 3, 1, 1, 1),  # ntpAssocId uint32 (1..99999)
-                     dynamic=self.sub_assocID)
-        self.addNode((1, 3, 1, 1, 2),  # ntpAssocName utf8str
-                     dynamic=self.sub_assocName)
-        self.addNode((1, 3, 1, 1, 3),  # ntpAssocRefId DisplayString
-                     dynamic=self.sub_assocRefID)
-        self.addNode((1, 3, 1, 1, 4),  # ntpAssocAddressType InetAddressType
-                     dynamic=self.sub_assocAddrType)
-        self.addNode((1, 3, 1, 1, 5),  # ntpAssocAddress InetAddress SIZE
-                     dynamic=self.sub_assocAddr)
-        self.addNode((1, 3, 1, 1, 6),  # ntpAssocOffset DisplayString
-                     dynamic=self.sub_assocOffset)
-        self.addNode((1, 3, 1, 1, 7),  # ntpAssocStratum NtpStratum
-                     dynamic=self.sub_assocStratum)
-        self.addNode((1, 3, 1, 1, 8),  # ntpAssocStatusJitter DisplayString
-                     dynamic=self.sub_assocJitter)
-        self.addNode((1, 3, 1, 1, 9),  # ntpAssocStatusDelay DisplayString
-                     dynamic=self.sub_assocDelay)
-        self.addNode((1, 3, 1, 1, 10),  # ntpAssocStatusDispersion DisplayStr
-                     dynamic=self.sub_assocDispersion)
-        self.addNode((1, 3, 2, 1, 1),  # ntpAssocStatInPkts Counter32
-                     dynamic=self.sub_assocStatInPkts)
-        self.addNode((1, 3, 2, 1, 2),  # ntpAssocStatOutPkts Counter32
-                     dynamic=self.sub_assocStatOutPkts)
-        self.addNode((1, 3, 2, 1, 3),  # ntpAssocStatProtocolError Counter32
-                     dynamic=self.sub_assocStatProtoErr)
+        self.addNode(
+            (1, 3, 1, 1, 1),
+            dynamic=self.sub_assoc_id,  # ntpAssocId uint32 (1..99999)
+        )
+        self.addNode(
+            (1, 3, 1, 1, 2),
+            dynamic=self.sub_assoc_name,  # ntpAssocName utf8str
+        )
+        self.addNode(
+            (1, 3, 1, 1, 3),
+            dynamic=self.sub_assoc_ref_id,  # ntpAssocRefId DisplayString
+        )
+        self.addNode(
+            (1, 3, 1, 1, 4),  # ntpAssocAddressType InetAddressType
+            dynamic=self.sub_assoc_addr_type,
+        )
+        self.addNode(
+            (1, 3, 1, 1, 5),  # ntpAssocAddress InetAddress SIZE
+            dynamic=self.sub_assoc_addr,
+        )
+        self.addNode(
+            (1, 3, 1, 1, 6),  # ntpAssocOffset DisplayString
+            dynamic=self.sub_assoc_offset,
+        )
+        self.addNode(
+            (1, 3, 1, 1, 7),
+            dynamic=self.sub_assoc_stratum,  # ntpAssocStratum NtpStratum
+        )
+        self.addNode(
+            (1, 3, 1, 1, 8),  # ntpAssocStatusJitter DisplayString
+            dynamic=self.sub_assoc_jitter,
+        )
+        self.addNode(
+            (1, 3, 1, 1, 9),  # ntpAssocStatusDelay DisplayString
+            dynamic=self.sub_assoc_delay,
+        )
+        self.addNode(
+            (1, 3, 1, 1, 10),  # ntpAssocStatusDispersion DisplayStr
+            dynamic=self.sub_assoc_dispersion,
+        )
+        self.addNode(
+            (1, 3, 2, 1, 1),  # ntpAssocStatInPkts Counter32
+            dynamic=self.sub_assoc_stat_in_pkts,
+        )
+        self.addNode(
+            (1, 3, 2, 1, 2),  # ntpAssocStatOutPkts Counter32
+            dynamic=self.sub_assoc_stat_out_pkts,
+        )
+        self.addNode(
+            (1, 3, 2, 1, 3),  # ntpAssocStatProtocolError Counter32
+            dynamic=self.sub_assoc_stat_proto_err,
+        )
         # block 1, 4
-        self.addNode((1, 4, 1, 0),  # ntpEntHeartbeatInterval unit32
-                     self.cbr_entHeartbeatInterval,
-                     self.cbw_entHeartbeatInterval)
-        self.addNode((1, 4, 2, 0),  # ntpEntNotifBits BITS {...}
-                     self.cbr_entNotifBits,
-                     self.cbw_entNotifBits)
+        self.addNode(
+            (1, 4, 1, 0),  # ntpEntHeartbeatInterval unit32
+            self.cbr_ent_heartbeat_interval,
+            self.cbw_ent_heartbeat_interval,
+        )
+        self.addNode(
+            (1, 4, 2, 0),  # ntpEntNotifBits BITS {...}
+            self.cbr_ent_notif_bits,
+            self.cbw_ent_notif_bits,
+        )
         # block 1, 5
-        self.addNode((1, 5, 1, 0),  # ntpEntNotifMessage utf8str
-                     self.cbr_entNotifMessage)
+        self.addNode(
+            (1, 5, 1, 0),
+            self.cbr_ent_notif_message,  # ntpEntNotifMessage utf8str
+        )
         # block 2 # all compliance statements
         # print(repr(self.oidTree))
         # print(self.oidTree[1]["subids"][1][1][0])
         self.session = ntp.packet.ControlSession()
         self.hostname = hostname if hostname else DEFHOST
         self.session.openhost(self.hostname)
-        self.settingsFilename = settingsFile
+        self.settings_filename = settings_file
         # Cache so we don't hammer ntpd, default 1 second timeout
         # Timeout default pulled from a hat: we don't want it to last for
         # long, just not flood ntpd with duplicatte requests during a walk.
         self.cache = ntp.util.Cache(1)
-        self.oldValues = {}  # Used by notifications to detect changes
+        self.old_values = {}  # Used by notifications to detect changes
         # spinGap so we don't spam ntpd with requests during notify checks
-        self.notifySpinTime = notifySpin
-        self.lastNotifyCheck = 0
-        self.lastHeartbeat = 0  # Timestamp used for heartbeat notifications
-        self.heartbeatInterval = 0  # should save to disk
-        self.sentNotifications = 0
+        self.notify_spin_time = notify_spin
+        self.last_notify_check = 0
+        self.last_heartbeat = (
+            0  # Timestamp used for heartbeat notifications
+        )
+        self.heartbeat_interval = 0  # should save to disk
+        self.sent_notifications = 0
         # Notify bits, they control whether the daemon sends notifications.
         # these are saved to disk
-        self.notifyModeChange = False  # 1
-        self.notifyStratumChange = False  # 2
-        self.notifySyspeerChange = False  # 3
-        self.notifyAddAssociation = False  # 4
-        self.notifyRMAssociation = False  # 5
-        self.notifyConfigChange = False  # 6 [This is not implemented]
-        self.notifyLeapSecondAnnounced = False  # 7
-        self.notifyHeartbeat = False  # 8
-        self.misc_loadDynamicSettings()
+        self.notify_mode_change = False  # 1
+        self.notify_stratum_change = False  # 2
+        self.notify_syspeer_change = False  # 3
+        self.notify_add_association = False  # 4
+        self.notify_remove_association = False  # 5
+        self.notify_config_change = False  # 6 [This is not implemented]
+        self.notify_leap_second_announced = False  # 7
+        self.notify_heartbeat = False  # 8
+        self.misc_load_dynamic_settings()
 
     # =============================================================
     # Data read callbacks start here
@@ -188,7 +273,7 @@ class DataSource(ntp.agentx.MIBControl):
 
     # Blank: notification OIDs
 
-    def cbr_systemInfo(self, oid, category=None):
+    def cbr_system_info(self, oid, category=None):
         if category == "name":  # The product name of the running NTP
             data = "NTPsec"
         elif category == "version":  # version string
@@ -202,10 +287,10 @@ class DataSource(ntp.agentx.MIBControl):
         vb = ax.Varbind(ax.VALUE_OCTET_STR, oid, data)
         return vb
 
-    def cbr_timeResolution(self, oid):
+    def cbr_time_resolution(self, oid):
         # Uinteger32
         # Arrives in fractional milliseconds
-        fuzz = self.safeReadvar(0, ["fuzz"])
+        fuzz = self.safe_readvar(0, ["fuzz"])
         if fuzz is None:
             return None
         fuzz = fuzz["fuzz"]
@@ -218,53 +303,57 @@ class DataSource(ntp.agentx.MIBControl):
             fuzz = 0
         return ax.Varbind(ax.VALUE_GAUGE32, oid, fuzz)
 
-    def cbr_timePrecision(self, oid):
-        return self.readCallbackSkeletonSimple(oid, "precision",
-                                               ax.VALUE_INTEGER)
+    def cbr_time_precision(self, oid):
+        return self.read_callback_skeleton_simple(
+            oid, "precision", ax.VALUE_INTEGER
+        )
 
-    def cbr_timeDistance(self, oid):
+    def cbr_time_distance(self, oid):
         # Displaystring
-        data = self.safeReadvar(0, ["rootdist"], raw=True)
+        data = self.safe_readvar(0, ["rootdist"], raw=True)
         if data is None:
             return None
-        data = ntp.util.unitifyvar(data["rootdist"][1], "rootdist",
-                                   width=None, unitSpace=True)
+        data = ntp.util.unitifyvar(
+            data["rootdist"][1], "rootdist", width=None, unitSpace=True
+        )
         return ax.Varbind(ax.VALUE_OCTET_STR, oid, data)
 
     # Blank: ntpEntStatus
 
-    def cbr_statusCurrentMode(self, oid):
-        mode = self.misc_getMode()
+    def cbr_status_current_mode(self, oid):
+        mode = self.misc_get_mode()
         return ax.Varbind(ax.VALUE_INTEGER, oid, mode)
 
-    def cbr_statusStratum(self, oid):
+    def cbr_status_stratum(self, oid):
         # NTPstratum
-        return self.readCallbackSkeletonSimple(oid, "stratum",
-                                               ax.VALUE_GAUGE32)
+        return self.read_callback_skeleton_simple(
+            oid, "stratum", ax.VALUE_GAUGE32
+        )
 
-    def cbr_statusActiveRefSourceID(self, oid):
+    def cbr_status_active_ref_source_id(self, oid):
         # range of uint32
-        syspeer = self.misc_getSyspeerID()
+        syspeer = self.misc_get_syspeer_id()
         return ax.Varbind(ax.VALUE_GAUGE32, oid, syspeer)
 
-    def cbr_statusActiveRefSourceName(self, oid):
+    def cbr_status_active_ref_source_name(self, oid):
         # utf8
-        data = self.safeReadvar(0, ["peeradr"])
+        data = self.safe_readvar(0, ["peeradr"])
         if data is None:
             return None
         data = ntp.util.canonicalize_dns(data["peeradr"])
         return ax.Varbind(ax.VALUE_OCTET_STR, oid, data)
 
-    def cbr_statusActiveOffset(self, oid):
+    def cbr_status_active_offset(self, oid):
         # DisplayString
-        data = self.safeReadvar(0, ["koffset"], raw=True)
+        data = self.safe_readvar(0, ["koffset"], raw=True)
         if data is None:
             return None
-        data = ntp.util.unitifyvar(data["koffset"][1], "koffset",
-                                   width=None, unitSpace=True)
+        data = ntp.util.unitifyvar(
+            data["koffset"][1], "koffset", width=None, unitSpace=True
+        )
         return ax.Varbind(ax.VALUE_OCTET_STR, oid, data)
 
-    def cbr_statusNumRefSources(self, oid):
+    def cbr_status_num_ref_sources(self, oid):
         # range of uint32
         try:
             data = self.session.readstat()
@@ -272,14 +361,14 @@ class DataSource(ntp.agentx.MIBControl):
         except ntp.packet.ControlException:
             return None
 
-    def cbr_statusDispersion(self, oid):
+    def cbr_status_dispersion(self, oid):
         # DisplayString
-        data = self.safeReadvar(0, ["rootdisp"], raw=True)
+        data = self.safe_readvar(0, ["rootdisp"], raw=True)
         if data is None:
             return None
         return ax.Varbind(ax.VALUE_OCTET_STR, oid, data["rootdisp"][1])
 
-    def cbr_statusEntityUptime(self, oid):
+    def cbr_status_entity_uptime(self, oid):
         # TimeTicks
         # What the spec claims:
         #   The uptime of the NTP entity, (i.e., the time since ntpd was
@@ -293,44 +382,48 @@ class DataSource(ntp.agentx.MIBControl):
         #  That is the opposite of what the spec claims.
         #
         # I am abandoning the spec, and going with what makes a lick of sense
-        uptime = self.safeReadvar(0, ["ss_reset"])
+        uptime = self.safe_readvar(0, ["ss_reset"])
         if uptime is None:
             return None
         uptime = uptime["ss_reset"] * 100
         return ax.Varbind(ax.VALUE_TIME_TICKS, oid, uptime)
 
-    def cbr_statusDateTime(self, oid):
+    def cbr_status_date_time(self, oid):
         # NtpDateTime
-        data = self.safeReadvar(0, ["reftime"])
+        data = self.safe_readvar(0, ["reftime"])
         if data is None:
             return None
         txt = data["reftime"]
         value = ntp.util.deformatNTPTime(txt)
         return ax.Varbind(ax.VALUE_OCTET_STR, oid, value)
 
-    def cbr_statusLeapSecond(self, oid):  # I am not confident in this yet
+    def cbr_status_leap_second(
+        self, oid
+    ):  # I am not confident in this yet
         # NtpDateTime
-        DAY = 86400
+        day = 86400
         fmt = "%.8x%.8x"
-        data = self.safeReadvar(0, ["reftime"])
-        hasleap = self.safeReadvar(0, ["leap"])
+        data = self.safe_readvar(0, ["reftime"])
+        hasleap = self.safe_readvar(0, ["leap"])
         if (data is None) or (hasleap is None):
             return None
         data = data["reftime"]
         hasleap = hasleap["leap"]
         if hasleap in (1, 2):
             seconds = int(data.split(".")[0], 0)
-            days = seconds // DAY
-            scheduled = (days * DAY) + (DAY - 1)  # 23:59:59 of $CURRENT_DAY
+            days = seconds // day
+            scheduled = (days * day) + (
+                day - 1
+            )  # 23:59:59 of $CURRENT_DAY
             formatted = fmt % (scheduled, 0)
         else:
             formatted = fmt % (0, 0)
         value = ntp.util.hexstr2octets(formatted)
         return ax.Varbind(ax.VALUE_OCTET_STR, oid, value)
 
-    def cbr_statusLeapSecDirection(self, oid):
+    def cbr_status_leap_sec_direction(self, oid):
         # range of int32
-        leap = self.safeReadvar(0, ["leap"])
+        leap = self.safe_readvar(0, ["leap"])
         if leap is None:
             return None
         leap = leap["leap"]
@@ -342,20 +435,23 @@ class DataSource(ntp.agentx.MIBControl):
             leap = 0  # leap 0 or 3 == no change
         return ax.Varbind(ax.VALUE_INTEGER, oid, leap)
 
-    def cbr_statusInPkts(self, oid):
-        return self.readCallbackSkeletonSimple(oid, "io_received",
-                                               ax.VALUE_COUNTER32)
+    def cbr_status_in_pkts(self, oid):
+        return self.read_callback_skeleton_simple(
+            oid, "io_received", ax.VALUE_COUNTER32
+        )
 
-    def cbr_statusOutPkts(self, oid):
-        return self.readCallbackSkeletonSimple(oid, "io_sent",
-                                               ax.VALUE_COUNTER32)
+    def cbr_status_out_pkts(self, oid):
+        return self.read_callback_skeleton_simple(
+            oid, "io_sent", ax.VALUE_COUNTER32
+        )
 
-    def cbr_statusBadVersion(self, oid):
-        return self.readCallbackSkeletonSimple(oid, "ss_oldver",
-                                               ax.VALUE_COUNTER32)
+    def cbr_status_bad_version(self, oid):
+        return self.read_callback_skeleton_simple(
+            oid, "ss_oldver", ax.VALUE_COUNTER32
+        )
 
-    def cbr_statusProtocolError(self, oid):
-        data = self.safeReadvar(0, ["ss_badformat", "ss_badauth"])
+    def cbr_status_protocol_error(self, oid):
+        data = self.safe_readvar(0, ["ss_badformat", "ss_badauth"])
         if data is None:
             return None
         protoerr = 0
@@ -363,8 +459,10 @@ class DataSource(ntp.agentx.MIBControl):
             protoerr += data[key]
         return ax.Varbind(ax.VALUE_COUNTER32, oid, protoerr)
 
-    def cbr_statusNotifications(self, oid):
-        return ax.Varbind(ax.VALUE_COUNTER32, oid, self.sentNotifications)
+    def cbr_status_notifications(self, oid):
+        return ax.Varbind(
+            ax.VALUE_COUNTER32, oid, self.sent_notifications
+        )
 
     ##############################
 
@@ -385,26 +483,32 @@ class DataSource(ntp.agentx.MIBControl):
 
     #########################
 
-    def cbr_entHeartbeatInterval(self, oid):
+    def cbr_ent_heartbeat_interval(self, oid):
         # uint32
-        return ax.Varbind(ax.VALUE_GAUGE32, oid, self.heartbeatInterval)
+        return ax.Varbind(
+            ax.VALUE_GAUGE32, oid, self.heartbeat_interval
+        )
 
-    def cbr_entNotifBits(self, oid):
+    def cbr_ent_notif_bits(self, oid):
         # BITS
-        data = ax.bools2Bits((False,  # notUsed(0)
-                              self.notifyModeChange,
-                              self.notifyStratumChange,
-                              self.notifySyspeerChange,
-                              self.notifyAddAssociation,
-                              self.notifyRMAssociation,
-                              self.notifyConfigChange,
-                              self.notifyLeapSecondAnnounced,
-                              self.notifyHeartbeat))
+        data = ax.bools2Bits(
+            (
+                False,  # notUsed(0)
+                self.notify_mode_change,
+                self.notify_stratum_change,
+                self.notify_syspeer_change,
+                self.notify_add_association,
+                self.notify_remove_association,
+                self.notify_config_change,
+                self.notify_leap_second_announced,
+                self.notify_heartbeat,
+            )
+        )
         return ax.Varbind(ax.VALUE_OCTET_STR, oid, data)
 
     ##########################
 
-    def cbr_entNotifMessage(self, oid):
+    def cbr_ent_notif_message(self, oid):
         # utf8str
         return ax.Varbind(ax.VALUE_OCTET_STR, oid, "no event")
 
@@ -418,47 +522,55 @@ class DataSource(ntp.agentx.MIBControl):
     # Actions: test, undo, commit, cleanup
     # =====================================
 
-    def cbw_entHeartbeatInterval(self, action, varbind, oldData=None):
+    def cbw_ent_heartbeat_interval(
+        self, action, varbind, old_data=None
+    ):
         if action == "test":
             return ax.ERR_NOERROR
-        elif action == "commit":
-            self.heartbeatInterval = varbind.payload
-            self.misc_storeDynamicSettings()
+        if action == "commit":
+            self.heartbeat_interval = varbind.payload
+            self.misc_store_dynamic_settings()
             return ax.ERR_NOERROR
-        elif action == "undo":
-            self.heartbeatInterval = oldData
-            self.misc_storeDynamicSettings()
+        if action == "undo":
+            self.heartbeat_interval = old_data
+            self.misc_store_dynamic_settings()
             return ax.ERR_NOERROR
-        elif action == "cleanup":
+        if action == "cleanup":
             pass
+        return None
 
-    def cbw_entNotifBits(self, action, varbind, oldData=None):
+    def cbw_ent_notif_bits(self, action, varbind, old_data=None):
         if action == "test":
             return ax.ERR_NOERROR
-        elif action == "commit":
-            (self.notifyModeChange,
-             self.notifyStratumChange,
-             self.notifySyspeerChange,
-             self.notifyAddAssociation,
-             self.notifyRMAssociation,
-             self.notifyConfigChange,
-             self.notifyLeapSecondAnnounced,
-             self.notifyHeartbeat) = ax.bits2Bools(varbind.payload, 8)
-            self.misc_storeDynamicSettings()
+        if action == "commit":
+            (
+                self.notify_mode_change,
+                self.notify_stratum_change,
+                self.notify_syspeer_change,
+                self.notify_add_association,
+                self.notify_remove_association,
+                self.notify_config_change,
+                self.notify_leap_second_announced,
+                self.notify_heartbeat,
+            ) = ax.bits2Bools(varbind.payload, 8)
+            self.misc_store_dynamic_settings()
             return ax.ERR_NOERROR
-        elif action == "undo":
-            (self.notifyModeChange,
-             self.notifyStratumChange,
-             self.notifySyspeerChange,
-             self.notifyAddAssociation,
-             self.notifyRMAssociation,
-             self.notifyConfigChange,
-             self.notifyLeapSecondAnnounced,
-             self.notifyHeartbeat) = ax.bits2Bools(oldData, 8)
-            self.misc_storeDynamicSettings()
+        if action == "undo":
+            (
+                self.notify_mode_change,
+                self.notify_stratum_change,
+                self.notify_syspeer_change,
+                self.notify_add_association,
+                self.notify_remove_association,
+                self.notify_config_change,
+                self.notify_leap_second_announced,
+                self.notify_heartbeat,
+            ) = ax.bits2Bools(old_data, 8)
+            self.misc_store_dynamic_settings()
             return ax.ERR_NOERROR
-        elif action == "cleanup":
+        if action == "cleanup":
             pass
+        return None
 
     # ========================================================================
     # Dynamic tree generator callbacks
@@ -475,29 +587,31 @@ class DataSource(ntp.agentx.MIBControl):
     # These are left as stubs for now. Information is lacking on where the
     # data should come from.
 
-    def sub_statPktMode(self):
+    def sub_stat_pkt_mode(self):
         pass
 
-    def sub_statPktSent(self):
+    def sub_stat_pkt_sent(self):
         pass
 
-    def sub_statPktRecv(self):
+    def sub_stat_pkt_recv(self):
         pass
 
     # Association Table
 
-    def sub_assocID(self):
+    def sub_assoc_id(self):
         def handler(oid, associd):
             return ax.Varbind(ax.VALUE_GAUGE32, oid, associd)
-        return self.dynamicCallbackSkeleton(handler)
 
-    def sub_assocName(self):
-        return self.dynamicCallbackPeerdata("srcadr", True,
-                                            ax.VALUE_OCTET_STR)
+        return self.dynamic_callback_skeleton(handler)
 
-    def sub_assocRefID(self):
+    def sub_assoc_name(self):
+        return self.dynamic_callback_peerdata(
+            "srcadr", True, ax.VALUE_OCTET_STR
+        )
+
+    def sub_assoc_ref_id(self):
         def handler(oid, associd):
-            pdata = self.misc_getPeerData()
+            pdata = self.misc_get_peer_data()
             if pdata is None:
                 return None
             # elaborate code in util.py indicates this may not be stable
@@ -506,11 +620,12 @@ class DataSource(ntp.agentx.MIBControl):
             except IndexError:
                 refid = ""
             return ax.Varbind(ax.VALUE_OCTET_STR, oid, refid)
-        return self.dynamicCallbackSkeleton(handler)
 
-    def sub_assocAddrType(self):
+        return self.dynamic_callback_skeleton(handler)
+
+    def sub_assoc_addr_type(self):
         def handler(oid, associd):
-            pdata = self.misc_getPeerData()
+            pdata = self.misc_get_peer_data()
             if pdata is None:
                 return None
             srcadr = pdata[associd]["srcadr"][1]
@@ -527,20 +642,21 @@ class DataSource(ntp.agentx.MIBControl):
                 # detect those yet. Or if I even need to.
                 addrtype = 0  # is this ok? or should it return a NULL?
             return ax.Varbind(ax.VALUE_INTEGER, oid, addrtype)
-        return self.dynamicCallbackSkeleton(handler)
 
-    def sub_assocAddr(self):
+        return self.dynamic_callback_skeleton(handler)
+
+    def sub_assoc_addr(self):
         def handler(oid, associd):
-            pdata = self.misc_getPeerData()
+            pdata = self.misc_get_peer_data()
             if pdata is None:
-                return None
+                return one
             srcadr = pdata[associd]["srcadr"][1]
             # WARNING: I am only guessing that this is correct
             # Discover what type of address we have
             try:
                 sockinfo = socket.getaddrinfo(srcadr, None)[0][-1]
                 addr = sockinfo[0]
-                ipv6 = True if len(sockinfo) == 4 else False
+                ipv6 = bool(len(sockinfo) == 4)
             except socket.gaierror:
                 addr = None  # how to handle?
                 ipv6 = None
@@ -550,7 +666,9 @@ class DataSource(ntp.agentx.MIBControl):
                 pieces = addr.split(".")
                 for piece in pieces:
                     try:
-                        srcadr.append(int(piece))  # feed it a list of ints
+                        srcadr.append(
+                            int(piece)
+                        )  # feed it a list of ints
                     except ValueError:
                         # Have gotten piece == "" before. Skip over that.
                         # Still try to return data because it is potential
@@ -564,179 +682,225 @@ class DataSource(ntp.agentx.MIBControl):
             # The octet string encoder can handle either chars or 0-255
             # ints. We use both of those options.
             return ax.Varbind(ax.VALUE_OCTET_STR, oid, srcadr)
-        return self.dynamicCallbackSkeleton(handler)
 
-    def sub_assocOffset(self):
+        return self.dynamic_callback_skeleton(handler)
+
+    def sub_assoc_offset(self):
         def handler(oid, associd):
-            pdata = self.misc_getPeerData()
+            pdata = self.misc_get_peer_data()
             if pdata is None:
                 return None
             offset = pdata[associd]["offset"][1]
-            offset = ntp.util.unitifyvar(offset, "offset", width=None,
-                                         unitSpace=True)
+            offset = ntp.util.unitifyvar(
+                offset, "offset", width=None, unitSpace=True
+            )
             return ax.Varbind(ax.VALUE_OCTET_STR, oid, offset)
-        return self.dynamicCallbackSkeleton(handler)
 
-    def sub_assocStratum(self):
-        return self.dynamicCallbackPeerdata("stratum", False,
-                                            ax.VALUE_GAUGE32)
+        return self.dynamic_callback_skeleton(handler)
 
-    def sub_assocJitter(self):
-        return self.dynamicCallbackPeerdata("jitter", True,
-                                            ax.VALUE_OCTET_STR)
+    def sub_assoc_stratum(self):
+        return self.dynamic_callback_peerdata(
+            "stratum", False, ax.VALUE_GAUGE32
+        )
 
-    def sub_assocDelay(self):
-        return self.dynamicCallbackPeerdata("delay", True,
-                                            ax.VALUE_OCTET_STR)
+    def sub_assoc_jitter(self):
+        return self.dynamic_callback_peerdata(
+            "jitter", True, ax.VALUE_OCTET_STR
+        )
 
-    def sub_assocDispersion(self):
-        return self.dynamicCallbackPeerdata("rootdisp", True,
-                                            ax.VALUE_OCTET_STR)
+    def sub_assoc_delay(self):
+        return self.dynamic_callback_peerdata(
+            "delay", True, ax.VALUE_OCTET_STR
+        )
 
-    def sub_assocStatInPkts(self):
+    def sub_assoc_dispersion(self):
+        return self.dynamic_callback_peerdata(
+            "rootdisp", True, ax.VALUE_OCTET_STR
+        )
+
+    def sub_assoc_stat_in_pkts(self):
         def handler(oid, associd):
-            inpkts = self.safeReadvar(associd, ["received"])
+            inpkts = self.safe_readvar(associd, ["received"])
             if inpkts is None:
                 return None
             inpkts = inpkts["received"]
             return ax.Varbind(ax.VALUE_COUNTER32, oid, inpkts)
-        return self.dynamicCallbackSkeleton(handler)
 
-    def sub_assocStatOutPkts(self):
+        return self.dynamic_callback_skeleton(handler)
+
+    def sub_assoc_stat_out_pkts(self):
         def handler(oid, associd):
-            outpkts = self.safeReadvar(associd, ["sent"])
+            outpkts = self.safe_readvar(associd, ["sent"])
             if outpkts is None:
                 return None
             outpkts = outpkts["sent"]
             return ax.Varbind(ax.VALUE_COUNTER32, oid, outpkts)
-        return self.dynamicCallbackSkeleton(handler)
 
-    def sub_assocStatProtoErr(self):
+        return self.dynamic_callback_skeleton(handler)
+
+    def sub_assoc_stat_proto_err(self):
         def handler(oid, associd):
-            pvars = self.safeReadvar(associd, ["badauth", "bogusorg",
-                                               "seldisp", "selbroken"])
+            pvars = self.safe_readvar(
+                associd, ["badauth", "bogusorg", "seldisp", "selbroken"]
+            )
             if pvars is None:
                 return None
             protoerr = 0
             for key in pvars.keys():
                 protoerr += pvars[key]
             return ax.Varbind(ax.VALUE_COUNTER32, oid, protoerr)
-        return self.dynamicCallbackSkeleton(handler)
+
+        return self.dynamic_callback_skeleton(handler)
 
     # =====================================
     # Notification handlers
     # =====================================
 
-    def checkNotifications(self, control):
-        currentTime = time.time()
-        if (currentTime - self.lastNotifyCheck) < self.notifySpinTime:
+    def check_notifications(self, control):
+        current_time = time.time()
+        if (
+            current_time - self.last_notify_check
+        ) < self.notify_spin_time:
             return
-        self.lastNotifyCheck = currentTime
+        self.last_notify_check = current_time
 
-        if self.notifyModeChange:
-            self.doNotifyModeChange(control)
+        if self.notify_mode_change:
+            self.do_notify_mode_change(control)
 
-        if self.notifyStratumChange:
-            self.doNotifyStratumChange(control)
+        if self.notify_stratum_change:
+            self.do_notify_stratum_change(control)
 
-        if self.notifySyspeerChange:
-            self.doNotifySyspeerChange(control)
+        if self.notify_syspeer_change:
+            self.do_notify_syspeer_change(control)
 
         # Both add and remove have to look at the same data, don't want them
         # stepping on each other. Therefore the functions are combined.
-        if self.notifyAddAssociation and self.notifyRMAssociation:
-            self.doNotifyChangeAssociation(control, "both")
-        elif self.notifyAddAssociation:
-            self.doNotifyChangeAssociation(control, "add")
-        elif self.notifyRMAssociation:
-            self.doNotifyChangeAssociation(control, "rm")
+        if (
+            self.notify_add_association
+            and self.notify_remove_association
+        ):
+            self.do_notify_change_association(control, "both")
+        elif self.notify_add_association:
+            self.do_notify_change_association(control, "add")
+        elif self.notify_remove_association:
+            self.do_notify_change_association(control, "rm")
 
-        if self.notifyConfigChange:
+        if self.notify_config_change:
             self.doNotifyConfigChange(control)
 
-        if self.notifyLeapSecondAnnounced:
-            self.doNotifyLeapSecondAnnounced(control)
+        if self.notify_leap_second_announced:
+            self.do_notify_leap_second_announced(control)
 
-        if self.notifyHeartbeat:
-            self.doNotifyHeartbeat(control)
+        if self.notify_heartbeat:
+            self.do_notify_heartbeat(control)
 
-    def doNotifyModeChange(self, control):
-        oldMode = self.oldValues.get("mode")
-        newMode = self.misc_getMode()  # connection failure handled by method
-        if oldMode is None:
-            self.oldValues["mode"] = newMode
+    def do_notify_mode_change(self, control):
+        old_mode = self.old_values.get("mode")
+        new_mode = (
+            self.misc_get_mode()
+        )  # connection failure handled by method
+        if old_mode is None:
+            self.old_values["mode"] = new_mode
             return
-        elif oldMode != newMode:
-            self.oldValues["mode"] = newMode
-            vl = [ax.Varbind(ax.VALUE_OID, snmpTrapOID,
-                             ax.OID(ntpRootOID + (0, 1))),
-                  ax.Varbind(ax.VALUE_INTEGER, ntpRootOID + (1, 2, 1),
-                             newMode)]
+        if old_mode != new_mode:
+            self.old_values["mode"] = new_mode
+            vl = [
+                ax.Varbind(
+                    ax.VALUE_OID,
+                    snmpTrapOID,
+                    ax.OID(ntpRootOID + (0, 1)),
+                ),
+                ax.Varbind(
+                    ax.VALUE_INTEGER, ntpRootOID + (1, 2, 1), new_mode
+                ),
+            ]
             control.sendNotify(vl)
-            self.sentNotifications += 1
+            self.sent_notifications += 1
 
-    def doNotifyStratumChange(self, control):
-        oldStratum = self.oldValues.get("stratum")
-        newStratum = self.safeReadvar(0, ["stratum"])
-        if newStratum is None:
+    def do_notify_stratum_change(self, control):
+        old_stratum = self.old_values.get("stratum")
+        new_stratum = self.safe_readvar(0, ["stratum"])
+        if new_stratum is None:
             return  # couldn't read
-        newStratum = newStratum["stratum"]
-        if oldStratum is None:
-            self.oldValues["stratum"] = newStratum
+        new_stratum = new_stratum["stratum"]
+        if old_stratum is None:
+            self.old_values["stratum"] = new_stratum
             return
-        elif oldStratum != newStratum:
-            self.oldValues["stratum"] = newStratum
-            datetime = self.safeReadvar(0, ["reftime"])
+        if old_stratum != new_stratum:
+            self.old_values["stratum"] = new_stratum
+            datetime = self.safe_readvar(0, ["reftime"])
             if datetime is None:
                 datetime = ""
             else:
                 datetime = ntp.util.deformatNTPTime(datetime["reftime"])
-            vl = [ax.Varbind(ax.VALUE_OID, snmpTrapOID,
-                             ax.OID(ntpRootOID + (0, 2))),
-                  ax.Varbind(ax.VALUE_OCTET_STR, ntpRootOID + (1, 2, 9),
-                             datetime),
-                  ax.Varbind(ax.VALUE_GAUGE32, ntpRootOID + (1, 2, 2),
-                             newStratum),
-                  ax.Varbind(ax.VALUE_OCTET_STR, ntpRootOID + (1, 5, 1),
-                             "Stratum changed")]  # Uh... what goes here?
+            vl = [
+                ax.Varbind(
+                    ax.VALUE_OID,
+                    snmpTrapOID,
+                    ax.OID(ntpRootOID + (0, 2)),
+                ),
+                ax.Varbind(
+                    ax.VALUE_OCTET_STR, ntpRootOID + (1, 2, 9), datetime
+                ),
+                ax.Varbind(
+                    ax.VALUE_GAUGE32,
+                    ntpRootOID + (1, 2, 2),
+                    new_stratum,
+                ),
+                ax.Varbind(
+                    ax.VALUE_OCTET_STR,
+                    ntpRootOID + (1, 5, 1),
+                    "Stratum changed",
+                ),
+            ]  # Uh... what goes here?
             control.sendNotify(vl)
-            self.sentNotifications += 1
+            self.sent_notifications += 1
 
-    def doNotifySyspeerChange(self, control):
-        oldSyspeer = self.oldValues.get("syspeer")
-        newSyspeer = self.safeReadvar(0, ["peeradr"])
-        if newSyspeer is None:
+    def do_notify_syspeer_change(self, control):
+        old_syspeer = self.old_values.get("syspeer")
+        new_syspeer = self.safe_readvar(0, ["peeradr"])
+        if new_syspeer is None:
             return  # couldn't read
-        newSyspeer = newSyspeer["peeradr"]
-        if oldSyspeer is None:
-            self.oldValues["syspeer"] = newSyspeer
+        new_syspeer = new_syspeer["peeradr"]
+        if old_syspeer is None:
+            self.old_values["syspeer"] = new_syspeer
             return
-        elif oldSyspeer != newSyspeer:
-            self.oldValues["syspeer"] = newSyspeer
-            datetime = self.safeReadvar(0, ["reftime"])
+        if old_syspeer != new_syspeer:
+            self.old_values["syspeer"] = new_syspeer
+            datetime = self.safe_readvar(0, ["reftime"])
             if datetime is None:
                 datetime = ""
             else:
                 datetime = ntp.util.deformatNTPTime(datetime["reftime"])
-            syspeer = self.misc_getSyspeerID()
-            vl = [ax.Varbind(ax.VALUE_OID, snmpTrapOID,
-                             ax.OID(ntpRootOID + (0, 3))),
-                  ax.Varbind(ax.VALUE_OCTET_STR, ntpRootOID + (1, 2, 9),
-                             datetime),
-                  ax.Varbind(ax.VALUE_GAUGE32, ntpRootOID + (1, 2, 3),
-                             syspeer),
-                  ax.Varbind(ax.VALUE_OCTET_STR, ntpRootOID + (1, 5, 1),
-                             "SysPeer changed")]  # Uh... what goes here?
+            syspeer = self.misc_get_syspeer_id()
+            vl = [
+                ax.Varbind(
+                    ax.VALUE_OID,
+                    snmpTrapOID,
+                    ax.OID(ntpRootOID + (0, 3)),
+                ),
+                ax.Varbind(
+                    ax.VALUE_OCTET_STR, ntpRootOID + (1, 2, 9), datetime
+                ),
+                ax.Varbind(
+                    ax.VALUE_GAUGE32, ntpRootOID + (1, 2, 3), syspeer
+                ),
+                ax.Varbind(
+                    ax.VALUE_OCTET_STR,
+                    ntpRootOID + (1, 5, 1),
+                    "SysPeer changed",
+                ),
+            ]  # Uh... what goes here?
             control.sendNotify(vl)
-            self.sentNotifications += 1
+            self.sent_notifications += 1
 
-    def doNotifyChangeAssociation(self, control, which):
+    def do_notify_change_association(self, control, which):
         # Add and remove are combined because they use the same data source
         # and it would be easy to have them stepping on each other.
-        changes = self.misc_getAssocListChanges()
+        changes = self.misc_get_assoc_list_changes()
         if changes is None:
             return
-        datetime = self.safeReadvar(0, ["reftime"])
+        datetime = self.safe_readvar(0, ["reftime"])
         if datetime is None:
             datetime = ""
         else:
@@ -744,171 +908,242 @@ class DataSource(ntp.agentx.MIBControl):
         adds, rms = changes
         if which in ("add", "both"):
             for name in adds:
-                vl = [ax.Varbind(ax.VALUE_OID, snmpTrapOID,
-                                 ax.OID(ntpRootOID + (0, 4))),  # Add
-                      ax.Varbind(ax.VALUE_OCTET_STR, ntpRootOID + (1, 2, 9),
-                                 datetime),
-                      ax.Varbind(ax.VALUE_OCTET_STR,
-                                 ntpRootOID + (1, 3, 1, 1, 2),
-                                 name),
-                      ax.Varbind(ax.VALUE_OCTET_STR, ntpRootOID + (1, 5, 1),
-                                 "Association added")]
+                vl = [
+                    ax.Varbind(
+                        ax.VALUE_OID,
+                        snmpTrapOID,
+                        ax.OID(ntpRootOID + (0, 4)),
+                    ),  # Add
+                    ax.Varbind(
+                        ax.VALUE_OCTET_STR,
+                        ntpRootOID + (1, 2, 9),
+                        datetime,
+                    ),
+                    ax.Varbind(
+                        ax.VALUE_OCTET_STR,
+                        ntpRootOID + (1, 3, 1, 1, 2),
+                        name,
+                    ),
+                    ax.Varbind(
+                        ax.VALUE_OCTET_STR,
+                        ntpRootOID + (1, 5, 1),
+                        "Association added",
+                    ),
+                ]
                 control.sendNotify(vl)
-                self.sentNotifications += 1
+                self.sent_notifications += 1
         if which in ("rm", "both"):
             for name in rms:
-                vl = [ax.Varbind(ax.VALUE_OID, snmpTrapOID,
-                                 ax.OID(ntpRootOID + (0, 5))),  # Remove
-                      ax.Varbind(ax.VALUE_OCTET_STR, ntpRootOID + (1, 2, 9),
-                                 datetime),
-                      ax.Varbind(ax.VALUE_OCTET_STR,
-                                 ntpRootOID + (1, 3, 1, 1, 2),
-                                 name),
-                      ax.Varbind(ax.VALUE_OCTET_STR, ntpRootOID + (1, 5, 1),
-                                 "Association removed")]
+                vl = [
+                    ax.Varbind(
+                        ax.VALUE_OID,
+                        snmpTrapOID,
+                        ax.OID(ntpRootOID + (0, 5)),
+                    ),  # Remove
+                    ax.Varbind(
+                        ax.VALUE_OCTET_STR,
+                        ntpRootOID + (1, 2, 9),
+                        datetime,
+                    ),
+                    ax.Varbind(
+                        ax.VALUE_OCTET_STR,
+                        ntpRootOID + (1, 3, 1, 1, 2),
+                        name,
+                    ),
+                    ax.Varbind(
+                        ax.VALUE_OCTET_STR,
+                        ntpRootOID + (1, 5, 1),
+                        "Association removed",
+                    ),
+                ]
                 control.sendNotify(vl)
-                self.sentNotifications += 1
+                self.sent_notifications += 1
 
-    def doNotifyConfigChange(self, control):
+    def do_notify_config_change(self, control):
         # This left unimplemented because the MIB wants something we can't
         # and/or shouldn't provide
         pass
 
-    def doNotifyLeapSecondAnnounced(self, control):
-        oldLeap = self.oldValues.get("leap")
-        newLeap = self.safeReadvar(0, ["leap"])
-        if newLeap is None:
+    def do_notify_leap_second_announced(self, control):
+        old_leap = self.old_values.get("leap")
+        new_leap = self.safe_readvar(0, ["leap"])
+        if new_leap is None:
             return
-        newLeap = newLeap["leap"]
-        if oldLeap is None:
-            self.oldValues["leap"] = newLeap
+        new_leap = new_leap["leap"]
+        if old_leap is None:
+            self.old_values["leap"] = new_leap
             return
-        if oldLeap != newLeap:
-            self.oldValues["leap"] = newLeap
-            if (oldLeap in (0, 3)) and (newLeap in (1, 2)):
+        if old_leap != new_leap:
+            self.old_values["leap"] = new_leap
+            if (old_leap in (0, 3)) and (new_leap in (1, 2)):
                 # changed noleap or unsync to a leap announcement
-                datetime = self.safeReadvar(0, ["reftime"])
+                datetime = self.safe_readvar(0, ["reftime"])
                 if datetime is None:
                     datetime = ""
                 else:
-                    datetime = ntp.util.deformatNTPTime(datetime["reftime"])
-                vl = [ax.Varbind(ax.VALUE_OID, snmpTrapOID,
-                                 ax.OID(ntpRootOID + (0, 7))),
-                      ax.Varbind(ax.VALUE_OCTET_STR, ntpRootOID + (1, 2, 9),
-                                 datetime),
-                      ax.Varbind(ax.VALUE_OCTET_STR, ntpRootOID + (1, 5, 1),
-                                 "Leap second announced")]
+                    datetime = ntp.util.deformatNTPTime(
+                        datetime["reftime"]
+                    )
+                vl = [
+                    ax.Varbind(
+                        ax.VALUE_OID,
+                        snmpTrapOID,
+                        ax.OID(ntpRootOID + (0, 7)),
+                    ),
+                    ax.Varbind(
+                        ax.VALUE_OCTET_STR,
+                        ntpRootOID + (1, 2, 9),
+                        datetime,
+                    ),
+                    ax.Varbind(
+                        ax.VALUE_OCTET_STR,
+                        ntpRootOID + (1, 5, 1),
+                        "Leap second announced",
+                    ),
+                ]
                 control.sendNotify(vl)
-                self.sentNotifications += 1
+                self.sent_notifications += 1
 
-    def doNotifyHeartbeat(self, control):  # TODO: check if ntpd running?
-        vl = [ax.Varbind(ax.VALUE_OID, snmpTrapOID,
-                         ax.OID(ntpRootOID + (0, 8))),
-              ax.Varbind(ax.VALUE_GAUGE32, ntpRootOID + (0, 1, 4, 1),
-                         self.heartbeatInterval)]
-        if self.heartbeatInterval == 0:  # interval == 0 means send once
-            self.notifyHeartbeat = False
+    def do_notify_heartbeat(
+        self, control
+    ):  # TODO: check if ntpd running?
+        vl = [
+            ax.Varbind(
+                ax.VALUE_OID, snmpTrapOID, ax.OID(ntpRootOID + (0, 8))
+            ),
+            ax.Varbind(
+                ax.VALUE_GAUGE32,
+                ntpRootOID + (0, 1, 4, 1),
+                self.heartbeat_interval,
+            ),
+        ]
+        if (
+            self.heartbeat_interval == 0
+        ):  # interval == 0 means send once
+            self.notify_heartbeat = False
             control.sendNotify(vl)
-            self.sentNotifications += 1
+            self.sent_notifications += 1
         else:
             current = ntp.util.monoclock()
-            if (current - self.lastHeartbeat) > self.heartbeatInterval:
-                self.lastHeartbeat = current
+            if (
+                current - self.last_heartbeat
+            ) > self.heartbeat_interval:
+                self.last_heartbeat = current
                 control.sendNotify(vl)
-                self.sentNotifications += 1
+                self.sent_notifications += 1
 
     # =====================================
     # Misc data helpers (not part of the MIB proper)
     # =====================================
 
-    def misc_loadDynamicSettings(self):
-        if self.settingsFilename is None:
+    def misc_load_dynamic_settings(self):
+        if self.settings_filename is None:
             return
 
-        def boolify(d, k):
-            return True if d[k][0][1] == "True" else False
-        optionList = ("notify-mode-change", "notify-stratum-change",
-                      "notify-syspeer-change", "notify-add-association",
-                      "notify-rm-association", "notify-leap-announced",
-                      "notify-heartbeat", "heartbeat-interval")
-        settings = loadSettings(self.settingsFilename, optionList)
+        def boolify(dictionary, key):
+            return True if dictionary[key][0][1] == "True" else False
+
+        option_list = (
+            "notify-mode-change",
+            "notify-stratum-change",
+            "notify-syspeer-change",
+            "notify-add-association",
+            "notify-rm-association",
+            "notify-leap-announced",
+            "notify-heartbeat",
+            "heartbeat-interval",
+        )
+        settings = load_settings(self.settings_filename, option_list)
         if settings is None:
             return
         for key in settings.keys():
             if key == "notify-mode-change":
-                self.notifyModeChange = boolify(settings, key)
+                self.notify_mode_change = boolify(settings, key)
             elif key == "notify-stratum-change":
-                self.notifyStratumChange = boolify(settings, key)
+                self.notify_stratum_change = boolify(settings, key)
             elif key == "notify-syspeer-change":
-                self.notifySyspeerChange = boolify(settings, key)
+                self.notify_syspeer_change = boolify(settings, key)
             elif key == "notify-add-association":
-                self.notifyAddAssociation = boolify(settings, key)
+                self.notify_add_association = boolify(settings, key)
             elif key == "notify-rm-association":
-                self.notifyRMAssociation = boolify(settings, key)
+                self.notify_remove_association = boolify(settings, key)
             elif key == "notify-leap-announced":
-                self.notifyLeapSecondAnnounced = boolify(settings, key)
+                self.notify_leap_second_announced = boolify(
+                    settings, key
+                )
             elif key == "notify-heartbeat":
-                self.notifyHeartbeat = boolify(settings, key)
+                self.notify_heartbeat = boolify(settings, key)
             elif key == "heartbeat-interval":
-                self.heartbeatInterval = settings[key][0][1]
+                self.heartbeat_interval = settings[key][0][1]
 
-    def misc_storeDynamicSettings(self):
-        if self.settingsFilename is None:
+    def misc_store_dynamic_settings(self):
+        if self.settings_filename is None:
             return
         settings = {}
-        settings["notify-mode-change"] = str(self.notifyModeChange)
-        settings["notify-stratum-change"] = str(self.notifyStratumChange)
-        settings["notify-syspeer-change"] = str(self.notifySyspeerChange)
-        settings["notify-add-association"] = str(self.notifyAddAssociation)
-        settings["notify-rm-association"] = str(self.notifyRMAssociation)
-        settings["notify-leap-announced"] = str(self.notifyLeapSecondAnnounced)
-        settings["notify-heartbeat"] = str(self.notifyHeartbeat)
-        settings["heartbeat-interval"] = str(self.heartbeatInterval)
-        storeSettings(self.settingsFilename, settings)
+        settings["notify-mode-change"] = str(self.notify_mode_change)
+        settings["notify-stratum-change"] = str(
+            self.notify_stratum_change
+        )
+        settings["notify-syspeer-change"] = str(
+            self.notify_syspeer_change
+        )
+        settings["notify-add-association"] = str(
+            self.notify_add_association
+        )
+        settings["notify-rm-association"] = str(
+            self.notify_remove_association
+        )
+        settings["notify-leap-announced"] = str(
+            self.notify_leap_second_announced
+        )
+        settings["notify-heartbeat"] = str(self.notify_heartbeat)
+        settings["heartbeat-interval"] = str(self.heartbeat_interval)
+        store_settings(self.settings_filename, settings)
 
-    def misc_getAssocListChanges(self):
+    def misc_get_assoc_list_changes(self):
         # We need to keep the names, because those won't be available
         # after they have been removed.
-        oldAssoc = self.oldValues.get("assoc")
-        newAssoc = {}
+        old_assoc = self.old_values.get("assoc")
+        new_assoc = {}
         # Yes, these are cached, for a very short time
-        pdata = self.misc_getPeerData()
+        pdata = self.misc_get_peer_data()
         if pdata is None:
-            return
-        ids = self.misc_getPeerIDs()
+            return None
+        ids = self.misc_get_peer_ids()
         if ids is None:
-            return
+            return None
         for associd in ids:
             addr = pdata[associd]["srcadr"][1]
             name = ntp.util.canonicalize_dns(addr)
-            newAssoc[associd] = name
-        if oldAssoc is None:
-            self.oldValues["assoc"] = newAssoc
-            return
-        elif oldAssoc != newAssoc:
-            oldIDs = oldAssoc.keys()
-            newIDs = newAssoc.keys()
+            new_assoc[associd] = name
+        if old_assoc is None:
+            self.old_values["assoc"] = new_assoc
+            return None
+        if old_assoc != new_assoc:
+            old_ids = old_assoc.keys()
+            new_ids = new_assoc.keys()
             adds = []
             rms = []
-            for associd in oldIDs + newIDs:
-                if associd not in newIDs:  # removed
-                    rms.append(oldAssoc[associd])
-                if associd not in oldIDs:  # added
-                    adds.append(newAssoc[associd])
+            for associd in old_ids + new_ids:
+                if associd not in new_ids:  # removed
+                    rms.append(old_assoc[associd])
+                if associd not in old_ids:  # added
+                    adds.append(new_assoc[associd])
             return (adds, rms)
-        return
+        return None
 
-    def misc_getMode(self):  # FIXME: not fully implemented
+    def misc_get_mode(self):  # FIXME: not fully implemented
         try:
             # Don't care about the data, this is a ploy to get the rstatus
             self.session.readvar(0, ["stratum"])
-        except ntp.packet.ControlException as e:
-            if e.message == ntp.packet.SERR_SOCKET:
+        except ntp.packet.ControlException as error:
+            if error.message == ntp.packet.SERR_SOCKET:
                 # Can't connect, ntpd probably not running
                 return 1
-            else:
-                raise e
-        rstatus = self.session.rstatus  # a ploy to get the system status
+            raise error
+        rstatus = (
+            self.session.rstatus
+        )  # a ploy to get the system status
         source = ntp.control.CTL_SYS_SOURCE(rstatus)
         if source == ntp.control.CTL_SST_TS_UNSPEC:
             mode = 2  # Not yet synced
@@ -916,10 +1151,12 @@ class DataSource(ntp.agentx.MIBControl):
             mode = 3  # No reference configured
         elif source == ntp.control.CTL_SST_TS_LOCAL:
             mode = 4  # Distributing local clock (low accuracy)
-        elif source in (ntp.control.CTL_SST_TS_ATOM,
-                        ntp.control.CTL_SST_TS_LF,
-                        ntp.control.CTL_SST_TS_HF,
-                        ntp.control.CTL_SST_TS_UHF):
+        elif source in (
+            ntp.control.CTL_SST_TS_ATOM,
+            ntp.control.CTL_SST_TS_LF,
+            ntp.control.CTL_SST_TS_HF,
+            ntp.control.CTL_SST_TS_UHF,
+        ):
             # I am not sure if I should be including the radios in this
             mode = 5  # Synced to local refclock
         elif source == ntp.control.CTL_SST_TS_NTP:
@@ -929,61 +1166,69 @@ class DataSource(ntp.agentx.MIBControl):
             mode = 99  # Unknown
         return mode
 
-    def misc_getSyspeerID(self):
-        peers = self.misc_getPeerData()
+    def misc_get_syspeer_id(self):
+        peers = self.misc_get_peer_data()
         syspeer = 0
         for associd in peers.keys():
             rstatus = peers[associd]["peerstatus"]
-            if (ntp.control.CTL_PEER_STATVAL(rstatus) & 0x7) == \
-               ntp.control.CTL_PST_SEL_SYSPEER:
+            if (
+                ntp.control.CTL_PEER_STATVAL(rstatus) & 0x7
+            ) == ntp.control.CTL_PST_SEL_SYSPEER:
                 syspeer = associd
                 break
         return syspeer
 
-    def safeReadvar(self, associd, variables=None, raw=False):
+    def safe_readvar(self, associd, variables=None, raw=False):
         # Use this when we want to catch packet errors, but don't care
         # about what they are
         try:
-            return self.session.readvar(associd, varlist=variables, raw=raw)
+            return self.session.readvar(
+                associd, varlist=variables, raw=raw
+            )
         except ntp.packet.ControlException:
             return None
 
-    def dynamicCallbackPeerdata(self, variable, raw, valueType):
+    def dynamic_callback_peerdata(self, variable, raw, value_type):
         rawindex = 1 if raw else 0
 
         def handler(oid, associd):
-            pdata = self.misc_getPeerData()
+            pdata = self.misc_get_peer_data()
             if pdata is None:
                 return None
             value = pdata[associd][variable][rawindex]
-            return ax.Varbind(valueType, oid, value)
-        return self.dynamicCallbackSkeleton(handler)
+            return ax.Varbind(value_type, oid, value)
 
-    def dynamicCallbackSkeleton(self, handler):
+        return self.dynamic_callback_skeleton(handler)
+
+    def dynamic_callback_skeleton(self, handler):
         # Build a dynamic MIB tree, installing the provided handler in it
-        def readCallback(oid):
+        def read_callback(oid):
             # This function assumes that it is a leaf node and that the
             # last number in the OID is the index.
-            index = oid.subids[-1]  # if called properly this works (Ha!)
-            index -= 1  # SNMP reserves index 0, effectively 1-based lists
-            associd = self.misc_getPeerIDs()[index]
+            index = oid.subids[
+                -1
+            ]  # if called properly this works (Ha!)
+            index -= (
+                1  # SNMP reserves index 0, effectively 1-based lists
+            )
+            associd = self.misc_get_peer_ids()[index]
             return handler(oid, associd)
+
         subs = {}
-        associds = self.misc_getPeerIDs()  # need the peer count
+        associds = self.misc_get_peer_ids()  # need the peer count
         for i in range(len(associds)):
-            subs[i+1] = {"reader": readCallback}
+            subs[i + 1] = {"reader": read_callback}
         return subs
 
-    def readCallbackSkeletonSimple(self, oid, varname, dataType):
+    def read_callback_skeleton_simple(self, oid, varname, data_type):
         # Used for entries that just need a simple variable retrevial
         # but do not need any processing.
-        data = self.safeReadvar(0, [varname])
+        data = self.safe_readvar(0, [varname])
         if data is None:
             return None
-        else:
-            return ax.Varbind(dataType, oid, data[varname])
+        return ax.Varbind(data_type, oid, data[varname])
 
-    def misc_getPeerIDs(self):
+    def misc_get_peer_ids(self):
         peerids = self.cache.get("peerids")
         if peerids is None:
             try:
@@ -994,14 +1239,14 @@ class DataSource(ntp.agentx.MIBControl):
             self.cache.set("peerids", peerids)
         return peerids
 
-    def misc_getPeerData(self):
+    def misc_get_peer_data(self):
         peerdata = self.cache.get("peerdata")
         if peerdata is None:
-            associds = self.misc_getPeerIDs()
+            associds = self.misc_get_peer_ids()
             peerdata = {}
             for aid in associds:
                 try:
-                    pdata = self.safeReadvar(aid, raw=True)
+                    pdata = self.safe_readvar(aid, raw=True)
                     pdata["peerstatus"] = self.session.rstatus
                 except IOError:
                     continue
@@ -1012,31 +1257,38 @@ class DataSource(ntp.agentx.MIBControl):
 
 def connect(address):
     try:
-        if type(address) is str:
+        if isinstance(address, str):
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             sock.connect(address)
         else:
             host, port = address[0], address[1]
-            af, _, _, _, _ = socket.getaddrinfo(host, port)[0]
-            sock = socket.socket(af, socket.SOCK_STREAM)
+            address_family, _, _, _, _ = socket.getaddrinfo(host, port)[
+                0
+            ]
+            sock = socket.socket(address_family, socket.SOCK_STREAM)
             sock.connect((host, port))
     except socket.error as msg:
-        log("Connection to %s failure: %s" % (repr(address), repr(msg)), 1)
+        log(
+            "Connection to %s failure: %s" % (repr(address), repr(msg)),
+            1,
+        )
         sys.exit(1)
     log("connected to master agent at " + repr(address), 3)
     return sock
 
 
-def mainloop(snmpSocket, reconnectionAddr, host=None):
+def mainloop(snmp_socket, reconnection_address, host=None):
     log("initing loop", 3)
     dbase = DataSource(host, "/var/ntpsntpd/notify.conf")
     while True:  # Loop reconnection attempts
-        control = PacketControl(snmpSocket, dbase, logfp=logfp, debug=debug)
-        control.loopCallback = dbase.checkNotifications
+        control = PacketControl(
+            snmp_socket, dbase, logfp=logfp, debug=DEBUG
+        )
+        control.loopCallback = dbase.check_notifications
         control.initNewSession()
         if not control.mainloop(True):  # disconnected
-            snmpSocket.close()
-            snmpSocket = connect(reconnectionAddr)
+            snmp_socket.close()
+            snmp_socket = connect(reconnection_address)
             log("disconnected from master, attempting reconnect", 2)
         else:  # Something else happened
             break
@@ -1055,7 +1307,7 @@ def daemonize(runfunc, *runArgs):
 
     os.umask(0)
 
-    sid = os.setsid()
+    os.setsid()
 
     # chdir should be here, change to what? root?
 
@@ -1073,22 +1325,22 @@ def daemonize(runfunc, *runArgs):
     runfunc(*runArgs)
 
 
-def loadSettings(filename, optionList):
+def load_settings(filename, option_list):
     log("Loading config file: %s" % filename, 3)
     if not os.path.isfile(filename):
         return None
     options = {}
-    with open(filename) as f:
-        data = f.read()
+    with open(filename) as file_handle:
+        data = file_handle.read()
         lines = ntp.util.parseConf(data)
         for line in lines:
-            isQuote, token = line[0]
-            if token in optionList:
+            _, token = line[0]  # isQute
+            if token in option_list:
                 options[token] = line[1:]
     return options
 
 
-def storeSettings(filename, settings):
+def store_settings(filename, settings):
     dirname = os.path.dirname(filename)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
@@ -1096,11 +1348,11 @@ def storeSettings(filename, settings):
     for key in settings.keys():
         data.append("%s %s\n" % (key, settings[key]))
     data = "".join(data)
-    with open(filename, "w") as f:
-        f.write(data)
+    with open(filename, "w") as file_handle:
+        file_handle.write(data)
 
 
-usage = """
+USAGE = """
 USAGE: ntpsnmpd [-n] [ntp host]
   Flg Arg Option-Name   Description
    -n no  no-fork         Do not fork and daemonize.
@@ -1117,91 +1369,105 @@ USAGE: ntpsnmpd [-n] [ntp host]
 
 
 if __name__ == "__main__":
-    bin_ver = "ntpsec-2024.04.18+5fd831a"
-    ntp.util.stdversioncheck(bin_ver)
+    BIN_VER = "2024.04.22"
+    ntp.util.stdversioncheck(BIN_VER)
     try:
         (options, arguments) = getopt.getopt(
             sys.argv[1:],
             "nx:dD:Vhl:c:",
-            ["no-fork", "master-address=", "debug-level", "set-debug-level=",
-             "version", "help", "logfile=", "configfile="])
+            [
+                "no-fork",
+                "master-address=",
+                "debug-level",
+                "set-debug-level=",
+                "version",
+                "help",
+                "logfile=",
+                "configfile=",
+            ],
+        )
     except getopt.GetoptError as e:
         sys.stderr.write("%s\n" % e)
-        sys.stderr.write(usage)
+        sys.stderr.write(USAGE)
         raise SystemExit(1)
 
-    masterAddr = "/var/agentx/master"
-    logfile = DEFLOG
-    hostname = DEFHOST
+    MASTER_ADDRESS = "/var/agentx/master"
+    LOG_FILE = DEFLOG
+    HOST_NAME = DEFHOST
 
     # Check for non-default config-file
-    conffile = "/etc/ntpsnmpd.conf"
-    for (switch, val) in options:
+    CONFIG_FILE = "/etc/ntpsnmpd.conf"
+    for switch, val in options:
         if switch in ("-c", "--configfile"):
-            conffile = val
+            CONFIG_FILE = val
             break
 
     # Load configuration file
-    conf = loadSettings(conffile,
-                        ("master-addr", "logfile", "loglevel", "ntp-addr"))
+    conf = load_settings(
+        CONFIG_FILE, ("master-addr", "logfile", "loglevel", "ntp-addr")
+    )
     if conf is not None:
         for key in conf.keys():
-            if key == "master-addr":  # Address of the SNMP master daemon
+            if (
+                key == "master-addr"
+            ):  # Address of the SNMP master daemon
                 val = conf[key][0][1]
                 if ":" in val:
                     host, port = val.split(":")
                     port = int(port)
-                    masterAddr = (host, port)
+                    MASTER_ADDRESS = (host, port)
                 else:
-                    masterAddr = val
+                    MASTER_ADDRESS = val
             elif key == "logfile":
-                logfile = conf[key][0][1]
+                LOG_FILE = conf[key][0][1]
             elif key == "ntp-addr":  # Address of the NTP daemon
-                hostname = conf[key][0][1]
+                HOST_NAME = conf[key][0][1]
             elif key == "loglevel":
-                errmsg = "Error: loglevel parameter '%s' not a number\n"
-                debug = conf[key][0][1]
+                ERROR_MESSAGE = (
+                    "Error: loglevel parameter '%s' not a number\n"
+                )
+                DEBUG = conf[key][0][1]
 
-    fileLogging = False
-    for (switch, val) in options:
+    FILE_LOGGING = False
+    for switch, val in options:
         if switch in ("-n", "--no-fork"):
-            nofork = True
+            NO_FORK = True
         elif switch in ("-x", "--master-addr"):
             if ":" in val:
                 host, port = val.split(":")
                 port = int(port)
-                masterAddr = (host, port)
+                MASTER_ADDRESS = (host, port)
             else:
-                masterAddr = val
+                MASTER_ADDRESS = val
         elif switch in ("-d", "--debug-level"):
-            debug += 1
+            DEBUG += 1
         elif switch in ("-D", "--set-debug-level"):
-            errmsg = "Error: -D parameter '%s' not a number\n"
-            debug = ntp.util.safeargcast(val, int, errmsg, usage)
+            ERROR_MESSAGE = "Error: -D parameter '%s' not a number\n"
+            DEBUG = ntp.util.safeargcast(val, int, ERROR_MESSAGE, USAGE)
         elif switch in ("-V", "--version"):
             print("ntpsnmpd %s" % ntp.util.stdversion())
             raise SystemExit(0)
         elif switch in ("-h", "--help"):
-            print(usage)
+            print(USAGE)
             raise SystemExit(0)
         elif switch in ("-l", "--logfile"):
-            logfile = val
-            fileLogging = True
+            LOG_FILE = val
+            FILE_LOGGING = True
 
-    if not nofork:
-        fileLogging = True
+    if not NO_FORK:
+        FILE_LOGGING = True
 
-    if fileLogging:
+    if FILE_LOGGING:
         if logfp != sys.stderr:
             logfp.close()
-        logfp = open(logfile, "a", 1)  # 1 => line buffered
+        logfp = open(LOG_FILE, "a", 1)  # 1 => line buffered
 
-    hostname = arguments[0] if arguments else DEFHOST
+    HOST_NAME = arguments[0] if arguments else DEFHOST
 
     # Connect here so it can always report a connection error
-    sock = connect(masterAddr)
+    sock = connect(MASTER_ADDRESS)
 
-    if nofork:
-        mainloop(sock, hostname)
+    if NO_FORK:
+        mainloop(sock, HOST_NAME)
     else:
-        daemonize(mainloop, sock, hostname)
+        daemonize(mainloop, sock, HOST_NAME)

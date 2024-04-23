@@ -7,7 +7,9 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 
-from __future__ import absolute_import  # Ensure Python2 behaves like Python 3
+from __future__ import (
+    absolute_import,
+)  # Ensure Python2 behaves like Python 3
 
-api_major_version = 1   # bumped on incompatible changes
-api_minor_version = 0   # bumped on compatible changes
+API_MAJOR_VERSION = 1  # bumped on incompatible changes
+API_MINOR_VERSION = 0  # bumped on compatible changes

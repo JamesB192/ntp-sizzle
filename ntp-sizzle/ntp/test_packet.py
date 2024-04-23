@@ -75,8 +75,9 @@ class AuthenticatorJig:
 
     @staticmethod
     def compute_mac(flatpkt, keyid, keytype, passwd):
-        AuthenticatorJig.compute_mac_calls.append((flatpkt, keyid,
-                                                   keytype, passwd))
+        AuthenticatorJig.compute_mac_calls.append(
+            (flatpkt, keyid, keytype, passwd)
+        )
         return "mac"
 
 
@@ -109,7 +110,7 @@ class TestPacket(unittest.TestCase):
         cls = self.target()
         self.assertEqual(cls.session, None)
         self.assertEqual(cls.li_vn_mode, 0xE3)
-        self.assertEqual(cls.extension, b'')
+        self.assertEqual(cls.extension, b"")
         # Test __init__, custom
         cls = self.target(2, 2, "foo")
         self.assertEqual(cls.session, "foo")
@@ -130,43 +131,102 @@ class TestPacket(unittest.TestCase):
     def test_parse_mru_variables(self):
         f = ntpp.parse_mru_variables
         # Test working sort
-        data = {"sort": "count", "mincount": 50, "resall": 1, "resany": 5,
-                "kod": True, "limited": True, "maxlstint": 100,
-                "laddr": "foo.test", "recent": "foo", "frags": 20, "limit": 80}
+        data = {
+            "sort": "count",
+            "mincount": 50,
+            "resall": 1,
+            "resany": 5,
+            "kod": True,
+            "limited": True,
+            "maxlstint": 100,
+            "laddr": "foo.test",
+            "recent": "foo",
+            "frags": 20,
+            "limit": 80,
+        }
         sorter, sortkey, frags = f(data)
-        self.assertEqual(sorter != None, True)  # can't directly test lambda
+        self.assertEqual(
+            sorter != None, True
+        )  # can't directly test lambda
         self.assertEqual(sortkey, "count")
         self.assertEqual(frags, 20)
-        self.assertEqual(data,
-                         {"mincount": 50, "resall": 1, "resany": 1061,
-                          "maxlstint": 100, "laddr": "foo.test",
-                          "recent": "foo", "limit": 80})
+        self.assertEqual(
+            data,
+            {
+                "mincount": 50,
+                "resall": 1,
+                "resany": 1061,
+                "maxlstint": 100,
+                "laddr": "foo.test",
+                "recent": "foo",
+                "limit": 80,
+            },
+        )
         # Test no sort
-        data = {"mincount": 50, "resall": 1, "resany": 5, "kod": True,
-                "limited": True, "maxlstint": 100, "laddr": "foo.test",
-                "recent": "foo", "frags": 20, "limit": 80}
+        data = {
+            "mincount": 50,
+            "resall": 1,
+            "resany": 5,
+            "kod": True,
+            "limited": True,
+            "maxlstint": 100,
+            "laddr": "foo.test",
+            "recent": "foo",
+            "frags": 20,
+            "limit": 80,
+        }
         sorter, sortkey, frags = f(data)
         self.assertEqual(sorter, None)  # can't directly test lambda
         self.assertEqual(sortkey, None)
         self.assertEqual(frags, 20)
-        self.assertEqual(data,
-                         {"mincount": 50, "resall": 1, "resany": 1061,
-                          "maxlstint": 100, "laddr": "foo.test",
-                          "recent": "foo", "limit": 80})
+        self.assertEqual(
+            data,
+            {
+                "mincount": 50,
+                "resall": 1,
+                "resany": 1061,
+                "maxlstint": 100,
+                "laddr": "foo.test",
+                "recent": "foo",
+                "limit": 80,
+            },
+        )
         # Test bad sort
-        data = {"sort": "FAIL", "mincount": 50, "resall": 1, "resany": 5,
-                "kod": True, "limited": True, "maxlstint": 100,
-                "laddr": "foo.test", "recent": "foo", "frags": 20, "limit": 80}
+        data = {
+            "sort": "FAIL",
+            "mincount": 50,
+            "resall": 1,
+            "resany": 5,
+            "kod": True,
+            "limited": True,
+            "maxlstint": 100,
+            "laddr": "foo.test",
+            "recent": "foo",
+            "frags": 20,
+            "limit": 80,
+        }
         try:
             sorter, sortkey, frags = f(data)
             errored = False
         except ntpp.ControlException as e:
             errored = e.message
-        self.assertEqual(errored, "***Sort order FAIL is not implemented")
+        self.assertEqual(
+            errored, "***Sort order FAIL is not implemented"
+        )
         # Test bad variables
-        data = {"FAIL": "FAIL", "mincount": 50, "resall": 1, "resany": 5,
-                "kod": True, "limited": True, "maxlstint": 100,
-                "laddr": "foo.test", "recent": "foo", "frags": 20, "limit": 80}
+        data = {
+            "FAIL": "FAIL",
+            "mincount": 50,
+            "resall": 1,
+            "resany": 5,
+            "kod": True,
+            "limited": True,
+            "maxlstint": 100,
+            "laddr": "foo.test",
+            "recent": "foo",
+            "frags": 20,
+            "limit": 80,
+        }
         try:
             sorter, sortkey, frags = f(data)
             errored = False
@@ -191,7 +251,9 @@ class TestPacket(unittest.TestCase):
         entry4.addr = "1.2.3.4:23"
         entry4.last = "2019-12-31T04:45:00Z"
         span.entries = [entry1, entry2, entry3, entry4]
-        sorter = (lambda e: e.sortaddr())  # Extracted from parse_mru_variables
+        sorter = (
+            lambda e: e.sortaddr()
+        )  # Extracted from parse_mru_variables
         sortkey = "addr"
         f(span, sorter, sortkey)
         self.assertEqual(span.entries, [entry2, entry4])
@@ -227,8 +289,10 @@ class TestPacket(unittest.TestCase):
         span.entries = [entry1, entry2, entry3, entry4]
         # Run test
         buf = f(span, 370)
-        expected = ", addr.0=3.4.5.6:23, last.0=2019-12-31T04:45:00Z, " \
-                              "addr.1=2.0.0.1:23, last.1=2019-12-31T03:30:00Z"
+        expected = (
+            ", addr.0=3.4.5.6:23, last.0=2019-12-31T04:45:00Z, "
+            "addr.1=2.0.0.1:23, last.1=2019-12-31T03:30:00Z"
+        )
         self.assertEqual(buf, expected)
 
 
@@ -249,9 +313,9 @@ class TestSyncPacket(unittest.TestCase):
         self.assertEqual(cls.origin_timestamp, 0)
         self.assertEqual(cls.receive_timestamp, 0)
         self.assertEqual(cls.transmit_timestamp, 0)
-        self.assertEqual(cls.extension, ntp.poly.polybytes(''))
+        self.assertEqual(cls.extension, ntp.poly.polybytes(""))
         self.assertEqual(cls.extfields, [])
-        self.assertEqual(cls.mac, '')
+        self.assertEqual(cls.mac, "")
         self.assertEqual(cls.hostname, None)
         self.assertEqual(cls.resolved, None)
         # In theory should test cls.received here, but it is assigned to time()
@@ -268,12 +332,14 @@ class TestSyncPacket(unittest.TestCase):
             errored = e.message
         self.assertEqual(errored, "impossible packet length")
         # Test data not word aligned
-        data = "\x5C\x10\x01\xFF" \
-               "\x00\x00\x01\x01\x00\x00\x01\x02\x00\x00\x01\x03" \
-               "\x00\x01\x02\x03\x04\x05\x06\x07" \
-               "\x01\x01\x02\x03\x04\x05\x06\x07" \
-               "\x02\x01\x02\x03\x04\x05\x06\x07" \
-               "\x03\x01\x02\x03\x04\x05\x06\x07\x0B\xAD"
+        data = (
+            "\x5C\x10\x01\xFF"
+            "\x00\x00\x01\x01\x00\x00\x01\x02\x00\x00\x01\x03"
+            "\x00\x01\x02\x03\x04\x05\x06\x07"
+            "\x01\x01\x02\x03\x04\x05\x06\x07"
+            "\x02\x01\x02\x03\x04\x05\x06\x07"
+            "\x03\x01\x02\x03\x04\x05\x06\x07\x0B\xAD"
+        )
         try:
             cls = self.target(data)
             errored = False
@@ -281,12 +347,14 @@ class TestSyncPacket(unittest.TestCase):
             errored = e.message
         self.assertEqual(errored, "impossible packet length")
         # Test without extension
-        data = "\x5C\x10\x01\xFF" \
-               "\x00\x00\x01\x01\x00\x00\x01\x02\x00\x00\x01\x03" \
-               "\x00\x01\x02\x03\x04\x05\x06\x07" \
-               "\x01\x01\x02\x03\x04\x05\x06\x07" \
-               "\x02\x01\x02\x03\x04\x05\x06\x07" \
-               "\x03\x01\x02\x03\x04\x05\x06\x07"
+        data = (
+            "\x5C\x10\x01\xFF"
+            "\x00\x00\x01\x01\x00\x00\x01\x02\x00\x00\x01\x03"
+            "\x00\x01\x02\x03\x04\x05\x06\x07"
+            "\x01\x01\x02\x03\x04\x05\x06\x07"
+            "\x02\x01\x02\x03\x04\x05\x06\x07"
+            "\x03\x01\x02\x03\x04\x05\x06\x07"
+        )
         cls = self.target(data)  # This calls analyze
         self.assertEqual(cls.li_vn_mode, 0x5C)
         self.assertEqual(cls.stratum, 16)
@@ -301,10 +369,12 @@ class TestSyncPacket(unittest.TestCase):
         self.assertEqual(cls.transmit_timestamp, 0x0301020304050607)
         self.assertEqual(cls.extfields, [])
         # Test with extension, Crypto-NAK
-        ext = "\x00\x00\x00\x01\x00\x00\x00\x04blah" \
-              "\x00\x00\x00\x02\x00\x00\x00\x0Cjabberjabber" \
-              "\x00\x00\x00\x03\x00\x00\x00\x20" \
-              "In the end, our choices make us."
+        ext = (
+            "\x00\x00\x00\x01\x00\x00\x00\x04blah"
+            "\x00\x00\x00\x02\x00\x00\x00\x0Cjabberjabber"
+            "\x00\x00\x00\x03\x00\x00\x00\x20"
+            "In the end, our choices make us."
+        )
         mac = "\x11\x22\x33\x44"
         data2 = data + ext + mac
         cls = self.target(data2)
@@ -319,14 +389,27 @@ class TestSyncPacket(unittest.TestCase):
         self.assertEqual(cls.origin_timestamp, 0x0101020304050607)
         self.assertEqual(cls.receive_timestamp, 0x0201020304050607)
         self.assertEqual(cls.transmit_timestamp, 0x0301020304050607)
-        self.assertEqual(cls.extfields,
-                         [(1, ntp.poly.polybytes("blah")),
-                          (2, ntp.poly.polybytes("jabberjabber")),
-                          (3, ntp.poly.polybytes("In the end, our choices make us."))])
+        self.assertEqual(
+            cls.extfields,
+            [
+                (1, ntp.poly.polybytes("blah")),
+                (2, ntp.poly.polybytes("jabberjabber")),
+                (
+                    3,
+                    ntp.poly.polybytes(
+                        "In the end, our choices make us."
+                    ),
+                ),
+            ],
+        )
         self.assertEqual(cls.extension, ntp.poly.polybytes(ext + mac))
         self.assertEqual(cls.mac, ntp.poly.polybytes(mac))
         # Test with extension, DES
-        data2 = data + ext + "\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC"
+        data2 = (
+            data
+            + ext
+            + "\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC"
+        )
         try:
             cls = self.target(data2)
             errored = False
@@ -342,8 +425,10 @@ class TestSyncPacket(unittest.TestCase):
             errored = e.message
         self.assertEqual(errored, "Packet is a runt")
         # Test with extension, runt 16
-        data2 = data + ext + "\x00\x11\x22\x33\x44\x55\x66\x77" \
-                             "\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF"
+        data2 = (
+            data + ext + "\x00\x11\x22\x33\x44\x55\x66\x77"
+            "\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF"
+        )
         try:
             cls = self.target(data2)
             errored = False
@@ -351,8 +436,10 @@ class TestSyncPacket(unittest.TestCase):
             errored = e.message
         self.assertEqual(errored, "Packet is a runt")
         # Test with extension, MD5 or SHA-1, 20
-        mac = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09" \
-              "\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13"
+        mac = (
+            "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09"
+            "\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13"
+        )
         data2 = data + ext + mac
         cls = self.target(data2)
         self.assertEqual(cls.mac, ntp.poly.polybytes(mac))
@@ -383,7 +470,9 @@ class TestSyncPacket(unittest.TestCase):
         # Test the End of Time
         self.assertAlmostEqual(f(0xFFFFFFFF00000000), 2085978495.0)
         # Test the Timeless Void Beyond Existence
-        self.assertEqual(f(0x10000000000000000), 2085978496.0)  # Doesn't clip
+        self.assertEqual(
+            f(0x10000000000000000), 2085978496.0
+        )  # Doesn't clip
 
     def test_posix_to_ntp(self):
         # This function may develop float precision issues, however it
@@ -391,7 +480,9 @@ class TestSyncPacket(unittest.TestCase):
         # moment the tests are being left as-is until such issues appear.
         f = self.target.posix_to_ntp
         # Test the Timeless Void Before Existence
-        self.assertEqual(f(-2208988801), -0x100000000)  # It doesn't clip
+        self.assertEqual(
+            f(-2208988801), -0x100000000
+        )  # It doesn't clip
         # Test beginning of NTP epoch
         self.assertEqual(f(-2208988800), 0)
         # Test just before the Age of Unix
@@ -401,7 +492,9 @@ class TestSyncPacket(unittest.TestCase):
         # Test the End of Time
         self.assertEqual(f(2085978495), 0xFFFFFFFF00000000)
         # Test the Timeless Void Beyond Existence
-        self.assertEqual(f(2085978496), 0x10000000000000000)  # It doesn't clip
+        self.assertEqual(
+            f(2085978496), 0x10000000000000000
+        )  # It doesn't clip
 
     def test_posixize(self):
         cls = self.target()
@@ -460,17 +553,21 @@ class TestSyncPacket(unittest.TestCase):
         self.assertAlmostEqual(cls.adjust(), 0.0)
 
     def test_flatten(self):
-        data = "\x5C\x10\x01\xFF" \
-               "\x00\x00\x01\x01\x00\x00\x01\x02\x00\x00\x01\x03" \
-               "\x00\x01\x02\x03\x04\x05\x06\x07" \
-               "\x01\x01\x02\x03\x04\x05\x06\x07" \
-               "\x02\x01\x02\x03\x04\x05\x06\x07" \
-               "\x03\x01\x02\x03\x04\x05\x06\x07"
-        ext = "\x00\x00\x00\x01\x00\x00\x00\x04blah" \
-              "\x00\x00\x00\x02\x00\x00\x00\x0Cjabberjabber" \
-              "\x00\x00\x00\x03\x00\x00\x00\x20" \
-              "In the end, our choices make us." \
-              "\x11\x22\x33\x44"
+        data = (
+            "\x5C\x10\x01\xFF"
+            "\x00\x00\x01\x01\x00\x00\x01\x02\x00\x00\x01\x03"
+            "\x00\x01\x02\x03\x04\x05\x06\x07"
+            "\x01\x01\x02\x03\x04\x05\x06\x07"
+            "\x02\x01\x02\x03\x04\x05\x06\x07"
+            "\x03\x01\x02\x03\x04\x05\x06\x07"
+        )
+        ext = (
+            "\x00\x00\x00\x01\x00\x00\x00\x04blah"
+            "\x00\x00\x00\x02\x00\x00\x00\x0Cjabberjabber"
+            "\x00\x00\x00\x03\x00\x00\x00\x20"
+            "In the end, our choices make us."
+            "\x11\x22\x33\x44"
+        )
         pkt = ntp.poly.polybytes(data + ext)
         cls = self.target(pkt)
         self.assertEqual(cls.flatten(), pkt)
@@ -533,18 +630,22 @@ class TestSyncPacket(unittest.TestCase):
         cls.receive_timestamp = self.target.posix_to_ntp(2)
         cls.transmit_timestamp = self.target.posix_to_ntp(3)
         # Test without extensions
-        self.assertEqual(cls.__repr__(),
-                         "<NTP:unsync:4:3:0.000000:0.000000:0.0.0.0:"
-                         "1970-01-01T00:00:00Z:1970-01-01T00:00:01Z:"
-                         "1970-01-01T00:00:02Z:1970-01-01T00:00:03Z>")
+        self.assertEqual(
+            cls.__repr__(),
+            "<NTP:unsync:4:3:0.000000:0.000000:0.0.0.0:"
+            "1970-01-01T00:00:00Z:1970-01-01T00:00:01Z:"
+            "1970-01-01T00:00:02Z:1970-01-01T00:00:03Z>",
+        )
         # Test with extensions
         cls.extfields = "foobar"
         cls.mac = "machinations"
-        self.assertEqual(cls.__repr__(),
-                         "<NTP:unsync:4:3:0.000000:0.000000:0.0.0.0:"
-                         "1970-01-01T00:00:00Z:1970-01-01T00:00:01Z:"
-                         "1970-01-01T00:00:02Z:1970-01-01T00:00:03Z:"
-                         "'foobar':machinations>")
+        self.assertEqual(
+            cls.__repr__(),
+            "<NTP:unsync:4:3:0.000000:0.000000:0.0.0.0:"
+            "1970-01-01T00:00:00Z:1970-01-01T00:00:01Z:"
+            "1970-01-01T00:00:02Z:1970-01-01T00:00:03Z:"
+            "'foobar':machinations>",
+        )
 
 
 class TestMisc(unittest.TestCase):
@@ -567,27 +668,35 @@ class TestMisc(unittest.TestCase):
     def test_dump_hex_printable(self):
         f = ntpp.dump_hex_printable
         fp = jigs.FileJig()
-        data = "\x00\x01\x02\x03\x04\x05\x06\x07" \
-               "\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"
+        data = (
+            "\x00\x01\x02\x03\x04\x05\x06\x07"
+            "\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"
+        )
         # Test a single line
         f(data, fp)
-        total = "".join(fp.data)  # easier than 300 million separate strings
+        total = "".join(
+            fp.data
+        )  # easier than 300 million separate strings
         fp.data = []
-        self.assertEqual(total,
-                         "00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f "
-                         "................\n")
+        self.assertEqual(
+            total,
+            "00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f "
+            "................\n",
+        )
         # Test >1 lines, partial line
         data += "Would you kindly test this?"
         f(data, fp)
         total = "".join(fp.data)
         fp.data = []
-        self.assertEqual(total,
-                         "00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f "
-                         "................\n"
-                         "57 6f 75 6c 64 20 79 6f 75 20 6b 69 6e 64 6c 79 "
-                         "Would you kindly\n"
-                         "20 74 65 73 74 20 74 68 69 73 3f                "
-                         " test this?\n")
+        self.assertEqual(
+            total,
+            "00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f "
+            "................\n"
+            "57 6f 75 6c 64 20 79 6f 75 20 6b 69 6e 64 6c 79 "
+            "Would you kindly\n"
+            "20 74 65 73 74 20 74 68 69 73 3f                "
+            " test this?\n",
+        )
 
     def test_MRUEntry(self):
         # Test init
@@ -607,38 +716,52 @@ class TestMisc(unittest.TestCase):
         if socket.has_ipv6:
             # Test sortaddr, ipv6
             cls.addr = "[11:22:33::44:55]:42"
-            self.assertEqual(cls.sortaddr(),
-                             ntp.poly.polybytes("\x00\x11\x00\x22\x00\x33\x00\x00"
-                                                "\x00\x00\x00\x00\x00\x44\x00\x55"))
+            self.assertEqual(
+                cls.sortaddr(),
+                ntp.poly.polybytes(
+                    "\x00\x11\x00\x22\x00\x33\x00\x00"
+                    "\x00\x00\x00\x00\x00\x44\x00\x55"
+                ),
+            )
             # Test sortaddr, ipv6, local
             cls.addr = "[11:22:33::44:55%8]:42"
-            self.assertEqual(cls.sortaddr(),
-                             ntp.poly.polybytes("\x00\x11\x00\x22\x00\x33\x00\x00"
-                                                "\x00\x00\x00\x00\x00\x44\x00\x55"))
+            self.assertEqual(
+                cls.sortaddr(),
+                ntp.poly.polybytes(
+                    "\x00\x11\x00\x22\x00\x33\x00\x00"
+                    "\x00\x00\x00\x00\x00\x44\x00\x55"
+                ),
+            )
 
         # Test sortaddr, ipv4
         cls.addr = "11.22.33.44:23"
-        self.assertEqual(cls.sortaddr(),
-                         ntp.poly.polybytes((("\0" * 16) + "\x0b\x16\x21\x2c")))
+        self.assertEqual(
+            cls.sortaddr(),
+            ntp.poly.polybytes((("\0" * 16) + "\x0b\x16\x21\x2c")),
+        )
         # Test __repr__
         # Python dicts enumeration order changes with different versions
         if sys.version_info[0] < 3:
             # Python 2
-            self.assertEqual(cls.__repr__(),
-                             "<MRUEntry: "
-                             "'last': '0x00000200.00000000', "
-                             "'addr': '11.22.33.44:23', 'rs': None, "
-                             "'mv': None, 'sc': '0.12345', "
-                             "'first': '0x00000100.00000000', "
-                             "'dr': None, 'ct': 4>")
+            self.assertEqual(
+                cls.__repr__(),
+                "<MRUEntry: "
+                "'last': '0x00000200.00000000', "
+                "'addr': '11.22.33.44:23', 'rs': None, "
+                "'mv': None, 'sc': '0.12345', "
+                "'first': '0x00000100.00000000', "
+                "'dr': None, 'ct': 4>",
+            )
         elif sys.version_info[1] >= 6:  # Already know it is 3.something
             # Python 3.6+, dicts enumerate in assignment order
-            self.assertEqual(cls.__repr__(),
-                             "<MRUEntry: 'addr': '11.22.33.44:23', "
-                             "'last': '0x00000200.00000000', "
-                             "'first': '0x00000100.00000000', "
-                             "'mv': None, 'rs': None, 'ct': 4, "
-                             "'sc': '0.12345', 'dr': None>")
+            self.assertEqual(
+                cls.__repr__(),
+                "<MRUEntry: 'addr': '11.22.33.44:23', "
+                "'last': '0x00000200.00000000', "
+                "'first': '0x00000100.00000000', "
+                "'mv': None, 'rs': None, 'ct': 4, "
+                "'sc': '0.12345', 'dr': None>",
+            )
         else:
             # Python 3.x < 3.6, dicts enumerate randomly
             # I can not test randomness of this type
@@ -656,9 +779,11 @@ class TestMisc(unittest.TestCase):
         self.assertEqual(cls.is_complete(), True)
         # Test __repr__, simplified
         cls.entries = [1, 2, 3, 4]
-        self.assertEqual(cls.__repr__(),
-                         "<MRUList: entries=[1, 2, 3, 4] "
-                         "now=0x01234567.89ABCDEF>")
+        self.assertEqual(
+            cls.__repr__(),
+            "<MRUList: entries=[1, 2, 3, 4] "
+            "now=0x01234567.89ABCDEF>",
+        )
 
 
 class TestControlPacket(unittest.TestCase):
@@ -742,11 +867,15 @@ class TestControlPacket(unittest.TestCase):
     def test_analyze_flatten_send(self):
         cls = self.target(self.session())
         header = "\x8A\x3F\x00\x01\x00\x02\x00\x03\x00\x20\x00\x10"
-        payload = "\x00\x11\x22\x33\x44\x55\x66\x77" \
-                  "\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF"
-        ext = "\x01\x02\x03\x04" \
-              "\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF7" \
-              "\xF8\xF9\xFA\xFB\xFC\xFD\xFE\xFF"
+        payload = (
+            "\x00\x11\x22\x33\x44\x55\x66\x77"
+            "\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF"
+        )
+        ext = (
+            "\x01\x02\x03\x04"
+            "\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF7"
+            "\xF8\xF9\xFA\xFB\xFC\xFD\xFE\xFF"
+        )
         totaldata = header + payload + ext
         # Test analyze
         result = cls.analyze(totaldata)
@@ -765,6 +894,7 @@ class TestControlPacket(unittest.TestCase):
 
         def send_jig(pkt):
             send_data.append(pkt)
+
         cls.session.sendpkt = send_jig
         cls.send()
         self.assertEqual(send_data, [ntp.poly.polybytes(totaldata)])
@@ -831,69 +961,155 @@ class TestControlSession(unittest.TestCase):
             cls.logfp = logjig
             # Test first type
             fakesockmod.gai_returns = [42]
-            result = cls._ControlSession__lookuphost("[blah.com]", "family")
+            result = cls._ControlSession__lookuphost(
+                "[blah.com]", "family"
+            )
             self.assertEqual(result, 42)
-            self.assertEqual(fakesockmod.gai_calls,
-                             [("blah.com", "ntp", cls.ai_family,
-                               socket.SOCK_DGRAM, socket.IPPROTO_UDP,
-                               socket.AI_NUMERICHOST)])
+            self.assertEqual(
+                fakesockmod.gai_calls,
+                [
+                    (
+                        "blah.com",
+                        "ntp",
+                        cls.ai_family,
+                        socket.SOCK_DGRAM,
+                        socket.IPPROTO_UDP,
+                        socket.AI_NUMERICHOST,
+                    )
+                ],
+            )
             self.assertEqual(logjig.data, [])
             # Test second type
             logjig.__init__()  # reset
             fakesockmod.__init__()
             fakesockmod.gai_returns = [42]
             fakesockmod.gai_error_count = 1
-            result = cls._ControlSession__lookuphost("blah.com", "family")
+            result = cls._ControlSession__lookuphost(
+                "blah.com", "family"
+            )
             self.assertEqual(result, 42)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z ntpq: numeric-mode lookup "
-                              "of blah.com failed, None\n"])
-            self.assertEqual(fakesockmod.gai_calls,
-                             [("blah.com", "ntp", cls.ai_family,
-                               socket.SOCK_DGRAM, socket.IPPROTO_UDP,
-                               socket.AI_NUMERICHOST),
-                              ("blah.com", "ntp", cls.ai_family,
-                               socket.SOCK_DGRAM, socket.IPPROTO_UDP, 0)])
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z ntpq: numeric-mode lookup "
+                    "of blah.com failed, None\n"
+                ],
+            )
+            self.assertEqual(
+                fakesockmod.gai_calls,
+                [
+                    (
+                        "blah.com",
+                        "ntp",
+                        cls.ai_family,
+                        socket.SOCK_DGRAM,
+                        socket.IPPROTO_UDP,
+                        socket.AI_NUMERICHOST,
+                    ),
+                    (
+                        "blah.com",
+                        "ntp",
+                        cls.ai_family,
+                        socket.SOCK_DGRAM,
+                        socket.IPPROTO_UDP,
+                        0,
+                    ),
+                ],
+            )
             # Test third type
             logjig.__init__()  # reset
             fakesockmod.__init__()
             fakesockmod.gai_returns = [42]
             fakesockmod.gai_error_count = 2
-            result = cls._ControlSession__lookuphost("blah.com", "family")
+            result = cls._ControlSession__lookuphost(
+                "blah.com", "family"
+            )
             self.assertEqual(result, 42)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z ntpq: numeric-mode lookup "
-                              "of blah.com failed, None\n",
-                              "ntpq: standard-mode lookup of blah.com failed, "
-                              "None\n"])
-            self.assertEqual(fakesockmod.gai_calls,
-                             [("blah.com", "ntp", cls.ai_family,
-                               socket.SOCK_DGRAM, socket.IPPROTO_UDP,
-                               socket.AI_NUMERICHOST),
-                              ("blah.com", "ntp", cls.ai_family,
-                               socket.SOCK_DGRAM, socket.IPPROTO_UDP, 0),
-                              ("blah.com", "ntp", cls.ai_family,
-                               socket.SOCK_DGRAM, socket.IPPROTO_UDP, 0)])
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z ntpq: numeric-mode lookup "
+                    "of blah.com failed, None\n",
+                    "ntpq: standard-mode lookup of blah.com failed, "
+                    "None\n",
+                ],
+            )
+            self.assertEqual(
+                fakesockmod.gai_calls,
+                [
+                    (
+                        "blah.com",
+                        "ntp",
+                        cls.ai_family,
+                        socket.SOCK_DGRAM,
+                        socket.IPPROTO_UDP,
+                        socket.AI_NUMERICHOST,
+                    ),
+                    (
+                        "blah.com",
+                        "ntp",
+                        cls.ai_family,
+                        socket.SOCK_DGRAM,
+                        socket.IPPROTO_UDP,
+                        0,
+                    ),
+                    (
+                        "blah.com",
+                        "ntp",
+                        cls.ai_family,
+                        socket.SOCK_DGRAM,
+                        socket.IPPROTO_UDP,
+                        0,
+                    ),
+                ],
+            )
             # Test all types failed
             logjig.__init__()  # reset
             fakesockmod.__init__()
             fakesockmod.gai_error_count = 3
-            result = cls._ControlSession__lookuphost("blah.com", "family")
+            result = cls._ControlSession__lookuphost(
+                "blah.com", "family"
+            )
             self.assertEqual(result, None)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z ntpq: numeric-mode lookup "
-                              "of blah.com failed, None\n",
-                              "ntpq: standard-mode lookup of blah.com failed, "
-                              "None\n",
-                              "ntpq: ndp lookup failed, None\n"])
-            self.assertEqual(fakesockmod.gai_calls,
-                             [("blah.com", "ntp", cls.ai_family,
-                               socket.SOCK_DGRAM, socket.IPPROTO_UDP,
-                               socket.AI_NUMERICHOST),
-                              ("blah.com", "ntp", cls.ai_family,
-                               socket.SOCK_DGRAM, socket.IPPROTO_UDP, 0),
-                              ("blah.com", "ntp", cls.ai_family,
-                               socket.SOCK_DGRAM, socket.IPPROTO_UDP, 0)])
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z ntpq: numeric-mode lookup "
+                    "of blah.com failed, None\n",
+                    "ntpq: standard-mode lookup of blah.com failed, "
+                    "None\n",
+                    "ntpq: ndp lookup failed, None\n",
+                ],
+            )
+            self.assertEqual(
+                fakesockmod.gai_calls,
+                [
+                    (
+                        "blah.com",
+                        "ntp",
+                        cls.ai_family,
+                        socket.SOCK_DGRAM,
+                        socket.IPPROTO_UDP,
+                        socket.AI_NUMERICHOST,
+                    ),
+                    (
+                        "blah.com",
+                        "ntp",
+                        cls.ai_family,
+                        socket.SOCK_DGRAM,
+                        socket.IPPROTO_UDP,
+                        0,
+                    ),
+                    (
+                        "blah.com",
+                        "ntp",
+                        cls.ai_family,
+                        socket.SOCK_DGRAM,
+                        socket.IPPROTO_UDP,
+                        0,
+                    ),
+                ],
+            )
         finally:
             ntpp.socket = socket
             ntp.util.time = timetemp
@@ -908,11 +1124,26 @@ class TestControlSession(unittest.TestCase):
             if returnNothing:
                 return None
             elif noCanon:
-                return [("family", "socktype", "protocol", None,
-                         ("1.2.3.4", 80)), ]
+                return [
+                    (
+                        "family",
+                        "socktype",
+                        "protocol",
+                        None,
+                        ("1.2.3.4", 80),
+                    ),
+                ]
             else:
-                return [("family", "socktype", "protocol", "canon",
-                         ("1.2.3.4", 80)), ]
+                return [
+                    (
+                        "family",
+                        "socktype",
+                        "protocol",
+                        "canon",
+                        ("1.2.3.4", 80),
+                    ),
+                ]
+
         logjig = jigs.FileJig()
         faketimemod = jigs.TimeModuleJig()
         try:
@@ -935,12 +1166,16 @@ class TestControlSession(unittest.TestCase):
             lookups = []
             result = cls.openhost("foo.org")
             self.assertEqual(result, True)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Opening host canon\n"])
+            self.assertEqual(
+                logjig.data,
+                ["1970-01-01T00:00:00Z Opening host canon\n"],
+            )
             self.assertEqual(lookups, [("foo.org", socket.AF_UNSPEC)])
-            self.assertEqual(fakesockmod.socket_calls,
-                             [("family", "socktype", "protocol")])
-            sock = fakesockmod.socketsReturned[0]
+            self.assertEqual(
+                fakesockmod.socket_calls,
+                [("family", "socktype", "protocol")],
+            )
+            sock = fakesockmod.sockets_returned[0]
             self.assertEqual(sock.connected, ("1.2.3.4", 80))
             self.assertEqual(cls.hostname, "canon")
             self.assertEqual(cls.isnum, False)
@@ -954,12 +1189,16 @@ class TestControlSession(unittest.TestCase):
             cls.sock = None
             result = cls.openhost("foo.org")
             self.assertEqual(result, True)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Opening host canon.com\n"])
+            self.assertEqual(
+                logjig.data,
+                ["1970-01-01T00:00:00Z Opening host canon.com\n"],
+            )
             self.assertEqual(lookups, [("foo.org", socket.AF_UNSPEC)])
-            self.assertEqual(fakesockmod.socket_calls,
-                             [("family", "socktype", "protocol")])
-            sock = fakesockmod.socketsReturned[0]
+            self.assertEqual(
+                fakesockmod.socket_calls,
+                [("family", "socktype", "protocol")],
+            )
+            sock = fakesockmod.sockets_returned[0]
             self.assertEqual(sock.connected, ("1.2.3.4", 80))
             self.assertEqual(cls.hostname, "canon.com")
             self.assertEqual(cls.isnum, True)
@@ -974,8 +1213,9 @@ class TestControlSession(unittest.TestCase):
                 errored = False
             except ctlerr as e:
                 errored = e
-            self.assertEqual(errored.message,
-                             "Error opening foo.org: error! [23]")
+            self.assertEqual(
+                errored.message, "Error opening foo.org: error! [23]"
+            )
             # Test, with canon, and socket connection failure
             fakesockmod.socket_fail = False
             fakesockmod.socket_fail_connect = True
@@ -985,8 +1225,10 @@ class TestControlSession(unittest.TestCase):
                 errored = False
             except ctlerr as e:
                 errored = e
-            self.assertEqual(errored.message,
-                             "Error connecting to foo.org: socket! [16]")
+            self.assertEqual(
+                errored.message,
+                "Error connecting to foo.org: socket! [16]",
+            )
         finally:
             ntpp.socket = socket
             ntp.util.time = timetemp
@@ -1011,7 +1253,9 @@ class TestControlSession(unittest.TestCase):
             iojig.readline_return = ["1\n"] * 10
             fakeosmod.isatty_returns = [True] * 10
             cls.password()
-            self.assertEqual(isinstance(cls.auth, AuthenticatorJig), True)
+            self.assertEqual(
+                isinstance(cls.auth, AuthenticatorJig), True
+            )
             self.assertEqual(cls.keyid, 1)
             self.assertEqual(cls.passwd, "pass")
             # Test with auth and localhost, fail
@@ -1038,21 +1282,28 @@ class TestControlSession(unittest.TestCase):
             cls.auth.fail_getitem = True
             fakegetpmod.getpass_returns = ["xyzzy"]
             cls.password()
-            self.assertEqual(fakegetpmod.getpass_calls,
-                             [("keytype Password: ", None)])
+            self.assertEqual(
+                fakegetpmod.getpass_calls,
+                [("keytype Password: ", None)],
+            )
             self.assertEqual(cls.passwd, "xyzzy")
             # Test with all but password, hex password
             fakegetpmod.getpass_calls = []
             cls.passwd = None
             cls.auth.fail_getitem = True
-            fakegetpmod.getpass_returns = ["0102030405060708090A"
-                                           "0B0C0D0E0F1011121314"]  # 40 char
+            fakegetpmod.getpass_returns = [
+                "0102030405060708090A" "0B0C0D0E0F1011121314"
+            ]  # 40 char
             cls.password()
-            self.assertEqual(fakegetpmod.getpass_calls,
-                             [("keytype Password: ", None)])
-            self.assertEqual(cls.passwd,
-                             "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A"
-                             "\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14")
+            self.assertEqual(
+                fakegetpmod.getpass_calls,
+                [("keytype Password: ", None)],
+            )
+            self.assertEqual(
+                cls.passwd,
+                "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A"
+                "\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14",
+            )
         finally:
             ntpp.Authenticator = tempauth
             ntpp.getpass = getpass
@@ -1077,18 +1328,25 @@ class TestControlSession(unittest.TestCase):
             # Test
             res = cls.sendpkt(ntp.poly.polybytes("blahfoo"))
             self.assertEqual(res, 0)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Sending 8 octets.  "
-                              "seq=0\n"])
-            self.assertEqual(sockjig.data, [ntp.poly.polybytes("blahfoo\x00")])
+            self.assertEqual(
+                logjig.data,
+                ["1970-01-01T00:00:00Z Sending 8 octets.  " "seq=0\n"],
+            )
+            self.assertEqual(
+                sockjig.data, [ntp.poly.polybytes("blahfoo\x00")]
+            )
             # Test error
             logjig.__init__()
             sockjig.fail_send = 1
             res = cls.sendpkt("blah")
             self.assertEqual(res, -1)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Sending 4 octets.  seq=0\n",
-                              "Write to None failed\n"])
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z Sending 4 octets.  seq=0\n",
+                    "Write to None failed\n",
+                ],
+            )
         finally:
             ntp.util.time = timetemp
 
@@ -1107,22 +1365,32 @@ class TestControlSession(unittest.TestCase):
             data = "a" * datalen
             result = cls.sendrequest(1, 2, data)
             self.assertEqual(result, -1)
-            self.assertEqual(logjig.data,
-                             ["\n",
-                              "sendrequest: opcode=1, associd=2, "
-                              "qdata=" + data + "\n",
-                              "***Internal error! Data too large "
-                              "(" + str(len(data)) + ")\n"])
+            self.assertEqual(
+                logjig.data,
+                [
+                    "\n",
+                    "sendrequest: opcode=1, associd=2, "
+                    "qdata=" + data + "\n",
+                    "***Internal error! Data too large "
+                    "(" + str(len(data)) + ")\n",
+                ],
+            )
             # Test no auth
             result = cls.sendrequest(1, 2, ntp.poly.polybytes("foo"))
             self.assertEqual(result.sequence, 1)
-            self.assertEqual(result.extension, ntp.poly.polybytes("foo\x00"))
+            self.assertEqual(
+                result.extension, ntp.poly.polybytes("foo\x00")
+            )
             # Test with auth
             cls.keyid = 1
             cls.passwd = "qwerty"
-            result = cls.sendrequest(1, 2, ntp.poly.polybytes("foo"), True)
+            result = cls.sendrequest(
+                1, 2, ntp.poly.polybytes("foo"), True
+            )
             self.assertEqual(result.sequence, 2)
-            self.assertEqual(result.extension, ntp.poly.polybytes("foo\x00mac"))
+            self.assertEqual(
+                result.extension, ntp.poly.polybytes("foo\x00mac")
+            )
             # Test with auth keyid / password failure
             cls.keyid = None
             try:
@@ -1148,7 +1416,8 @@ class TestControlSession(unittest.TestCase):
             ntpp.select = fakeselectmod
             # Test empty
             sockjig.return_data = [
-                "\x16\x81\x00\x00\x00\x03\x00\x02\x00\x00\x00\x00"]
+                "\x16\x81\x00\x00\x00\x03\x00\x02\x00\x00\x00\x00"
+            ]
             cls.getresponse(1, 2, True)
             self.assertEqual(cls.response, ntp.poly.polybytes(""))
             # Test with data
@@ -1158,11 +1427,14 @@ class TestControlSession(unittest.TestCase):
                 "\x16\xA1\x00\x01\x00\x02\x00\x03\x00\x09\x00\x0E"
                 "blah=248,x=23,\x00\x00",
                 "\x16\x81\x00\x01\x00\x02\x00\x03\x00\x17\x00\x06"
-                "quux=1\x00\x00"]
+                "quux=1\x00\x00",
+            ]
             cls.sequence = 1
             cls.getresponse(1, 3, True)
-            self.assertEqual(cls.response,
-                             ntp.poly.polybytes("foo=4223,blah=248,x=23,quux=1"))
+            self.assertEqual(
+                cls.response,
+                ntp.poly.polybytes("foo=4223,blah=248,x=23,quux=1"),
+            )
             # Test with data, duplicate packet
             sockjig.return_data = [
                 "\x16\xA1\x00\x01\x00\x02\x00\x03\x00\x00\x00\x09"
@@ -1172,11 +1444,14 @@ class TestControlSession(unittest.TestCase):
                 "\x16\xA1\x00\x01\x00\x02\x00\x03\x00\x09\x00\x0E"
                 "blah=248,x=23,\x00\x00",
                 "\x16\x81\x00\x01\x00\x02\x00\x03\x00\x17\x00\x06"
-                "quux=1\x00\x00"]
+                "quux=1\x00\x00",
+            ]
             cls.sequence = 1
             cls.getresponse(1, 3, True)
-            self.assertEqual(cls.response,
-                             ntp.poly.polybytes("foo=4223,blah=248,x=23,quux=1"))
+            self.assertEqual(
+                cls.response,
+                ntp.poly.polybytes("foo=4223,blah=248,x=23,quux=1"),
+            )
             # Test MAXFRAGS bail
             maxtemp = ntpp.MAXFRAGS
             ntpp.MAXFRAGS = 1
@@ -1186,7 +1461,8 @@ class TestControlSession(unittest.TestCase):
                 "\x0E\xA1\x00\x01\x00\x02\x00\x03\x00\x09\x00\x0E"
                 "blah=248,x=23,\x00\x00",
                 "\x0E\x81\x00\x01\x00\x02\x00\x03\x00\x17\x00\x06"
-                "quux=1\x00\x00"]
+                "quux=1\x00\x00",
+            ]
             cls.sequence = 1
             try:
                 cls.getresponse(1, 3, True)
@@ -1218,7 +1494,8 @@ class TestControlSession(unittest.TestCase):
                 "\x16\xA1\x00\x01\x00\x02\x00\x03\x00\x09\x00\x0E"
                 "blah=248,x=23,\x00\x00",
                 "\x16\x81\x00\x01\x00\x02\x00\x03\x00\x17\x00\x06"
-                "quux=1\x00\x00"]
+                "quux=1\x00\x00",
+            ]
             fakeselectmod.do_return = [True, False]
             try:
                 cls.getresponse(1, 2, False)
@@ -1227,8 +1504,7 @@ class TestControlSession(unittest.TestCase):
                 errored = e.message
             self.assertEqual(errored, ntpp.SERR_INCOMPLETE)
             # Test header parse fail
-            sockjig.return_data = [
-                "\x16\x81\x00\x00\x00\x03"]
+            sockjig.return_data = ["\x16\x81\x00\x00\x00\x03"]
             try:
                 cls.getresponse(1, 2, True)
                 errored = False
@@ -1253,20 +1529,24 @@ class TestControlSession(unittest.TestCase):
             raw = "\x16\x81\x00\x00\x00\x03\x00\x02\x00\x00\x00\x00"
             pkt = ntpp.ControlPacket(cls)
             pkt.analyze(raw)
-            self.assertEqual(cls._ControlSession__validate_packet(pkt, raw,
-                                                                  1, 2),
-                             True)
+            self.assertEqual(
+                cls._ControlSession__validate_packet(pkt, raw, 1, 2),
+                True,
+            )
             self.assertEqual(logjig.data, [])
             # Test good packet, with data
             logjig.data = []
-            raw = "\x16\xA1\x00\x01\x00\x02\x00\x03\x00\x00\x00\x09" \
-                  "foo=4223,\x00\x00\x00"
+            raw = (
+                "\x16\xA1\x00\x01\x00\x02\x00\x03\x00\x00\x00\x09"
+                "foo=4223,\x00\x00\x00"
+            )
             pkt = ntpp.ControlPacket(cls)
             pkt.analyze(raw)
             cls.sequence = 1
-            self.assertEqual(cls._ControlSession__validate_packet(pkt, raw,
-                                                                  1, 3),
-                             True)
+            self.assertEqual(
+                cls._ControlSession__validate_packet(pkt, raw, 1, 3),
+                True,
+            )
             self.assertEqual(logjig.data, [])
             # Test bad packet, bad version
             # Need to fix version logic 0x46 can be ver == 5, or 0
@@ -1275,103 +1555,147 @@ class TestControlSession(unittest.TestCase):
             raw = "\x46\x81\x00\x00\x00\x03\x00\x02\x00\x00\x00\x00"
             pkt = ntpp.ControlPacket(cls)
             pkt.analyze(raw)
-            self.assertEqual(cls._ControlSession__validate_packet(pkt, raw,
-                                                                  1, 2),
-                             False)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Fragment "
-                              "received with version 0\n"])
+            self.assertEqual(
+                cls._ControlSession__validate_packet(pkt, raw, 1, 2),
+                False,
+            )
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z Fragment "
+                    "received with version 0\n"
+                ],
+            )
             # Test bad packet, bad mode
             logjig.data = []
             raw = "\x15\x81\x00\x00\x00\x03\x00\x02\x00\x00\x00\x00"
             pkt = ntpp.ControlPacket(cls)
             pkt.analyze(raw)
-            self.assertEqual(cls._ControlSession__validate_packet(pkt, raw,
-                                                                  1, 2),
-                             False)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Fragment received "
-                              "with mode 5\n"])
+            self.assertEqual(
+                cls._ControlSession__validate_packet(pkt, raw, 1, 2),
+                False,
+            )
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z Fragment received "
+                    "with mode 5\n"
+                ],
+            )
             # Test bad packet, bad response bit
             logjig.data = []
             raw = "\x16\x01\x00\x00\x00\x03\x00\x02\x00\x00\x00\x00"
             pkt = ntpp.ControlPacket(cls)
             pkt.analyze(raw)
-            self.assertEqual(cls._ControlSession__validate_packet(pkt, raw,
-                                                                  1, 2),
-                             False)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Received request, "
-                              "wanted response\n"])
+            self.assertEqual(
+                cls._ControlSession__validate_packet(pkt, raw, 1, 2),
+                False,
+            )
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z Received request, "
+                    "wanted response\n"
+                ],
+            )
             # Test bad packet, bad sequence
             logjig.data = []
             raw = "\x16\x81\x00\x01\x00\x03\x00\x02\x00\x00\x00\x00"
             pkt = ntpp.ControlPacket(cls)
             pkt.analyze(raw)
-            self.assertEqual(cls._ControlSession__validate_packet(pkt, raw,
-                                                                  1, 2),
-                             False)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Received sequence "
-                              "number 1, wanted 0\n"])
+            self.assertEqual(
+                cls._ControlSession__validate_packet(pkt, raw, 1, 2),
+                False,
+            )
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z Received sequence "
+                    "number 1, wanted 0\n"
+                ],
+            )
             # Test bad packet, bad opcode
             logjig.data = []
             raw = "\x16\x80\x00\x00\x00\x03\x00\x02\x00\x00\x00\x00"
             pkt = ntpp.ControlPacket(cls)
             pkt.analyze(raw)
-            self.assertEqual(cls._ControlSession__validate_packet(pkt, raw,
-                                                                  1, 2),
-                             False)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Received opcode 0, "
-                              "wanted 1\n"])
+            self.assertEqual(
+                cls._ControlSession__validate_packet(pkt, raw, 1, 2),
+                False,
+            )
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z Received opcode 0, "
+                    "wanted 1\n"
+                ],
+            )
             # Test error packet
             logjig.data = []
-            raw = "\x16\xC1\x00\x00" + \
-                  chr(ntp.control.CERR_BADVALUE) + \
-                  "\x03\x00\x02\x00\x00\x00\x00"
+            raw = (
+                "\x16\xC1\x00\x00"
+                + chr(ntp.control.CERR_BADVALUE)
+                + "\x03\x00\x02\x00\x00\x00\x00"
+            )
             pkt = ntpp.ControlPacket(cls)
             pkt.analyze(raw)
             try:
                 cls._ControlSession__validate_packet(pkt, raw, 1, 2)
-                self.assertEqual(False, True)  # it should have errored here
+                self.assertEqual(
+                    False, True
+                )  # it should have errored here
             except ctlerr as e:
                 self.assertEqual(e.errorcode, ntp.control.CERR_BADVALUE)
             self.assertEqual(logjig.data, [])
             # Test error packet, with more bit
             logjig.data = []
             errcs = chr(ntp.control.CERR_BADVALUE)
-            raw = "\x16\xE1\x00\x00" + errcs + "\x03\x00\x02\x00\x00\x00\x00"
+            raw = (
+                "\x16\xE1\x00\x00"
+                + errcs
+                + "\x03\x00\x02\x00\x00\x00\x00"
+            )
             pkt = ntpp.ControlPacket(cls)
             pkt.analyze(raw)
             try:
                 cls._ControlSession__validate_packet(pkt, raw, 1, 2)
-                self.assertEqual(False, True)  # it should have errored here
+                self.assertEqual(
+                    False, True
+                )  # it should have errored here
             except ctlerr as e:
                 self.assertEqual(e.errorcode, ntp.control.CERR_BADVALUE)
-            errstr = "Error " + str(ntp.control.CERR_BADVALUE) + \
-                     " received on non-final fragment\n"
+            errstr = (
+                "Error "
+                + str(ntp.control.CERR_BADVALUE)
+                + " received on non-final fragment\n"
+            )
             self.assertEqual(logjig.data, [errstr])
             # Test ok-ish packet, bad associd
             logjig.data = []
             raw = "\x16\x81\x00\x00\x00\x03\x00\xFF\x00\x00\x00\x00"
             pkt = ntpp.ControlPacket(cls)
             pkt.analyze(raw)
-            self.assertEqual(cls._ControlSession__validate_packet(pkt, raw,
-                                                                  1, 2),
-                             True)
-            self.assertEqual(logjig.data,
-                             ["Association ID 255 doesn't match expected 2\n"])
+            self.assertEqual(
+                cls._ControlSession__validate_packet(pkt, raw, 1, 2),
+                True,
+            )
+            self.assertEqual(
+                logjig.data,
+                ["Association ID 255 doesn't match expected 2\n"],
+            )
             # Test bad data padding
             logjig.data = []
             raw = "\x16\x81\x00\x00\x00\x03\x00\x02\x00\x00\x00\x01@"
             pkt = ntpp.ControlPacket(cls)
             pkt.analyze(raw)
-            self.assertEqual(cls._ControlSession__validate_packet(pkt, raw,
-                                                                  1, 2),
-                             False)
-            self.assertEqual(logjig.data,
-                             ["Response fragment not padded, size = 13\n"])
+            self.assertEqual(
+                cls._ControlSession__validate_packet(pkt, raw, 1, 2),
+                False,
+            )
+            self.assertEqual(
+                logjig.data,
+                ["Response fragment not padded, size = 13\n"],
+            )
             # Test too little data
             logjig.data = []
             raw = "\x16\x81\x00\x00\x00\x03\x00\x02\x00\x00\x00\x10foo\x00"
@@ -1379,12 +1703,18 @@ class TestControlSession(unittest.TestCase):
             pkt.analyze(raw)
             try:
                 cls._ControlSession__validate_packet(pkt, raw, 1, 2)
-                self.assertEqual(True, False)  # should have errored here
+                self.assertEqual(
+                    True, False
+                )  # should have errored here
             except ctlerr as e:
                 self.assertEqual(e.message, ntpp.SERR_INCOMPLETE)
-            self.assertEqual(logjig.data,
-                             ["Response fragment claims 16 octets payload, "
-                              "above 4 received\n"])
+            self.assertEqual(
+                logjig.data,
+                [
+                    "Response fragment claims 16 octets payload, "
+                    "above 4 received\n"
+                ],
+            )
         finally:
             ntp.util.time = timetemp
 
@@ -1393,6 +1723,7 @@ class TestControlSession(unittest.TestCase):
 
         def sendrequest_jig(opcode, associd, qdata, auth):
             sends.append((opcode, associd, qdata, auth))
+
         gets = []
         doerror = [False]
 
@@ -1402,6 +1733,7 @@ class TestControlSession(unittest.TestCase):
                 doerror[0] = False
                 raise ctlerr(ntpp.SERR_TIMEOUT)
             return "flax!"
+
         # Init
         cls = self.target()
         cls.sendrequest = sendrequest_jig
@@ -1430,8 +1762,9 @@ class TestControlSession(unittest.TestCase):
         result = cls.doquery(1, 2, "quux")
         self.assertEqual(result, "flax!")
         self.assertEqual(len(sends), 2)
-        self.assertEqual(sends, [(1, 2, "quux", False),
-                                 (1, 2, "quux", False)])
+        self.assertEqual(
+            sends, [(1, 2, "quux", False), (1, 2, "quux", False)]
+        )
         self.assertEqual(len(gets), 2)
         self.assertEqual(gets, [(1, 2, False), (1, 2, True)])
 
@@ -1441,14 +1774,16 @@ class TestControlSession(unittest.TestCase):
 
         def doquery_jig(opcode, associd=0, qdata="", auth=False):
             queries.append((opcode, associd, qdata, auth))
+
         cls = self.target()
         cls.doquery = doquery_jig
         # Test empty
         cls.response = ""
         idlist = cls.readstat(42)
         self.assertEqual(idlist, [])
-        self.assertEqual(queries, [(ntp.control.CTL_OP_READSTAT,
-                                    42, "", False)])
+        self.assertEqual(
+            queries, [(ntp.control.CTL_OP_READSTAT, 42, "", False)]
+        )
         # Test normal
         queries = []
         cls.response = ntp.poly.polybytes("\xDE\xAD\xF0\x0D")
@@ -1457,8 +1792,9 @@ class TestControlSession(unittest.TestCase):
         self.assertEqual(isinstance(idlist[0], ntpp.Peer), True)
         self.assertEqual(idlist[0].associd, 0xDEAD)
         self.assertEqual(idlist[0].status, 0xF00D)
-        self.assertEqual(queries, [(ntp.control.CTL_OP_READSTAT,
-                                    0, "", False)])
+        self.assertEqual(
+            queries, [(ntp.control.CTL_OP_READSTAT, 0, "", False)]
+        )
         # Test incorrect response
         cls.response = "foo"
         try:
@@ -1473,134 +1809,221 @@ class TestControlSession(unittest.TestCase):
         cls = self.target()
         cls.response = (
             'srcadr=0.0.0.0, srcport=0, srchost="0.ubuntu.pool.ntp.org",\r\n'
-            'dstadr=0.0.0.0, dstport=0, leap=3, stratum=16, precision=-22,\r\n'
-            'rootdelay=0.000, rootdisp=0.000, refid=POOL,\r\n'
-            'reftime=0x00000000.00000000, rec=0x00000000.00000000, reach=0x0,\r\n'
-            'unreach=0, hmode=3, pmode=0, hpoll=6, ppoll=10, headway=0, flash=0x1600,\r\n'
-            'keyid=0, offset=0.000, delay=0.000, dispersion=16000.000, jitter=0.000,\r\n'
-            'filtdelay= 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00,\r\n'
-            'filtoffset= 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00,\r\n'
-            'filtdisp= 16000.00 16000.00 16000.00 16000.00 16000.00 16000.00 16000.00 16000.00,\r\n'
-            'novalue, blankvalue=, quotedvalue="jabber"')
+            "dstadr=0.0.0.0, dstport=0, leap=3, stratum=16, precision=-22,\r\n"
+            "rootdelay=0.000, rootdisp=0.000, refid=POOL,\r\n"
+            "reftime=0x00000000.00000000, rec=0x00000000.00000000, reach=0x0,\r\n"
+            "unreach=0, hmode=3, pmode=0, hpoll=6, ppoll=10, headway=0, flash=0x1600,\r\n"
+            "keyid=0, offset=0.000, delay=0.000, dispersion=16000.000, jitter=0.000,\r\n"
+            "filtdelay= 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00,\r\n"
+            "filtoffset= 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00,\r\n"
+            "filtdisp= 16000.00 16000.00 16000.00 16000.00 16000.00 16000.00 16000.00 16000.00,\r\n"
+            'novalue, blankvalue=, quotedvalue="jabber"'
+        )
         # Test with basic packet
-        self.assertEqual(cls._ControlSession__parse_varlist(),
-                         odict((("srcadr", "0.0.0.0"), ("srcport", 0),
-                                ("srchost", "0.ubuntu.pool.ntp.org"),
-                                ("dstadr", "0.0.0.0"), ("dstport", 0),
-                                ("leap", 3), ("stratum", 16),
-                                ("precision", -22), ("rootdelay", 0.0),
-                                ("rootdisp", 0.0), ("refid", "POOL"),
-                                ("reftime", "0x00000000.00000000"),
-                                ("rec", "0x00000000.00000000"),
-                                ("reach", 0), ("unreach", 0), ("hmode", 3),
-                                ("pmode", 0), ("hpoll", 6), ("ppoll", 10),
-                                ("headway", 0), ("flash", 5632), ("keyid", 0),
-                                ("offset", 0.0), ("delay-s", "0.000"),
-                                ("delay", 0.0), ("dispersion", 16000.0),
-                                ("jitter", 0.0),
-                                ("filtdelay",
-                                 "0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00"),
-                                ("filtoffset",
-                                 "0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00"),
-                                ("filtdisp",
-                                 "16000.00 16000.00 16000.00 16000.00 "
-                                 "16000.00 16000.00 16000.00 16000.00"),
-                                ("novalue", ""), ("blankvalue", ""),
-                                ("quotedvalue", "jabber"))))
+        self.assertEqual(
+            cls._ControlSession__parse_varlist(),
+            odict(
+                (
+                    ("srcadr", "0.0.0.0"),
+                    ("srcport", 0),
+                    ("srchost", "0.ubuntu.pool.ntp.org"),
+                    ("dstadr", "0.0.0.0"),
+                    ("dstport", 0),
+                    ("leap", 3),
+                    ("stratum", 16),
+                    ("precision", -22),
+                    ("rootdelay", 0.0),
+                    ("rootdisp", 0.0),
+                    ("refid", "POOL"),
+                    ("reftime", "0x00000000.00000000"),
+                    ("rec", "0x00000000.00000000"),
+                    ("reach", 0),
+                    ("unreach", 0),
+                    ("hmode", 3),
+                    ("pmode", 0),
+                    ("hpoll", 6),
+                    ("ppoll", 10),
+                    ("headway", 0),
+                    ("flash", 5632),
+                    ("keyid", 0),
+                    ("offset", 0.0),
+                    ("delay-s", "0.000"),
+                    ("delay", 0.0),
+                    ("dispersion", 16000.0),
+                    ("jitter", 0.0),
+                    (
+                        "filtdelay",
+                        "0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00",
+                    ),
+                    (
+                        "filtoffset",
+                        "0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00",
+                    ),
+                    (
+                        "filtdisp",
+                        "16000.00 16000.00 16000.00 16000.00 "
+                        "16000.00 16000.00 16000.00 16000.00",
+                    ),
+                    ("novalue", ""),
+                    ("blankvalue", ""),
+                    ("quotedvalue", "jabber"),
+                )
+            ),
+        )
         # Test with basic packet, raw mode
-        self.assertEqual(cls._ControlSession__parse_varlist(raw=True),
-                         odict((("srcadr", ("0.0.0.0", "0.0.0.0")),
-                                ("srcport", (0, "0")),
-                                ("srchost", ("0.ubuntu.pool.ntp.org",
-                                             "0.ubuntu.pool.ntp.org")),
-                                ("dstadr", ("0.0.0.0", "0.0.0.0")),
-                                ("dstport", (0, "0")),
-                                ("leap", (3, "3")), ("stratum", (16, "16")),
-                                ("precision", (-22, "-22")),
-                                ("rootdelay", (0.0, "0.000")),
-                                ("rootdisp", (0.0, "0.000")),
-                                ("refid", ("POOL", "POOL")),
-                                ("reftime", ("0x00000000.00000000",
-                                             "0x00000000.00000000")),
-                                ("rec", ("0x00000000.00000000",
-                                         "0x00000000.00000000")),
-                                ("reach", (0, "0x0")), ("unreach", (0, "0")),
-                                ("hmode", (3, "3")), ("pmode", (0, "0")),
-                                ("hpoll", (6, "6")), ("ppoll", (10, "10")),
-                                ("headway", (0, "0")),
-                                ("flash", (5632, "0x1600")),
-                                ("keyid", (0, "0")),
-                                ("offset", (0.0, "0.000")),
-                                ("delay", (0.0, "0.000")),
-                                ("dispersion", (16000.0, "16000.000")),
-                                ("jitter", (0.0, "0.000")),
-                                ("filtdelay",
-                                 ("0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00",
-                                  "0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00")),
-                                ("filtoffset",
-                                 ("0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00",
-                                  "0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00")),
-                                ("filtdisp",
-                                 ("16000.00 16000.00 16000.00 16000.00 "
-                                  "16000.00 16000.00 16000.00 16000.00",
-                                  "16000.00 16000.00 16000.00 16000.00 "
-                                  "16000.00 16000.00 16000.00 16000.00")),
-                                ("novalue", ("", "")),
-                                ("blankvalue", ("", "")),
-                                ("quotedvalue", ("jabber", "jabber")))))
+        self.assertEqual(
+            cls._ControlSession__parse_varlist(raw=True),
+            odict(
+                (
+                    ("srcadr", ("0.0.0.0", "0.0.0.0")),
+                    ("srcport", (0, "0")),
+                    (
+                        "srchost",
+                        (
+                            "0.ubuntu.pool.ntp.org",
+                            "0.ubuntu.pool.ntp.org",
+                        ),
+                    ),
+                    ("dstadr", ("0.0.0.0", "0.0.0.0")),
+                    ("dstport", (0, "0")),
+                    ("leap", (3, "3")),
+                    ("stratum", (16, "16")),
+                    ("precision", (-22, "-22")),
+                    ("rootdelay", (0.0, "0.000")),
+                    ("rootdisp", (0.0, "0.000")),
+                    ("refid", ("POOL", "POOL")),
+                    (
+                        "reftime",
+                        ("0x00000000.00000000", "0x00000000.00000000"),
+                    ),
+                    (
+                        "rec",
+                        ("0x00000000.00000000", "0x00000000.00000000"),
+                    ),
+                    ("reach", (0, "0x0")),
+                    ("unreach", (0, "0")),
+                    ("hmode", (3, "3")),
+                    ("pmode", (0, "0")),
+                    ("hpoll", (6, "6")),
+                    ("ppoll", (10, "10")),
+                    ("headway", (0, "0")),
+                    ("flash", (5632, "0x1600")),
+                    ("keyid", (0, "0")),
+                    ("offset", (0.0, "0.000")),
+                    ("delay", (0.0, "0.000")),
+                    ("dispersion", (16000.0, "16000.000")),
+                    ("jitter", (0.0, "0.000")),
+                    (
+                        "filtdelay",
+                        (
+                            "0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00",
+                            "0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00",
+                        ),
+                    ),
+                    (
+                        "filtoffset",
+                        (
+                            "0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00",
+                            "0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00",
+                        ),
+                    ),
+                    (
+                        "filtdisp",
+                        (
+                            "16000.00 16000.00 16000.00 16000.00 "
+                            "16000.00 16000.00 16000.00 16000.00",
+                            "16000.00 16000.00 16000.00 16000.00 "
+                            "16000.00 16000.00 16000.00 16000.00",
+                        ),
+                    ),
+                    ("novalue", ("", "")),
+                    ("blankvalue", ("", "")),
+                    ("quotedvalue", ("jabber", "jabber")),
+                )
+            ),
+        )
 
     def test_readvar(self):
         queries = []
 
         def doquery_jig(opcode, associd=0, qdata="", auth=False):
             queries.append((opcode, associd, qdata, auth))
+
         # Init
         cls = self.target()
         cls.doquery = doquery_jig
         cls.response = "foo=bar, murphy=42"
         # Test basic
         result = cls.readvar()
-        self.assertEqual(result, odict((("foo", "bar"), ("murphy", 42))))
-        self.assertEqual(queries,
-                         [(ntp.control.CTL_OP_READVAR, 0, "", False)])
+        self.assertEqual(
+            result, odict((("foo", "bar"), ("murphy", 42)))
+        )
+        self.assertEqual(
+            queries, [(ntp.control.CTL_OP_READVAR, 0, "", False)]
+        )
         # Test raw
         queries = []
         result = cls.readvar(raw=True)
-        self.assertEqual(result, odict((("foo", ("bar", "bar")),
-                                        ("murphy", (42, "42")))))
-        self.assertEqual(queries,
-                         [(ntp.control.CTL_OP_READVAR, 0, "", False)])
+        self.assertEqual(
+            result,
+            odict((("foo", ("bar", "bar")), ("murphy", (42, "42")))),
+        )
+        self.assertEqual(
+            queries, [(ntp.control.CTL_OP_READVAR, 0, "", False)]
+        )
         # Test with varlist
         queries = []
         result = cls.readvar(varlist=("foo", "bar", "quux"))
-        self.assertEqual(result, odict((("foo", "bar"), ("murphy", 42))))
-        self.assertEqual(queries,
-                         [(ntp.control.CTL_OP_READVAR,
-                           0, "foo,bar,quux", False)])
+        self.assertEqual(
+            result, odict((("foo", "bar"), ("murphy", 42)))
+        )
+        self.assertEqual(
+            queries,
+            [(ntp.control.CTL_OP_READVAR, 0, "foo,bar,quux", False)],
+        )
 
     def test_config(self):
         queries = []
 
         def doquery_jig(opcode, associd=0, qdata="", auth=False):
             queries.append((opcode, associd, qdata, auth))
+
         # Init
         cls = self.target()
         cls.doquery = doquery_jig
-        cls.response = ntp.poly.polybytes("Config Succeeded    \n \x00 blah blah")
+        cls.response = ntp.poly.polybytes(
+            "Config Succeeded    \n \x00 blah blah"
+        )
         # Test success
         result = cls.config(ntp.poly.polybytes("Boo!"))
         self.assertEqual(result, True)
-        self.assertEqual(queries,
-                         [(ntp.control.CTL_OP_CONFIGURE, 0,
-                           ntp.poly.polybytes("Boo!"), True)])
+        self.assertEqual(
+            queries,
+            [
+                (
+                    ntp.control.CTL_OP_CONFIGURE,
+                    0,
+                    ntp.poly.polybytes("Boo!"),
+                    True,
+                )
+            ],
+        )
         # Test failure
         queries = []
         cls.response = ntp.poly.polybytes("whatever man...")
         result = cls.config(ntp.poly.polybytes("Boo!"))
         self.assertEqual(result, False)
-        self.assertEqual(queries,
-                         [(ntp.control.CTL_OP_CONFIGURE, 0,
-                           ntp.poly.polybytes("Boo!"), True)])
+        self.assertEqual(
+            queries,
+            [
+                (
+                    ntp.control.CTL_OP_CONFIGURE,
+                    0,
+                    ntp.poly.polybytes("Boo!"),
+                    True,
+                )
+            ],
+        )
         # Test no response
         queries = []
         cls.response = ""
@@ -1616,6 +2039,7 @@ class TestControlSession(unittest.TestCase):
 
         def doquery_jig(opcode, associd=0, qdata="", auth=False):
             queries.append((opcode, associd, qdata, auth))
+
         # Init
         filefp = jigs.FileJig()
         cls = self.target()
@@ -1624,8 +2048,9 @@ class TestControlSession(unittest.TestCase):
         cls.response = ntp.poly.polybytes("nonce=blah blah  ")
         result = cls.fetch_nonce()
         self.assertEqual(result, "nonce=blah blah")
-        self.assertEqual(queries,
-                         [(ntp.control.CTL_OP_REQ_NONCE, 0, "", False)])
+        self.assertEqual(
+            queries, [(ntp.control.CTL_OP_REQ_NONCE, 0, "", False)]
+        )
         # Test failure
         queries = []
         cls.logfp = filefp
@@ -1637,20 +2062,34 @@ class TestControlSession(unittest.TestCase):
             errored = True
         self.assertEqual(errored, True)
         self.assertEqual(filefp.data, ["## Nonce expected: blah blah"])
-        self.assertEqual(queries,
-                         [(ntp.control.CTL_OP_REQ_NONCE, 0, "", False),
-                          (ntp.control.CTL_OP_REQ_NONCE, 0, "", False),
-                          (ntp.control.CTL_OP_REQ_NONCE, 0, "", False),
-                          (ntp.control.CTL_OP_REQ_NONCE, 0, "", False)])
+        self.assertEqual(
+            queries,
+            [
+                (ntp.control.CTL_OP_REQ_NONCE, 0, "", False),
+                (ntp.control.CTL_OP_REQ_NONCE, 0, "", False),
+                (ntp.control.CTL_OP_REQ_NONCE, 0, "", False),
+                (ntp.control.CTL_OP_REQ_NONCE, 0, "", False),
+            ],
+        )
 
     def test___mru_analyze(self):
         # data: nonce, last.older, addr.older, now, last.newest
         #       addr, last, first, ct, mv, rs
-        vars = odict((("nonce", "noncevalue"), ("last.older", "FAIL0"),
-                ("addr.older", "FAIL1"), ("now", "0xcfba1ce0.80000000"),
-                ("last.newest", "FAIL2"), ("addr.1", "addrtest"),
-                ("last.2", "lasttest"), ("first.3", "firsttest"), ("ct.4", "cttest"),
-                ("mv.5", "mvtest"), ("rs.6", "rstest")))
+        vars = odict(
+            (
+                ("nonce", "noncevalue"),
+                ("last.older", "FAIL0"),
+                ("addr.older", "FAIL1"),
+                ("now", "0xcfba1ce0.80000000"),
+                ("last.newest", "FAIL2"),
+                ("addr.1", "addrtest"),
+                ("last.2", "lasttest"),
+                ("first.3", "firsttest"),
+                ("ct.4", "cttest"),
+                ("mv.5", "mvtest"),
+                ("rs.6", "rstest"),
+            )
+        )
         cls = self.target()
         span = ntpp.MRUList()
         nonce = cls._ControlSession__mru_analyze(vars, span, None)
@@ -1668,7 +2107,7 @@ class TestControlSession(unittest.TestCase):
         m5.mv = "mvtest"
         m6 = ntpp.MRUEntry()
         m6.rs = "rstest"
-        expected = [m1, m2, m3, m4, m5, m6] # sort order
+        expected = [m1, m2, m3, m4, m5, m6]  # sort order
         self.assertEqual(len(span.entries), len(expected))
         for i in range(len(span.entries)):
             self.assertEqual(span.entries[i].addr, expected[i].addr)
@@ -1679,20 +2118,23 @@ class TestControlSession(unittest.TestCase):
             self.assertEqual(span.entries[i].rs, expected[i].rs)
 
     def test_mrulist(self):
-
         def setresponse(data):  # needed for doquery_jig
             cls.response = data
+
         nonce_fetch_count = [0]
 
         def fetch_nonce_jig():
             nonce_fetch_count[0] += 1
             return "nonce=foo"
+
         queries = []
-        qrm = ["addr.1=1.2.3.4:23,last.1=40,first.1=23,ct.1=1,mv.1=2,rs.1=3",
-               "addr.2=1.2.3.4:23,last.2=41,first.2=23,ct.2=1,mv.2=2,rs.2=3",
-               "addr.1=10.20.30.40:23,last.1=42,first.1=23,ct.1=1,"
-               "mv.1=2,rs.1=3",
-               "now=0x00000000.00000000"]
+        qrm = [
+            "addr.1=1.2.3.4:23,last.1=40,first.1=23,ct.1=1,mv.1=2,rs.1=3",
+            "addr.2=1.2.3.4:23,last.2=41,first.2=23,ct.2=1,mv.2=2,rs.2=3",
+            "addr.1=10.20.30.40:23,last.1=42,first.1=23,ct.1=1,"
+            "mv.1=2,rs.1=3",
+            "now=0x00000000.00000000",
+        ]
         query_results = qrm[:]  # qrm == query results master
         query_fail = [0]
         query_fail_code = []
@@ -1705,6 +2147,7 @@ class TestControlSession(unittest.TestCase):
                 raise ctlerr("foo", errorcode=code)
             if query_results:
                 setresponse(query_results.pop(0))
+
         logjig = jigs.FileJig()
         # Init
         cls = self.target()
@@ -1719,20 +2162,34 @@ class TestControlSession(unittest.TestCase):
             # Test empty varlist
             result = cls.mrulist()
             self.assertEqual(nonce_fetch_count, [4])
-            self.assertEqual(queries,
-                             [(10, 0, "nonce=foo, frags=32", False),
-                              (10, 0,
-                               "nonce=foo, frags=32, addr.0=1.2.3.4:23, "
-                               "last.0=40",
-                               False),
-                              (10, 0,
-                               "nonce=foo, frags=32, addr.0=1.2.3.4:23, "
-                               "last.0=41, addr.1=1.2.3.4:23, last.1=40",
-                               False),
-                              (10, 0,
-                               "nonce=foo, frags=32, addr.0=10.20.30.40:23, "
-                               "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
-                               "addr.2=1.2.3.4:23, last.2=40", False)])
+            self.assertEqual(
+                queries,
+                [
+                    (10, 0, "nonce=foo, frags=32", False),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, frags=32, addr.0=1.2.3.4:23, "
+                        "last.0=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, frags=32, addr.0=1.2.3.4:23, "
+                        "last.0=41, addr.1=1.2.3.4:23, last.1=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, frags=32, addr.0=10.20.30.40:23, "
+                        "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
+                        "addr.2=1.2.3.4:23, last.2=40",
+                        False,
+                    ),
+                ],
+            )
             self.assertEqual(isinstance(result, ntpp.MRUList), True)
             self.assertEqual(len(result.entries), 2)
             mru = result.entries[0]
@@ -1753,25 +2210,40 @@ class TestControlSession(unittest.TestCase):
             nonce_fetch_count = [0]
             query_results = qrm[:]
             queries = []
-            result = cls.mrulist(variables={"sort": "addr",
-                                            "frags": 24,
-                                            "resall": 5})
+            result = cls.mrulist(
+                variables={"sort": "addr", "frags": 24, "resall": 5}
+            )
             self.assertEqual(nonce_fetch_count, [4])
-            self.assertEqual(queries,
-                             [(10, 0, "nonce=foo, frags=24, resall=0x5", False),
-                              (10, 0,
-                               "nonce=foo, frags=25, resall=0x5, "
-                               "addr.0=1.2.3.4:23, last.0=40",
-                               False),
-                              (10, 0,
-                               "nonce=foo, frags=26, resall=0x5, "
-                               "addr.0=1.2.3.4:23, last.0=41, addr.1=1.2.3.4:23, "
-                               "last.1=40", False),
-                              (10, 0,
-                               "nonce=foo, frags=27, resall=0x5, "
-                               "addr.0=10.20.30.40:23, "
-                               "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
-                               "addr.2=1.2.3.4:23, last.2=40", False)])
+            self.assertEqual(
+                queries,
+                [
+                    (10, 0, "nonce=foo, frags=24, resall=0x5", False),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, frags=25, resall=0x5, "
+                        "addr.0=1.2.3.4:23, last.0=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, frags=26, resall=0x5, "
+                        "addr.0=1.2.3.4:23, last.0=41, addr.1=1.2.3.4:23, "
+                        "last.1=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, frags=27, resall=0x5, "
+                        "addr.0=10.20.30.40:23, "
+                        "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
+                        "addr.2=1.2.3.4:23, last.2=40",
+                        False,
+                    ),
+                ],
+            )
             self.assertEqual(isinstance(result, ntpp.MRUList), True)
             self.assertEqual(len(result.entries), 2)
             mru = result.entries[0]
@@ -1836,19 +2308,34 @@ class TestControlSession(unittest.TestCase):
             cls.response = ""
             result = cls.mrulist()
             self.assertEqual(nonce_fetch_count, [5])
-            self.assertEqual(queries,
-                             [(10, 0, "nonce=foo, frags=32", False),
-                              (10, 0, "nonce=foo, frags=32", False),
-                              (10, 0,
-                               "nonce=foo, frags=32, addr.0=1.2.3.4:23, last.0=40",
-                               False),
-                              (10, 0,
-                               "nonce=foo, frags=32, addr.0=1.2.3.4:23, "
-                               "last.0=41, addr.1=1.2.3.4:23, last.1=40", False),
-                              (10, 0,
-                               "nonce=foo, frags=32, addr.0=10.20.30.40:23, "
-                               "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
-                               "addr.2=1.2.3.4:23, last.2=40", False)])
+            self.assertEqual(
+                queries,
+                [
+                    (10, 0, "nonce=foo, frags=32", False),
+                    (10, 0, "nonce=foo, frags=32", False),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, frags=32, addr.0=1.2.3.4:23, last.0=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, frags=32, addr.0=1.2.3.4:23, "
+                        "last.0=41, addr.1=1.2.3.4:23, last.1=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, frags=32, addr.0=10.20.30.40:23, "
+                        "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
+                        "addr.2=1.2.3.4:23, last.2=40",
+                        False,
+                    ),
+                ],
+            )
             self.assertEqual(isinstance(result, ntpp.MRUList), True)
             self.assertEqual(len(result.entries), 2)
             # Test bad value error
@@ -1862,99 +2349,160 @@ class TestControlSession(unittest.TestCase):
             cls.debug = 1
             result = cls.mrulist()
             self.assertEqual(nonce_fetch_count, [6])
-            self.assertEqual(queries,
-                             [(10, 0, "nonce=foo, frags=32", False),
-                              (10, 0, "nonce=foo, limit=96", False),
-                              (10, 0, "nonce=foo, limit=96", False),
-                              (10, 0,
-                               "nonce=foo, limit=96, addr.0=1.2.3.4:23, last.0=40",
-                               False),
-                              (10, 0,
-                               "nonce=foo, limit=96, addr.0=1.2.3.4:23, "
-                               "last.0=41, addr.1=1.2.3.4:23, last.1=40", False),
-                              (10, 0,
-                               "nonce=foo, limit=96, addr.0=10.20.30.40:23, "
-                               "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
-                               "addr.2=1.2.3.4:23, last.2=40", False)])
+            self.assertEqual(
+                queries,
+                [
+                    (10, 0, "nonce=foo, frags=32", False),
+                    (10, 0, "nonce=foo, limit=96", False),
+                    (10, 0, "nonce=foo, limit=96", False),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, limit=96, addr.0=1.2.3.4:23, last.0=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, limit=96, addr.0=1.2.3.4:23, "
+                        "last.0=41, addr.1=1.2.3.4:23, last.1=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, limit=96, addr.0=10.20.30.40:23, "
+                        "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
+                        "addr.2=1.2.3.4:23, last.2=40",
+                        False,
+                    ),
+                ],
+            )
             self.assertEqual(isinstance(result, ntpp.MRUList), True)
             self.assertEqual(len(result.entries), 2)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Reverted to row limit "
-                              "from fragments limit.\n",
-                              "1970-01-01T00:00:00Z Row limit reduced to 96 "
-                              "following CERR_BADVALUE.\n"])
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z Reverted to row limit "
+                    "from fragments limit.\n",
+                    "1970-01-01T00:00:00Z Row limit reduced to 96 "
+                    "following CERR_BADVALUE.\n",
+                ],
+            )
             # Test incomplete error
             nonce_fetch_count = [0]
             query_results = qrm[:]
             queries = []
             query_fail = [3]
-            query_fail_code = [ntpp.SERR_INCOMPLETE,
-                               ntp.control.CERR_BADVALUE,  # Trigger cap_frags
-                               ntpp.SERR_INCOMPLETE]
+            query_fail_code = [
+                ntpp.SERR_INCOMPLETE,
+                ntp.control.CERR_BADVALUE,  # Trigger cap_frags
+                ntpp.SERR_INCOMPLETE,
+            ]
             cls.response = ""
             logjig.data = []
             cls.debug = 1
             result = cls.mrulist()
             self.assertEqual(nonce_fetch_count, [7])
-            self.assertEqual(queries,
-                             [(10, 0, "nonce=foo, frags=32", False),
-                              (10, 0, "nonce=foo, frags=16", False),
-                              (10, 0, "nonce=foo, limit=96", False),
-                              (10, 0, "nonce=foo, limit=48", False),
-                              (10, 0,
-                               "nonce=foo, limit=49, addr.0=1.2.3.4:23, last.0=40",
-                               False),
-                              (10, 0,
-                               "nonce=foo, limit=51, addr.0=1.2.3.4:23, "
-                               "last.0=41, addr.1=1.2.3.4:23, last.1=40", False),
-                              (10, 0,
-                               "nonce=foo, limit=52, addr.0=10.20.30.40:23, "
-                               "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
-                               "addr.2=1.2.3.4:23, last.2=40", False)])
+            self.assertEqual(
+                queries,
+                [
+                    (10, 0, "nonce=foo, frags=32", False),
+                    (10, 0, "nonce=foo, frags=16", False),
+                    (10, 0, "nonce=foo, limit=96", False),
+                    (10, 0, "nonce=foo, limit=48", False),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, limit=49, addr.0=1.2.3.4:23, last.0=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, limit=51, addr.0=1.2.3.4:23, "
+                        "last.0=41, addr.1=1.2.3.4:23, last.1=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, limit=52, addr.0=10.20.30.40:23, "
+                        "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
+                        "addr.2=1.2.3.4:23, last.2=40",
+                        False,
+                    ),
+                ],
+            )
             self.assertEqual(len(result.entries), 2)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Frag limit reduced to 16 "
-                              "following incomplete response.\n",
-                              "1970-01-01T00:00:00Z Reverted to row limit "
-                              "from fragments limit.\n",
-                              "1970-01-01T00:00:00Z Row limit reduced to 48 "
-                              "following  incomplete response.\n"])
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z Frag limit reduced to 16 "
+                    "following incomplete response.\n",
+                    "1970-01-01T00:00:00Z Reverted to row limit "
+                    "from fragments limit.\n",
+                    "1970-01-01T00:00:00Z Row limit reduced to 48 "
+                    "following  incomplete response.\n",
+                ],
+            )
             # Test timeout error
             nonce_fetch_count = [0]
             query_results = qrm[:]
             queries = []
             query_fail = [3]
-            query_fail_code = [ntpp.SERR_TIMEOUT,
-                               ntp.control.CERR_BADVALUE,  # Trigger cap_frags
-                               ntpp.SERR_TIMEOUT]
+            query_fail_code = [
+                ntpp.SERR_TIMEOUT,
+                ntp.control.CERR_BADVALUE,  # Trigger cap_frags
+                ntpp.SERR_TIMEOUT,
+            ]
             cls.response = ""
             logjig.data = []
             cls.debug = 1
             result = cls.mrulist()
             self.assertEqual(nonce_fetch_count, [7])
-            self.assertEqual(queries,
-                             [(10, 0, "nonce=foo, frags=32", False),
-                              (10, 0, "nonce=foo, frags=16", False),
-                              (10, 0, "nonce=foo, limit=96", False),
-                              (10, 0, "nonce=foo, limit=48", False),
-                              (10, 0,
-                               "nonce=foo, limit=49, addr.0=1.2.3.4:23, last.0=40",
-                               False),
-                              (10, 0,
-                               "nonce=foo, limit=51, addr.0=1.2.3.4:23, "
-                               "last.0=41, addr.1=1.2.3.4:23, last.1=40", False),
-                              (10, 0,
-                               "nonce=foo, limit=52, addr.0=10.20.30.40:23, "
-                               "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
-                               "addr.2=1.2.3.4:23, last.2=40", False)])
+            self.assertEqual(
+                queries,
+                [
+                    (10, 0, "nonce=foo, frags=32", False),
+                    (10, 0, "nonce=foo, frags=16", False),
+                    (10, 0, "nonce=foo, limit=96", False),
+                    (10, 0, "nonce=foo, limit=48", False),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, limit=49, addr.0=1.2.3.4:23, last.0=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, limit=51, addr.0=1.2.3.4:23, "
+                        "last.0=41, addr.1=1.2.3.4:23, last.1=40",
+                        False,
+                    ),
+                    (
+                        10,
+                        0,
+                        "nonce=foo, limit=52, addr.0=10.20.30.40:23, "
+                        "last.0=42, addr.1=1.2.3.4:23, last.1=41, "
+                        "addr.2=1.2.3.4:23, last.2=40",
+                        False,
+                    ),
+                ],
+            )
             self.assertEqual(len(result.entries), 2)
-            self.assertEqual(logjig.data,
-                             ["1970-01-01T00:00:00Z Frag limit reduced to 16 "
-                              "following incomplete response.\n",
-                              "1970-01-01T00:00:00Z Reverted to row limit "
-                              "from fragments limit.\n",
-                              "1970-01-01T00:00:00Z Row limit reduced to 48 "
-                              "following  incomplete response.\n"])
+            self.assertEqual(
+                logjig.data,
+                [
+                    "1970-01-01T00:00:00Z Frag limit reduced to 16 "
+                    "following incomplete response.\n",
+                    "1970-01-01T00:00:00Z Reverted to row limit "
+                    "from fragments limit.\n",
+                    "1970-01-01T00:00:00Z Row limit reduced to 48 "
+                    "following  incomplete response.\n",
+                ],
+            )
         finally:
             ntp.util.time = timetemp
 
@@ -1963,17 +2511,25 @@ class TestControlSession(unittest.TestCase):
 
         def doquery_jig(opcode, associd=0, qdata="", auth=False):
             queries.append((opcode, associd, qdata, auth))
+
         # Init
         cls = self.target()
         cls.doquery = doquery_jig
         # Test
         cls.response = "foo.0=42, bar.2=songbird"
         result = cls._ControlSession__ordlist("blah")
-        self.assertEqual(result, [odict((("foo", 42),)), odict(),
-                                  odict((("bar", "songbird"),))])
-        self.assertEqual(queries,
-                         [(ntp.control.CTL_OP_READ_ORDLIST_A,
-                           0, "blah", True)])
+        self.assertEqual(
+            result,
+            [
+                odict((("foo", 42),)),
+                odict(),
+                odict((("bar", "songbird"),)),
+            ],
+        )
+        self.assertEqual(
+            queries,
+            [(ntp.control.CTL_OP_READ_ORDLIST_A, 0, "blah", True)],
+        )
 
     def test_reslist(self):
         ords = []
@@ -1981,6 +2537,7 @@ class TestControlSession(unittest.TestCase):
         def ordlist_jig(listtype):
             ords.append(listtype)
             return 23
+
         # Init
         cls = self.target()
         cls._ControlSession__ordlist = ordlist_jig
@@ -1995,6 +2552,7 @@ class TestControlSession(unittest.TestCase):
         def ordlist_jig(listtype):
             ords.append(listtype)
             return 23
+
         # Init
         cls = self.target()
         cls._ControlSession__ordlist = ordlist_jig
@@ -2026,13 +2584,17 @@ class TestAuthenticator(unittest.TestCase):
             self.assertEqual(self.open_calls, [])
             self.assertEqual(self.open_files, [])
             # Test with file
-            self.open_data = ["# blah blah\n",
-                              "0 foo sw0rdf1sh\n",
-                              "\n",
-                              "1 bar password1 # blargh\n"]
+            self.open_data = [
+                "# blah blah\n",
+                "0 foo sw0rdf1sh\n",
+                "\n",
+                "1 bar password1 # blargh\n",
+            ]
             cls = self.target("file")
-            self.assertEqual(cls.passwords, {0: ("foo", "sw0rdf1sh"),
-                                             1: ("bar", "password1")})
+            self.assertEqual(
+                cls.passwords,
+                {0: ("foo", "sw0rdf1sh"), 1: ("bar", "password1")},
+            )
             self.assertEqual(self.open_calls, ["file"])
             self.assertEqual(len(self.open_files), 1)
         finally:
@@ -2043,20 +2605,17 @@ class TestAuthenticator(unittest.TestCase):
 
     def test___len__(self):
         cls = self.target()
-        cls.passwords = {0: ("a", "z"),
-                         2: ("b", "y")}
+        cls.passwords = {0: ("a", "z"), 2: ("b", "y")}
         self.assertEqual(cls.__len__(), 2)
 
     def test___getitem__(self):
         cls = self.target()
-        cls.passwords = {0: ("a", "z"),
-                         2: ("b", "y")}
+        cls.passwords = {0: ("a", "z"), 2: ("b", "y")}
         self.assertEqual(cls[2], ("b", "y"))
 
     def test_control(self):
         cls = self.target()
-        cls.passwords = {0: ("a", "z"),
-                         2: ("b", "y")}
+        cls.passwords = {0: ("a", "z"), 2: ("b", "y")}
         # Keyid in passwords
         self.assertEqual(cls.control(0), (0, "a", "z"))
         # Keyid not in passwords
@@ -2095,18 +2654,24 @@ class TestAuthenticator(unittest.TestCase):
 
     def test_compute_mac(self):
         f = self.target.compute_mac
-        pkt = ntp.util.hexstr2octets('240300e8000012ce0000091941138e89'
-                                     'e25b102e9fe94dc9e25b1175bd5a3000'
-                                     'e25b1175bd6cf48ee25b1175bd70e594')
-        mac1 = b'\x00\x00\x00\rL\x7f\xc1\xd1\xe9\xd3\xf8\xec\x91\xdf\xecS\x89e\xc5\xf3'
-        mac2 = b'\x00\x00\x00\x0e\'\xca\xf3\xa8G\xbe\x99\xaf\x96!<\x1a\x95\xd6\xc7i'
-        key1 = ntp.util.hexstr2octets('2f3badbb640bf975fec519df8a83e829')
-        key2 = ntp.util.hexstr2octets('fc0af35640142bb85ad03a892a81fa9d'
-                                      '891b108289c3f6725a01a10f697c1b4c')
-        key3 = ''
-        self.assertEqual(f(pkt, 0x0d, 'aes', key1), mac1)
-        self.assertEqual(f(pkt, 0x0e, 'aes256', key2), mac2)
-        self.assertEqual(f(pkt, 0x0f, 'neun', key3), False)
+        pkt = ntp.util.hexstr2octets(
+            "240300e8000012ce0000091941138e89"
+            "e25b102e9fe94dc9e25b1175bd5a3000"
+            "e25b1175bd6cf48ee25b1175bd70e594"
+        )
+        mac1 = b"\x00\x00\x00\rL\x7f\xc1\xd1\xe9\xd3\xf8\xec\x91\xdf\xecS\x89e\xc5\xf3"
+        mac2 = b"\x00\x00\x00\x0e'\xca\xf3\xa8G\xbe\x99\xaf\x96!<\x1a\x95\xd6\xc7i"
+        key1 = ntp.util.hexstr2octets(
+            "2f3badbb640bf975fec519df8a83e829"
+        )
+        key2 = ntp.util.hexstr2octets(
+            "fc0af35640142bb85ad03a892a81fa9d"
+            "891b108289c3f6725a01a10f697c1b4c"
+        )
+        key3 = ""
+        self.assertEqual(f(pkt, 0x0D, "aes", key1), mac1)
+        self.assertEqual(f(pkt, 0x0E, "aes256", key2), mac2)
+        self.assertEqual(f(pkt, 0x0F, "neun", key3), False)
 
     def test_have_mac(self):
         f = self.target.have_mac
@@ -2119,24 +2684,42 @@ class TestAuthenticator(unittest.TestCase):
 
     def test_verify_mac(self):
         cls = self.target()
-        cls.passwords[0x0d] = (
-            'aes128', ntp.util.hexstr2octets('2f3badbb640bf975fec519df8a83e829'))
-        good_pkt = ('240300e80000139a00000ae8cc0286a2'
-                    'e25c0c4dfff93ee2e25c0cca53f45000'
-                    'e25c0cca54048d79e25c0cca5408646b'
-                    '0000000d'
-                    'be93e3f1d530d9252147c298c00c85f9')
-        bad_pkt = ('240300e80000131f00000779cc0286a2'
-                   'e25c0d54ff6e4835e25c0dc2bea43000'
-                   'e25c0dc2beb78905e25c0dc2bebc0737'
-                   '0000000d'
-                   '4c2d64c447e701b74e3ad98ce65d13c3')
+        cls.passwords[0x0D] = (
+            "aes128",
+            ntp.util.hexstr2octets("2f3badbb640bf975fec519df8a83e829"),
+        )
+        good_pkt = (
+            "240300e80000139a00000ae8cc0286a2"
+            "e25c0c4dfff93ee2e25c0cca53f45000"
+            "e25c0cca54048d79e25c0cca5408646b"
+            "0000000d"
+            "be93e3f1d530d9252147c298c00c85f9"
+        )
+        bad_pkt = (
+            "240300e80000131f00000779cc0286a2"
+            "e25c0d54ff6e4835e25c0dc2bea43000"
+            "e25c0dc2beb78905e25c0dc2bebc0737"
+            "0000000d"
+            "4c2d64c447e701b74e3ad98ce65d13c3"
+        )
         # Test good
-        self.assertEqual(cls.verify_mac(ntp.poly.polybytes(
-            ntp.util.hexstr2octets(good_pkt)), packet_end=48, mac_begin=48), True)
+        self.assertEqual(
+            cls.verify_mac(
+                ntp.poly.polybytes(ntp.util.hexstr2octets(good_pkt)),
+                packet_end=48,
+                mac_begin=48,
+            ),
+            True,
+        )
         # Test bad
-        self.assertEqual(cls.verify_mac(ntp.poly.polybytes(
-            ntp.util.hexstr2octets(bad_pkt)), packet_end=48, mac_begin=48), False)
+        self.assertEqual(
+            cls.verify_mac(
+                ntp.poly.polybytes(ntp.util.hexstr2octets(bad_pkt)),
+                packet_end=48,
+                mac_begin=48,
+            ),
+            False,
+        )
 
 
 if __name__ == "__main__":

@@ -24,7 +24,8 @@ try:
     import ntp.util
 except ImportError as e:
     sys.stderr.write(
-        "ntpdig: can't find Python NTP library -- check PYTHONPATH.\n")
+        "ntpdig: can't find Python NTP library -- check PYTHONPATH.\n"
+    )
     sys.stderr.write("%s\n" % e)
     sys.exit(1)
 # This code is somewhat stripped down from the legacy C version.  It
@@ -57,117 +58,155 @@ except ImportError as e:
 # running in a script, redirect standard error to logger(1).
 #
 # The one new option in this version is -p, borrowed from ntpdate.
+NTP_INFIN = 15  # max stratum, infinity a la Bellman-Ford
 
 
-def read_append(s, packets, packet, sockaddr):
-    d, a = s.recvfrom(1024)
-    if debug >= 2:
-        ntp.packet.dump_hex_printable(d)
-    if credentials:
-        if not ntp.packet.Authenticator.have_mac(d):
-            if debug:
-                log("no MAC on reply from %s" % packet.hostname)
-        if not credentials.verify_mac(d, packet_end=48, mac_begin=48):
-            packet.trusted = False
-            log("MAC verification on reply from %s failed"
-                % sockaddr[0])
-        elif debug:
-            log("MAC verification on reply from %s succeeded"
-                % sockaddr[0])
-    pkt = ntp.packet.SyncPacket(d)
-    pkt.hostname = server
-    pkt.resolved = sockaddr[0]
-    packets.append(pkt)
+def read_append(read_socket, packets, saved_packet):
+    """Read the sockaet, appendin the derived packet list."""
+    data, _ = read_socket.recvfrom(1024)
+    in_packet = ntp.packet.SyncPacket(data)
+    resolved = saved_packet.resolved
+    if VERBOSITY >= 2:
+        ntp.packet.dump_hex_printable(data)
+    if CREDENTIALS:
+        if not ntp.packet.Authenticator.have_mac(data):
+            if VERBOSITY:
+                log("no MAC on reply from %s" % saved_packet.hostname)
+        if not CREDENTIALS.verify_mac(
+            data, packet_end=48, mac_begin=48
+        ):
+            in_packet.trusted = False
+            log("MAC verification on reply from %s failed" % resolved)
+        elif VERBOSITY:
+            log(
+                "MAC verification on reply from %s succeeded" % resolved
+            )
+    in_packet.hostname = saved_packet.hostname
+    in_packet.resolved = resolved
+    packets.append(in_packet)
     return packets
 
 
 def queryhost(server, concurrent, timeout=5, port=123, bindaddr=None):
     "Query IP addresses associated with a specified host."
     try:
-        iptuples = socket.getaddrinfo(server, port,
-                                      af, socket.SOCK_DGRAM,
-                                      socket.IPPROTO_UDP)
-    except socket.gaierror as e:
-        log("lookup of %s failed, errno %d = %s" % (server, e.args[0], e.args[1]))
+        iptuples = socket.getaddrinfo(
+            server,
+            port,
+            ADDRESS_FAMILY,
+            socket.SOCK_DGRAM,
+            socket.IPPROTO_UDP,
+        )
+    except socket.gaierror as error:
+        log(
+            "lookup of %s failed, errno %d = %s"
+            % (server, error.args[0], error.args[1])
+        )
         return []
     bindsock = None
     if bindaddr:
         try:
-            bindsock = socket.getaddrinfo(bindaddr,None,af,
-                                          socket.SOCK_DGRAM,socket.IPPROTO_UDP)
-        except socket.gaierror as e:
-            log("lookup of %s failed, errno %d = %s" % (server, e.args[0], e.args[1]))
+            bindsock = socket.getaddrinfo(
+                bindaddr,
+                None,
+                ADDRESS_FAMILY,
+                socket.SOCK_DGRAM,
+                socket.IPPROTO_UDP,
+            )
+        except socket.gaierror as error:
+            log(
+                "lookup of %s failed, errno %d = %s"
+                % (server, error.args[0], error.args[1])
+            )
             raise SystemExit(1)
     sockets = []
     packets = []
     request = ntp.packet.SyncPacket()
-    needgap = (len(iptuples) > 1) and (gap > 0)
+    request.hostname = server
+    need_gap = (len(iptuples) > 1) and (GAP > 0)
     firstloop = True
-    for (family, socktype, proto, canonname, sockaddr) in iptuples:
+    for (
+        family,
+        socktype,
+        _,
+        _,
+        sockaddr,
+    ) in iptuples:  # proto, canon_name
         request.transmit_timestamp = ntp.packet.SyncPacket.posix_to_ntp(
-            time.time())
-        packet = request.flatten()
-        if needgap and not firstloop:
-            time.sleep(gap)
+            time.time()
+        )
+        request.resolved = sockaddr
+        out_packet = request.flatten()  # belt
+        if need_gap and not firstloop:
+            time.sleep(GAP)
         if firstloop:
             firstloop = False
-        if debug:
+        if VERBOSITY:
             log("querying %s (%s)" % (sockaddr[0], server))
         try:
-            s = socket.socket(family, socktype)
+            write_socket = socket.socket(family, socktype)
         except OSError:
-            if debug:
-                log("Skipping because socket for %s of family"
-                    " %d, type %d could not be formed." %
-                    (sockaddr[0], family, socktype))
+            if VERBOSITY:
+                log(
+                    "Skipping because socket for %s of family"
+                    " %d, type %d could not be formed."
+                    % (sockaddr[0], family, socktype)
+                )
             continue
         if bindsock:
             try:
-                if debug:
+                if VERBOSITY:
                     log("Binding to Source IP %s," % bindaddr)
-                s.bind(bindsock[0][4])
-            except OSError as e:
-                log("binding to %s failed, errno %d = %s" % (bindaddr, e.args[0], e.args[1]))
+                write_socket.bind(bindsock[0][4])
+            except OSError as error:
+                log(
+                    "binding to %s failed, errno %d = %s"
+                    % (bindaddr, error.args[0], error.args[1])
+                )
                 raise SystemExit(1)
-        if keyid and keytype and passwd:
-            if debug:
-                log("authenticating with %s key %d" % (keytype, keyid))
-            mac = ntp.packet.Authenticator.compute_mac(packet,
-                                                       keyid, keytype, passwd)
+        if KEY_ID and KEY_TYPE and PASSWORD:
+            if VERBOSITY:
+                log(
+                    "authenticating with %s key %d" % (KEY_TYPE, KEY_ID)
+                )
+            mac = ntp.packet.Authenticator.compute_mac(
+                out_packet, KEY_ID, KEY_TYPE, PASSWORD
+            )
             if mac is None:
                 log("MAC generation failed while querying %s" % server)
                 raise SystemExit(1)
-            else:
-                packet += mac
+            if 68 <= len(out_packet):  # suspenders
+                out_packet += mac
         try:
-            s.sendto(packet, sockaddr)
-        except socket.error as e:
-            if debug:
-                log("socket error on transmission: %s" % e)
+            write_socket.sendto(out_packet, sockaddr)
+        except socket.error as error:
+            if VERBOSITY:
+                log("socket error on transmission: %s" % error)
             continue
-        if debug >= 2:
+        if VERBOSITY >= 2:
             log("Sent to %s:" % (sockaddr[0],))
-            ntp.packet.dump_hex_printable(packet)
+            ntp.packet.dump_hex_printable(out_packet)
         if concurrent:
-            sockets.append(s)
+            sockets.append(write_socket)
         else:
-            r, _, _ = select.select([s], [], [], timeout)
-            if r:
-                read_append(s, packets, packet, sockaddr)
+            read_socket, _, _ = select.select(
+                [write_socket], [], [], timeout
+            )
+            if read_socket:
+                read_append(write_socket, packets, request)
         while sockets:
-            r, _, _ = select.select(sockets, [], [], timeout)
-            if not r:
+            read_socket, _, _ = select.select(sockets, [], [], timeout)
+            if not read_socket:
                 return packets
-            for s in sockets:
-                read_append(s, packets, packet, sockaddr)
-                sockets.remove(s)
+            for write_socket in sockets:
+                read_append(write_socket, packets, request)
+                sockets.remove(write_socket)
     return packets
 
 
 def clock_select(packets):
     "Select the pick-of-the-litter clock from the samples we've got."
     # This is a slightly simplified version of the filter ntpdate used
-    NTP_INFIN = 15          # max stratum, infinity a la Bellman-Ford
 
     # This first chunk of code is supposed to go through all
     # servers we know about to find the servers that
@@ -178,8 +217,10 @@ def clock_select(packets):
     #
     filtered = []
     for response in packets:
+
         def drop(msg):
             log("%s: Response dropped: %s" % (response.hostname, msg))
+
         if response.stratum > NTP_INFIN:
             drop("stratum too high")
             continue
@@ -225,10 +266,10 @@ def report(packet, json):
     packet.posixize()
 
     # The server's idea of the time
-    t = time.localtime(int(packet.transmit_timestamp))
-    ms = int(packet.transmit_timestamp * 1000000) % 1000000
+    local_time_parts = time.localtime(int(packet.transmit_timestamp))
+    microsconds = int(packet.transmit_timestamp * 1000000) % 1000000
 
-    if t.tm_isdst:
+    if local_time_parts.tm_isdst:
         tmoffset = -time.altzone // 60  # In minutes
     else:
         tmoffset = -time.timezone // 60  # In minutes
@@ -236,30 +277,50 @@ def report(packet, json):
     # Number of decimal digits of precision indicated by the precision field
     digits = min(6, -int(math.log10(2**packet.precision)))
 
-    date = time.strftime("%Y-%m-%d", t)
-    tod = time.strftime("%T", t) + (".%0*d" % (digits, ms)).rstrip()
+    date = time.strftime("%Y-%m-%d", local_time_parts)
+    tod = (
+        time.strftime("%T", local_time_parts)
+        + (".%0*d" % (digits, microsconds)).rstrip()
+    )
     sgn = ("%+d" % tmoffset)[0]
-    tz = "%s%02d%02d" % (sgn, abs(tmoffset) // 60, tmoffset % 60)
+    time_zone = "%s%02d%02d" % (sgn, abs(tmoffset) // 60, tmoffset % 60)
 
     if json:
-        say('{"time":"%sT%s%s","offset":%f,"precision":%f,"host":"%s",'
+        say(
+            '{"time":"%sT%s%s","offset":%f,"precision":%f,"host":"%s",'
             '"ip":"%s","stratum":%s,"leap":"%s","adjusted":%s,"delay":%f}\n'
-            % (date, tod, tz,
-               packet.adjust(), packet.synchd(),
-               packet.hostname, packet.resolved or packet.hostname,
-               packet.stratum, packet.leap(),
-               "true" if adjusted else "false", packet.delta()))
+            % (
+                date,
+                tod,
+                time_zone,
+                packet.adjust(),
+                packet.synchd(),
+                packet.hostname,
+                packet.resolved or packet.hostname,
+                packet.stratum,
+                packet.leap(),
+                "true" if adjusted else "false",
+                packet.delta(),
+            )
+        )
     else:
-        say("%s %s (%s) %+f +/- %f %s"
-            % (date, tod, tz,
-               packet.adjust(), packet.synchd(),
-               packet.hostname))
+        say(
+            "%s %s (%s) %+f +/- %f %s"
+            % (
+                date,
+                tod,
+                time_zone,
+                packet.adjust(),
+                packet.synchd(),
+                packet.hostname,
+            )
+        )
         if packet.resolved and packet.resolved != packet.hostname:
             say(" " + packet.resolved)
         say(" s%d %s\n" % (packet.stratum, packet.leap()))
 
 
-usage = """
+USAGE = """
 USAGE:  ntpdig [-<flag> [<val>] | --<name>[{=| }<val>]]...
                 [ hostname-or-IP ...]
   Flg Arg Option-Name     Description
@@ -289,26 +350,36 @@ USAGE:  ntpdig [-<flag> [<val>] | --<name>[{=| }<val>]]...
 """
 
 
-if __name__ == '__main__':
-    bin_ver = "ntpsec-2024.04.18+5fd831a"
-    ntp.util.stdversioncheck(bin_ver)
+if __name__ == "__main__":
+    BIN_VER = "2024.04.22"
+    ntp.util.stdversioncheck(BIN_VER)
     try:
         try:
             (options, arguments) = getopt.getopt(
                 sys.argv[1:],
                 "46a:c:dD:g:hI:jk:l:M:o:p:r:Sst:wWV",
-                ["ipv4", "ipv6",
-                 "bindaddr=",
-                 "authentication=",
-                 "concurrent=",
-                 "gap=", "help", "json",
-                 "keyfile=", "logfile=",
-                 "replay=",
-                 "samples=", "steplimit=",
-                 "step", "slew",
-                 "timeout=",
-                 "debug", "set-debug-level=",
-                 "version"])
+                [
+                    "ipv4",
+                    "ipv6",
+                    "bindaddr=",
+                    "authentication=",
+                    "concurrent=",
+                    "gap=",
+                    "help",
+                    "json",
+                    "keyfile=",
+                    "logfile=",
+                    "replay=",
+                    "samples=",
+                    "steplimit=",
+                    "step",
+                    "slew",
+                    "timeout=",
+                    "debug",
+                    "set-debug-level=",
+                    "version",
+                ],
+            )
         except getopt.GetoptError as e:
             print(e)
             raise SystemExit(1)
@@ -317,138 +388,173 @@ if __name__ == '__main__':
         logfp = sys.stderr
         log = lambda m: logfp.write("ntpdig: %s\n" % m)
 
-        af = socket.AF_UNSPEC
-        bindaddr = None
-        authkey = None
+        ADDRESS_FAMILY = socket.AF_UNSPEC
+        BIND_ADDRESS = None
+        AUTH_KEY = None
         concurrent_hosts = []
-        debug = 0
-        gap = .05
-        json = False
-        keyfile = None
-        steplimit = 0       # Default is intentionally zero
-        samples = 1
-        step = False
-        slew = False
-        timeout = 5
-        replay = None
+        VERBOSITY = 0
+        GAP = 0.05
+        JSON = False
+        KEY_FILE = None
+        STEP_LIMIT = 0  # Default is intentionally zero
+        SAMPLES = 1
+        STEP_TIME = False
+        SLEW_TIME = False
+        TIMEOUT = 5
+        REAPLAY = None
         try:
-            for (switch, val) in options:
+            for switch, val in options:
                 if switch in ("-4", "--ipv4"):
-                    af = socket.AF_INET
+                    ADDRESS_FAMILY = socket.AF_INET
                 elif switch in ("-6", "--ipv6"):
-                    af = socket.AF_INET6
+                    ADDRESS_FAMILY = socket.AF_INET6
                 elif switch in ("-a", "--authentication"):
-                    errmsg = "Error: -a parameter '%s' not a number\n"
-                    authkey = ntp.util.safeargcast(val, int, errmsg, usage)
+                    ERROR_MESSAGE = (
+                        "Error: -a parameter '%s' not a number\n"
+                    )
+                    AUTH_KEY = ntp.util.safeargcast(
+                        val, int, ERROR_MESSAGE, USAGE
+                    )
                 elif switch in ("-c", "--concurrent"):
                     concurrent_hosts.append(val)
                 elif switch in ("-d", "--debug"):
-                    debug += 1
+                    VERBOSITY += 1
                 elif switch in ("-D", "--set-debug-level"):
-                    errmsg = "Error: -D parameter '%s' not a number\n"
-                    debug = ntp.util.safeargcast(val, int, errmsg, usage)
+                    ERROR_MESSAGE = (
+                        "Error: -D parameter '%s' not a number\n"
+                    )
+                    VERBOSITY = ntp.util.safeargcast(
+                        val, int, ERROR_MESSAGE, USAGE
+                    )
                 elif switch in ("-g", "--gap"):
-                    errmsg = "Error: -g parameter '%s' not a number\n"
-                    gap = ntp.util.safeargcast(val, int, errmsg, usage)
+                    ERROR_MESSAGE = (
+                        "Error: -g parameter '%s' not a number\n"
+                    )
+                    GAP = ntp.util.safeargcast(
+                        val, int, ERROR_MESSAGE, USAGE
+                    )
                 elif switch in ("-I", "--bindaddr"):
-                    bindaddr = val
+                    BIND_ADDRESS = val
                 elif switch in ("-j", "--json"):
-                    json = True
+                    JSON = True
                 elif switch in ("-k", "--keyfile"):
-                    keyfile = val
+                    KEY_FILE = val
                 elif switch in ("-l", "--logfile"):
                     try:
                         logfp = open(val, "w")
                     except OSError:
-                        sys.stderr.write("logfile open of %s failed.\n" % val)
+                        sys.stderr.write(
+                            "logfile open of %s failed.\n" % val
+                        )
                         raise SystemExit(1)
                 elif switch in ("-M", "--steplimit"):
-                    errmsg = "Error: -M parameter '%s' not a number\n"
-                    steplimit = ntp.util.safeargcast(val, int, errmsg, usage)
-                    steplimit /= 1000.0
+                    ERROR_MESSAGE = (
+                        "Error: -M parameter '%s' not a number\n"
+                    )
+                    STEP_LIMIT = ntp.util.safeargcast(
+                        val, int, ERROR_MESSAGE, USAGE
+                    )
+                    STEP_LIMIT /= 1000.0
                 elif switch in ("-p", "--samples"):
-                    errmsg = "Error: -p parameter '%s' not a number\n"
-                    samples = ntp.util.safeargcast(val, int, errmsg, usage)
-                    if samples < 1:  # If <1 it won't run at all
-                        samples = 1
-                elif switch in ('-r', "--replay"):
-                    replay = val
+                    ERROR_MESSAGE = (
+                        "Error: -p parameter '%s' not a number\n"
+                    )
+                    SAMPLES = ntp.util.safeargcast(
+                        val, int, ERROR_MESSAGE, USAGE
+                    )
+                    SAMPLES = max(SAMPLES, 1)
+                elif switch in ("-r", "--replay"):
+                    REAPLAY = val
                 elif switch in ("-S", "--step"):
-                    step = True
+                    STEP_TIME = True
                 elif switch in ("-s", "--slew"):
-                    slew = True
+                    SLEW_TIME = True
                 elif switch in ("-t", "--timeout"):
-                    errmsg = "Error: -t parameter '%s' not a number\n"
-                    timeout = ntp.util.safeargcast(val, int, errmsg, usage)
+                    ERROR_MESSAGE = (
+                        "Error: -t parameter '%s' not a number\n"
+                    )
+                    TIMEOUT = ntp.util.safeargcast(
+                        val, int, ERROR_MESSAGE, USAGE
+                    )
                 elif switch in ("-h", "--help"):
-                    print(usage)
+                    print(USAGE)
                     raise SystemExit(0)
                 elif switch in ("-V", "--version"):
-                    print("ntpdig %s" % bin_ver)
+                    print("ntpdig %s" % BIN_VER)
                     raise SystemExit(0)
                 else:
                     sys.stderr.write(
-                        "Unknown command line switch or missing argument.\n")
-                    sys.stderr.write(usage)
+                        "Unknown command line switch or missing argument.\n"
+                    )
+                    sys.stderr.write(USAGE)
                     raise SystemExit(1)
         except ValueError:
             sys.stderr.write("Invalid argument.\n")
-            sys.stderr.write(usage)
+            sys.stderr.write(USAGE)
             raise SystemExit(1)
 
-        gap /= 1000  # convert to milliseconds
+        GAP /= 1000  # convert to milliseconds
 
-        credentials = keyid = keytype = passwd = None
+        CREDENTIALS = KEY_ID = KEY_TYPE = PASSWORD = None
         try:
-            credentials = ntp.packet.Authenticator(keyfile)
+            CREDENTIALS = ntp.packet.Authenticator(KEY_FILE)
         except (OSError, IOError):
-            sys.stderr.write("ntpdig: %s nonexistent or unreadable\n" %
-                             keyfile)
+            sys.stderr.write(
+                "ntpdig: %s nonexistent or unreadable\n" % KEY_FILE
+            )
             raise SystemExit(1)
-        if credentials:
+        if CREDENTIALS:
             try:
-                (keyid, keytype, passwd) = credentials.control(authkey)
+                (KEY_ID, KEY_TYPE, PASSWORD) = CREDENTIALS.control(
+                    AUTH_KEY
+                )
             except ValueError:
                 # There are no trusted keys.  Barf.
                 log("cannot get authentication key")
                 raise SystemExit(1)
 
-        if not credentials and authkey and keyfile is None:
+        if not CREDENTIALS and AUTH_KEY and KEY_FILE is None:
             sys.stderr.write("-a option requires -k.\n")
             raise SystemExit(1)
 
         if not arguments:
             arguments = ["localhost"]
 
-        if replay:
-            (pkt, dst) = replay.split(":")
+        if REAPLAY:
+            (pkt, dst) = REAPLAY.split(":")
             packet = ntp.packet.SyncPacket(pkt.decode("hex"))
-            packet.received = ntp.packet.SyncPacket.posix_to_ntp(float(dst))
+            packet.received = ntp.packet.SyncPacket.posix_to_ntp(
+                float(dst)
+            )
             returned = [packet]
         else:
             returned = []
-            needgap = (samples > 1) and (gap > 0)
-            firstloop = True
-            for s in range(samples):
-                if needgap and not firstloop:
-                    time.sleep(gap)
-                if firstloop:
-                    firstloop = False
+            needgap = (SAMPLES > 1) and (GAP > 0)
+            FIRST_LOOP = True
+            for s in range(SAMPLES):
+                if needgap and not FIRST_LOOP:
+                    time.sleep(GAP)
+                if FIRST_LOOP:
+                    FIRST_LOOP = False
                 for server in concurrent_hosts:
                     try:
-                        returned += queryhost(server=server,
-                                              concurrent=True,
-                                              timeout=timeout,
-                                              bindaddr=bindaddr)
+                        returned += queryhost(
+                            server=server,
+                            concurrent=True,
+                            timeout=TIMEOUT,
+                            bindaddr=BIND_ADDRESS,
+                        )
                     except ntp.packet.SyncException as e:
                         log(str(e))
                         continue
                 for server in arguments:
                     try:
-                        returned += queryhost(server=server,
-                                              concurrent=False,
-                                              timeout=timeout,
-                                              bindaddr=bindaddr)
+                        returned += queryhost(
+                            server=server,
+                            concurrent=False,
+                            timeout=TIMEOUT,
+                            bindaddr=BIND_ADDRESS,
+                        )
                     except ntp.packet.SyncException as e:
                         log(str(e))
                         continue
@@ -457,39 +563,49 @@ if __name__ == '__main__':
 
         if returned:
             pkt = returned[0]
-            if debug:
+            if VERBOSITY:
                 # print(repr(pkt))
-                def hexstamp(n):
-                    return "%08x.%08x" % (n >> 32, n & 0x00000000ffffffff)
-                print("org t1: %s rec t2: %s"
-                      % (hexstamp(pkt.t1()), hexstamp(pkt.t2())))
-                print("xmt t3: %s dst t4: %s"
-                      % (hexstamp(pkt.t3()), hexstamp(pkt.t4())))
+                def hexstamp(l_fp):
+                    return "%08x.%08x" % (
+                        l_fp >> 32,
+                        l_fp & 0x00000000FFFFFFFF,
+                    )
+
+                print(
+                    "org t1: %s rec t2: %s"
+                    % (hexstamp(pkt.t1()), hexstamp(pkt.t2()))
+                )
+                print(
+                    "xmt t3: %s dst t4: %s"
+                    % (hexstamp(pkt.t3()), hexstamp(pkt.t4()))
+                )
             pkt.posixize()
-            if debug:
+            if VERBOSITY:
                 print("org t1: %f rec t2: %f" % (pkt.t1(), pkt.t2()))
                 print("xmt t3: %f dst t4: %f" % (pkt.t3(), pkt.t4()))
-                print("rec-org t21: %f  xmt-dst t34: %f"
-                      % (pkt.t2() - pkt.t1(), pkt.t3() - pkt.t4()))
+                print(
+                    "rec-org t21: %f  xmt-dst t34: %f"
+                    % (pkt.t2() - pkt.t1(), pkt.t3() - pkt.t4())
+                )
             offset = pkt.adjust()
-            adjusted = (step and
-                        (not slew or (slew and (abs(offset) > steplimit))))
-            report(pkt, json)
+            adjusted = STEP_TIME and (
+                not SLEW_TIME
+                or (SLEW_TIME and (abs(offset) > STEP_LIMIT))
+            )
+            report(pkt, JSON)
             # If we can step but we cannot slew, then step.
             # If we can step or slew and |offset| > steplimit, then step.
-            rc = True
+            SUCCESS = True
             ntp.ntpc.setprogname("ntpdig")
             if adjusted:
-                rc = ntp.ntpc.step_systime(offset)
-            elif slew:
-                rc = ntp.ntpc.adj_systime(offset)
-            if rc:
+                SUCCESS = ntp.ntpc.step_systime(offset)
+            elif SLEW_TIME:
+                SUCCESS = ntp.ntpc.adj_systime(offset)
+            if SUCCESS:
                 raise SystemExit(0)
-            else:
-                raise SystemExit(1)
-        else:
-            log("no eligible servers")
             raise SystemExit(1)
+        log("no eligible servers")
+        raise SystemExit(1)
     except KeyboardInterrupt:
         print("")
 

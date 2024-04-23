@@ -12,20 +12,20 @@ import cryptography.hazmat.primitives.ciphers
 import cryptography.hazmat.primitives.cmac
 import ntp.control
 import ntp.magic
-import ntp.poly
-import ntp.c as c
+from ntp import poly
+from ntp import c
 
 PIVOT = 1703823396
 MILLION = int(1e6)
 BILLION = int(1e9)
 
-TYPE_SYS   = 1
-TYPE_PEER  = 2
+TYPE_SYS = 1
+TYPE_PEER = 2
 TYPE_CLOCK = 3
 
 
 def setprogname(_):
-    """"Take the name of the script being called and do nothing."""
+    """ "Take the name of the script being called and do nothing."""
     pass
 
 
@@ -48,20 +48,22 @@ def lfp_stamp_to_tspec(when, pivot=PIVOT):
     is in UN*X epoch. The NTP time stamp will be expanded around the
     pivot time p.
     """
-    x = (when >> 32) & 0xffffffff
-    sec = c.lfp2timet(x, pivot)
-    return [sec, (when & 0xffffffff) * BILLION / 4294967296]
+    l_fps = (when >> 32) & 0xFFFFFFFF
+    sec = c.lfp2timet(l_fps, pivot)
+    return [sec, (when & 0xFFFFFFFF) * BILLION / 4294967296]
 
 
 def prettydate(in_string):
     """Convert a time stamp to something readable."""
     lfp = ihextolfp(in_string[2:])
-    ts = lfp_stamp_to_tspec(lfp)
-    rfc = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(ts[0]))
+    timespec = lfp_stamp_to_tspec(lfp)
+    rfc = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(timespec[0]))
     return "%08x.%08x %s.%03dZ" % (
-        (lfp >> 32) & 0xffffffff,
-        lfp & 0xffffffff,
-        rfc, int(ts[1]/1e6))
+        (lfp >> 32) & 0xFFFFFFFF,
+        lfp & 0xFFFFFFFF,
+        rfc,
+        timespec[1] / MILLION,
+    )
 
 
 def lfptofloat(in_string):
@@ -72,143 +74,145 @@ def lfptofloat(in_string):
 
 
 clock_codes = [
-    [ntp.control.CTL_CLK_OKAY,         "clk_unspec"],
-    [ntp.control.CTL_CLK_NOREPLY,      "clk_no_reply"],
-    [ntp.control.CTL_CLK_BADFORMAT,    "clk_bad_format"],
-    [ntp.control.CTL_CLK_FAULT,        "clk_fault"],
-    [ntp.control.CTL_CLK_PROPAGATION,  "clk_bad_signal"],
-    [ntp.control.CTL_CLK_BADDATE,      "clk_bad_date"],
-    [ntp.control.CTL_CLK_BADTIME,      "clk_bad_time"],
-    [-1,                               "clk"],
+    [ntp.control.CTL_CLK_OKAY, "clk_unspec"],
+    [ntp.control.CTL_CLK_NOREPLY, "clk_no_reply"],
+    [ntp.control.CTL_CLK_BADFORMAT, "clk_bad_format"],
+    [ntp.control.CTL_CLK_FAULT, "clk_fault"],
+    [ntp.control.CTL_CLK_PROPAGATION, "clk_bad_signal"],
+    [ntp.control.CTL_CLK_BADDATE, "clk_bad_date"],
+    [ntp.control.CTL_CLK_BADTIME, "clk_bad_time"],
+    [-1, "clk"],
 ]
 leap_codes = [
-    [ntp.magic.LEAP_NOWARNING,       "leap_none"],
-    [ntp.magic.LEAP_ADDSECOND,       "leap_add_sec"],
-    [ntp.magic.LEAP_DELSECOND,       "leap_del_sec"],
-    [ntp.magic.LEAP_NOTINSYNC,       "leap_alarm"],
-    [-1,                             "leap"],
+    [ntp.magic.LEAP_NOWARNING, "leap_none"],
+    [ntp.magic.LEAP_ADDSECOND, "leap_add_sec"],
+    [ntp.magic.LEAP_DELSECOND, "leap_del_sec"],
+    [ntp.magic.LEAP_NOTINSYNC, "leap_alarm"],
+    [-1, "leap"],
 ]
 sync_codes = [
-    [ntp.control.CTL_SST_TS_UNSPEC,    "sync_unspec"],
-    [ntp.control.CTL_SST_TS_ATOM,      "sync_pps"],
-    [ntp.control.CTL_SST_TS_LF,        "sync_lf_radio"],
-    [ntp.control.CTL_SST_TS_HF,        "sync_hf_radio"],
-    [ntp.control.CTL_SST_TS_UHF,       "sync_uhf_radio"],
-    [ntp.control.CTL_SST_TS_LOCAL,     "sync_local"],
-    [ntp.control.CTL_SST_TS_NTP,       "sync_ntp"],
-    [ntp.control.CTL_SST_TS_UDPTIME,   "sync_other"],
-    [ntp.control.CTL_SST_TS_WRSTWTCH,  "sync_wristwatch"],
+    [ntp.control.CTL_SST_TS_UNSPEC, "sync_unspec"],
+    [ntp.control.CTL_SST_TS_ATOM, "sync_pps"],
+    [ntp.control.CTL_SST_TS_LF, "sync_lf_radio"],
+    [ntp.control.CTL_SST_TS_HF, "sync_hf_radio"],
+    [ntp.control.CTL_SST_TS_UHF, "sync_uhf_radio"],
+    [ntp.control.CTL_SST_TS_LOCAL, "sync_local"],
+    [ntp.control.CTL_SST_TS_NTP, "sync_ntp"],
+    [ntp.control.CTL_SST_TS_UDPTIME, "sync_other"],
+    [ntp.control.CTL_SST_TS_WRSTWTCH, "sync_wristwatch"],
     [ntp.control.CTL_SST_TS_TELEPHONE, "sync_telephone"],
-    [-1,                               "sync"],
+    [-1, "sync"],
 ]
 sys_codes = [
-    [ntp.magic.EVNT_UNSPEC,          "unspecified"],
-    [ntp.magic.EVNT_NSET,            "freq_not_set"],
-    [ntp.magic.EVNT_FSET,            "freq_set"],
-    [ntp.magic.EVNT_SPIK,            "spike_detect"],
-    [ntp.magic.EVNT_FREQ,            "freq_mode"],
-    [ntp.magic.EVNT_SYNC,            "clock_sync"],
-    [ntp.magic.EVNT_SYSRESTART,      "restart"],
-    [ntp.magic.EVNT_SYSFAULT,        "panic_stop"],
-    [ntp.magic.EVNT_NOPEER,          "no_sys_peer"],
-    [ntp.magic.EVNT_ARMED,           "leap_armed"],
-    [ntp.magic.EVNT_DISARMED,        "leap_disarmed"],
-    [ntp.magic.EVNT_LEAP,            "leap_event"],
-    [ntp.magic.EVNT_CLOCKRESET,      "clock_step"],
-    [ntp.magic.EVNT_KERN,            "kern"],
-    [ntp.magic.EVNT_TAI,             "TAI"],
-    [ntp.magic.EVNT_LEAPVAL,         "stale_leapsecond_values"],
-    [-1,                             "evnt"],
+    [ntp.magic.EVNT_UNSPEC, "unspecified"],
+    [ntp.magic.EVNT_NSET, "freq_not_set"],
+    [ntp.magic.EVNT_FSET, "freq_set"],
+    [ntp.magic.EVNT_SPIK, "spike_detect"],
+    [ntp.magic.EVNT_FREQ, "freq_mode"],
+    [ntp.magic.EVNT_SYNC, "clock_sync"],
+    [ntp.magic.EVNT_SYSRESTART, "restart"],
+    [ntp.magic.EVNT_SYSFAULT, "panic_stop"],
+    [ntp.magic.EVNT_NOPEER, "no_sys_peer"],
+    [ntp.magic.EVNT_ARMED, "leap_armed"],
+    [ntp.magic.EVNT_DISARMED, "leap_disarmed"],
+    [ntp.magic.EVNT_LEAP, "leap_event"],
+    [ntp.magic.EVNT_CLOCKRESET, "clock_step"],
+    [ntp.magic.EVNT_KERN, "kern"],
+    [ntp.magic.EVNT_TAI, "TAI"],
+    [ntp.magic.EVNT_LEAPVAL, "stale_leapsecond_values"],
+    [-1, "evnt"],
 ]
 select_codes = [
-    [ntp.control.CTL_PST_SEL_REJECT,   "sel_reject"],
-    [ntp.control.CTL_PST_SEL_SANE,     "sel_falsetick"],
-    [ntp.control.CTL_PST_SEL_CORRECT,  "sel_excess"],
-    [ntp.control.CTL_PST_SEL_SELCAND,  "sel_outlier"],
+    [ntp.control.CTL_PST_SEL_REJECT, "sel_reject"],
+    [ntp.control.CTL_PST_SEL_SANE, "sel_falsetick"],
+    [ntp.control.CTL_PST_SEL_CORRECT, "sel_excess"],
+    [ntp.control.CTL_PST_SEL_SELCAND, "sel_outlier"],
     [ntp.control.CTL_PST_SEL_SYNCCAND, "sel_candidate"],
-    [ntp.control.CTL_PST_SEL_EXCESS,   "sel_backup"],
-    [ntp.control.CTL_PST_SEL_SYSPEER,  "sel_sys.peer"],
-    [ntp.control.CTL_PST_SEL_PPS,      "sel_pps.peer"],
-    [-1,                               "sel"],
+    [ntp.control.CTL_PST_SEL_EXCESS, "sel_backup"],
+    [ntp.control.CTL_PST_SEL_SYSPEER, "sel_sys.peer"],
+    [ntp.control.CTL_PST_SEL_PPS, "sel_pps.peer"],
+    [-1, "sel"],
 ]
 peer_codes = [
-    [ntp.magic.PEVNT_MOBIL,    "mobilize"],
-    [ntp.magic.PEVNT_DEMOBIL,  "demobilize"],
-    [ntp.magic.PEVNT_UNREACH,  "unreachable"],
-    [ntp.magic.PEVNT_REACH,    "reachable"],
-    [ntp.magic.PEVNT_RESTART,  "restart"],
-    [ntp.magic.PEVNT_REPLY,    "no_reply"],
-    [ntp.magic.PEVNT_RATE,     "rate_exceeded"],
-    [ntp.magic.PEVNT_DENY,     "access_denied"],
-    [ntp.magic.PEVNT_ARMED,    "leap_armed"],
-    [ntp.magic.PEVNT_NEWPEER,  "sys_peer"],
-    [ntp.magic.PEVNT_CLOCK,    "clock_event"],
-    [ntp.magic.PEVNT_AUTH,     "bad_auth"],
-    [ntp.magic.PEVNT_POPCORN,  "popcorn"],
-    [-1,                       "pevnt"],
+    [ntp.magic.PEVNT_MOBIL, "mobilize"],
+    [ntp.magic.PEVNT_DEMOBIL, "demobilize"],
+    [ntp.magic.PEVNT_UNREACH, "unreachable"],
+    [ntp.magic.PEVNT_REACH, "reachable"],
+    [ntp.magic.PEVNT_RESTART, "restart"],
+    [ntp.magic.PEVNT_REPLY, "no_reply"],
+    [ntp.magic.PEVNT_RATE, "rate_exceeded"],
+    [ntp.magic.PEVNT_DENY, "access_denied"],
+    [ntp.magic.PEVNT_ARMED, "leap_armed"],
+    [ntp.magic.PEVNT_NEWPEER, "sys_peer"],
+    [ntp.magic.PEVNT_CLOCK, "clock_event"],
+    [ntp.magic.PEVNT_AUTH, "bad_auth"],
+    [ntp.magic.PEVNT_POPCORN, "popcorn"],
+    [-1, "pevnt"],
 ]
 peer_st_bits = [
-    [ntp.control.CTL_PST_CONFIG,               "conf"],
-    [ntp.control.CTL_PST_AUTHENABLE,           "authenb"],
-    [ntp.control.CTL_PST_AUTHENTIC,            "auth"],
-    [ntp.control.CTL_PST_REACH,                "reach"],
-    [ntp.control.CTL_PST_BCAST,                "bcast"],
+    [ntp.control.CTL_PST_CONFIG, "conf"],
+    [ntp.control.CTL_PST_AUTHENABLE, "authenb"],
+    [ntp.control.CTL_PST_AUTHENTIC, "auth"],
+    [ntp.control.CTL_PST_REACH, "reach"],
+    [ntp.control.CTL_PST_BCAST, "bcast"],
 ]
 
 
-def getcode(tab, key):
+def getcode(table, key):
     """Interpet a code table to report a code there or synth."""
     try:
-        tab2 = [x[0] for x in tab]
-        key2 = tab2.index(key)
-        return tab[key2][1]
+        index = [x[0] for x in table]
+        key2 = index.index(key)
+        return table[key2][1]
     except ValueError:
-        return tab[-1][1] + '_' + str(key)
+        return table[-1][1] + "_" + str(key)
 
 
-def sys_status(st):
+def sys_status(status):
     """Report the system status string bits."""
     return [
-        getcode(leap_codes, (st >> 14) & 0x3),
-        getcode(sync_codes, (st >> 8) & 0x3f),
-        getevents((st >> 4) & 0xf),
-        getcode(sys_codes, st & 0xf),
+        getcode(leap_codes, (status >> 14) & 0x3),
+        getcode(sync_codes, (status >> 8) & 0x3F),
+        getevents((status >> 4) & 0xF),
+        getcode(sys_codes, status & 0xF),
     ]
 
 
-def peer_status(st):
+def peer_status(status):
     """Report the peer status string bits."""
-    pst = 0xff & (st >> 8)
+    pst = 0xFF & (status >> 8)
     ret = [
         decode_bitflags(pst, ", ", peer_st_bits),
         getcode(select_codes, pst & 0x7),
-        getevents((st >> 4) & 0xf),
+        getevents((status >> 4) & 0xF),
     ]
-    if (st & ~ntp.magic.PEER_EVENT) != ntp.magic.EVNT_UNSPEC:
-        ret.append(getcode(peer_codes, 128 | (st & 0xf)))
+    if (status & ~ntp.magic.PEER_EVENT) != ntp.magic.EVNT_UNSPEC:
+        ret.append(getcode(peer_codes, 128 | (status & 0xF)))
     return ret
 
 
-def clock_status(st):
+def clock_status(status):
     """Report the reference clock status string bits."""
     return [
-        getevents((st >> 4) & 0xf),
-        getcode(clock_codes, st & 0xf),
+        getevents((status >> 4) & 0xF),
+        getcode(clock_codes, status & 0xF),
     ]
 
 
-def statustoa(typeof, st):
+def statustoa(typeof, status):
     """Return the status string from a given type and status word(?)."""
-    return ', '.join(typical[typeof](st)) if typeof in typical else ""
+    return (
+        ", ".join(typical[typeof](status)) if typeof in typical else ""
+    )
 
 
-def getevents(cnt):
+def getevents(count):
     """getevents - return a descriptive string for the event count."""
-    if cnt == 0:
+    if count == 0:
         return "no events"
-    if cnt == 1:
+    if count == 1:
         return "1 event"
-    return str(cnt) + " events"
+    return str(count) + " events"
 
 
 def decode_bitflags(bits, sep2, tab):
@@ -234,9 +238,9 @@ def lfp_stamp_to_tval(when, pivot=PIVOT):
     is in UN*X epoch. The NTP time stamp will be expanded around the
     pivot time.
     """
-    x = (when >> 32) & 0xffffffff
-    sec = c.lfp2timet(x, pivot)
-    return [sec, (when & 0xffffffff) * MILLION / 4294967296]
+    l_fps = (when >> 32) & 0xFFFFFFFF
+    sec = c.lfp2timet(l_fps, pivot)
+    return [sec, (when & 0xFFFFFFFF) * MILLION / 4294967296]
 
 
 def step_systime(bigstep, pivot=PIVOT):
@@ -277,7 +281,7 @@ hashes = {
     "sha384": cryptography.hazmat.primitives.hashes.SHA384(),
     "sha256": cryptography.hazmat.primitives.hashes.SHA256(),
     "sha224": cryptography.hazmat.primitives.hashes.SHA224(),
-    }
+}
 
 algorithms = {
     "aes": cryptography.hazmat.primitives.ciphers.algorithms.AES,
@@ -288,7 +292,7 @@ algorithms = {
     "camellia192": cryptography.hazmat.primitives.ciphers.algorithms.Camellia,
     "camellia256": cryptography.hazmat.primitives.ciphers.algorithms.Camellia,
     "sm4": cryptography.hazmat.primitives.ciphers.algorithms.SM4,
-    }
+}
 
 
 def checkname(name):
@@ -302,14 +306,19 @@ def mac(data, key, name):
     """Compute HMAC or CMAC from data, key, and algorithm name."""
     lname = name.lower()
     if lname in hashes:
-        digest = cryptography.hazmat.primitives.hashes.Hash(hashes[lname])
+        digest = cryptography.hazmat.primitives.hashes.Hash(
+            hashes[lname]
+        )
         digest.update(key)
         digest.update(data)
         return digest.finalize()[:20]
-    elif lname in algorithms:
-        work = cryptography.hazmat.primitives.cmac.CMAC(algorithms[lname](ntp.poly.polybytes(key)))
-        work.update(ntp.poly.polybytes(data))
+    if lname in algorithms:
+        work = cryptography.hazmat.primitives.cmac.CMAC(
+            algorithms[lname](poly.polybytes(key))
+        )
+        work.update(poly.polybytes(data))
         return work.finalize()[:20]
-    return b''
+    return b""
+
 
 ntp.util.stdversioncheck(c.version)

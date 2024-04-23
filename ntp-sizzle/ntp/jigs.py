@@ -78,10 +78,11 @@ class SocketJig:
             if len(current) > bytecount:
                 ret = current[:bytecount]
                 current = current[bytecount:]
-                self.return_data.insert(0, current)  # push unwanted data
+                self.return_data.insert(
+                    0, current
+                )  # push unwanted data
                 return ret
-            else:
-                return current
+            return current
         return None
 
 
@@ -125,16 +126,25 @@ class SocketModuleJig:
         self.socket_calls = []
         self.socket_fail = False
         self.socket_fail_connect = False
-        self.socketsReturned = []
+        self.sockets_returned = []
         self.inet_ntop_calls = []
         self.getfqdn_calls = []
         self.getfqdn_returns = []
         self.ghba_calls = []
         self.ghba_returns = []
 
-    def getaddrinfo(self, host, port, family=None, socktype=None,
-                    proto=None, flags=None):
-        self.gai_calls.append((host, port, family, socktype, proto, flags))
+    def getaddrinfo(
+        self,
+        host,
+        port,
+        family=None,
+        socktype=None,
+        proto=None,
+        flags=None,
+    ):
+        self.gai_calls.append(
+            (host, port, family, socktype, proto, flags)
+        )
         if self.gai_error_count > 0:
             self.gai_error_count -= 1
             err = self.gaierror("blah")
@@ -161,7 +171,7 @@ class SocketModuleJig:
         sock = SocketJig()
         if self.socket_fail_connect:
             sock.fail_connect = True
-        self.socketsReturned.append(sock)
+        self.sockets_returned.append(sock)
         return sock
 
     def inet_ntop(self, addr, family):
@@ -197,9 +207,9 @@ class HashlibModuleJig:
 
     def new(self, name):
         self.new_calls.append(name)
-        h = HasherJig()
-        self.hashers_returned.append(h)
-        return h
+        hashed = HasherJig()
+        self.hashers_returned.append(hashed)
+        return hashed
 
 
 class SelectModuleJig:
@@ -222,8 +232,7 @@ class SelectModuleJig:
         doreturn = self.do_return.pop(0)
         if doreturn:
             return (ins, [], [])
-        else:
-            return ([], [], [])
+        return ([], [], [])
 
     def getfqdn(self, name=""):
         self.fqdn_calls.append(name)
@@ -261,8 +270,8 @@ class OSModuleJig:
         self.isatty_returns = []
         self.path = path_mod()  # Need os.path
 
-    def isatty(self, fd):
-        self.isatty_calls.append(fd)
+    def isatty(self, file_handle):
+        self.isatty_calls.append(file_handle)
         return self.isatty_returns.pop(0)
 
 
@@ -271,8 +280,8 @@ class FcntlModuleJig:
         self.ioctl_calls = []
         self.ioctl_returns = []
 
-    def ioctl(self, fd, op, arg=0, mutate_flag=False):
-        self.ioctl_calls.append((fd, op, arg, mutate_flag))
+    def ioctl(self, file_handle, operation, arg=0, mutate_flag=False):
+        self.ioctl_calls.append((file_handle, operation, arg, mutate_flag))
         return self.ioctl_returns.pop(0)
 
 
@@ -295,11 +304,10 @@ class TimeModuleJig:
         self.time_calls += 1
         return self.time_returns.pop(0)
 
-    def strftime(self, f, t=None):
-        if t is None:
-            return time.strftime(f)
-        else:
-            return time.strftime(f, t)
+    def strftime(self, format, when=None):
+        if when is None:
+            return time.strftime(format)
+        return time.strftime(format, when)
 
     def gmtime(self, *args, **kwargs):
         return time.gmtime(*args, **kwargs)

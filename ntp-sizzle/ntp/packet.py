@@ -267,23 +267,29 @@ MAX_BARE_MAC_LENGTH = 20
 
 class Packet:
     "Encapsulate an NTP fragment"
+
     # The following two methods are copied from macros in includes/control.h
     @staticmethod
     def VN_MODE(v, m):
-        return (((v & 7) << 3) | (m & 0x7))
+        return ((v & 7) << 3) | (m & 0x7)
 
     @staticmethod
     def PKT_LI_VN_MODE(l, v, m):
-        return (((l & 3) << 6) | Packet.VN_MODE(v, m))
+        return ((l & 3) << 6) | Packet.VN_MODE(v, m)
 
-    def __init__(self, mode=ntp.magic.MODE_CLIENT,
-                 version=ntp.magic.NTP_VERSION, session=None):
+    def __init__(
+        self,
+        mode=ntp.magic.MODE_CLIENT,
+        version=ntp.magic.NTP_VERSION,
+        session=None,
+    ):
         self.session = session  # Where to get session context
-        self.li_vn_mode = 0     # leap, version, mode (uint8_t)
+        self.li_vn_mode = 0  # leap, version, mode (uint8_t)
         # Subclasses have variable fields here
-        self.extension = b''     # extension data
-        self.li_vn_mode = Packet.PKT_LI_VN_MODE(ntp.magic.LEAP_NOTINSYNC,
-                                                version, mode)
+        self.extension = b""  # extension data
+        self.li_vn_mode = Packet.PKT_LI_VN_MODE(
+            ntp.magic.LEAP_NOTINSYNC, version, mode
+        )
 
     # These decorators will allow us to assign the extension Python 3 strings
     @property
@@ -295,8 +301,9 @@ class Packet:
         self.__extension = ntp.poly.polybytes(x)
 
     def leap(self):
-        return ("no-leap", "add-leap", "del-leap",
-                "unsync")[ntp.magic.PKT_LEAP(self.li_vn_mode)]
+        return ("no-leap", "add-leap", "del-leap", "unsync")[
+            ntp.magic.PKT_LEAP(self.li_vn_mode)
+        ]
 
     def version(self):
         return (self.li_vn_mode >> 3) & 0x7
@@ -318,12 +325,14 @@ class SyncPacket(Packet):
     "Mode 1-5 time-synchronization packet, including SNTP."
     format = "!BBBbIIIQQQQ"
     HEADER_LEN = 48
-    UNIX_EPOCH = 2208988800     # Midnight 1 Jan 1970 in secs since NTP epoch
-    PHI = 15 * 1e-6             # 15ppm
+    UNIX_EPOCH = (
+        2208988800  # Midnight 1 Jan 1970 in secs since NTP epoch
+    )
+    PHI = 15 * 1e-6  # 15ppm
 
-    def __init__(self, data=''):
+    def __init__(self, data=""):
         Packet.__init__(self)
-        self.status = 0         # status word for association (uint16_t)
+        self.status = 0  # status word for association (uint16_t)
         self.stratum = 0
         self.poll = 0
         self.precision = 0
@@ -334,9 +343,9 @@ class SyncPacket(Packet):
         self.origin_timestamp = 0
         self.receive_timestamp = 0
         self.transmit_timestamp = 0
-        self.extension = ''
+        self.extension = ""
         self.extfields = []
-        self.mac = ''
+        self.mac = ""
         self.hostname = None
         self.resolved = None
         self.received = SyncPacket.posix_to_ntp(time.time())
@@ -349,19 +358,22 @@ class SyncPacket(Packet):
         datalen = len(data)
         if datalen < SyncPacket.HEADER_LEN or (datalen & 3) != 0:
             raise SyncException("impossible packet length")
-        (self.li_vn_mode,
-         self.stratum,
-         self.poll,
-         self.precision,
-         self.root_delay,
-         self.root_dispersion,
-         self.refid,
-         self.reference_timestamp,
-         self.origin_timestamp,
-         self.receive_timestamp,
-         self.transmit_timestamp) = struct.unpack(
-            SyncPacket.format, data[:SyncPacket.HEADER_LEN])
-        self.extension = data[SyncPacket.HEADER_LEN:]
+        (
+            self.li_vn_mode,
+            self.stratum,
+            self.poll,
+            self.precision,
+            self.root_delay,
+            self.root_dispersion,
+            self.refid,
+            self.reference_timestamp,
+            self.origin_timestamp,
+            self.receive_timestamp,
+            self.transmit_timestamp,
+        ) = struct.unpack(
+            SyncPacket.format, data[: SyncPacket.HEADER_LEN]
+        )
+        self.extension = data[SyncPacket.HEADER_LEN :]
         # Parse any present extension fields. We determine the presence
         # of an extension field by measuring the trailer size. If the
         # number of 4-octet words following the packet header is 0, there
@@ -373,13 +385,13 @@ class SyncPacket(Packet):
         payload = self.extension  # Keep extension intact for flatten()
         while len(payload) > 24:
             (ftype, flen) = struct.unpack("!II", payload[:8])
-            self.extfields.append((ftype, payload[8:8+flen]))
-            payload = payload[8+flen:]
-        if len(payload) == 4:    # Crypto-NAK
+            self.extfields.append((ftype, payload[8 : 8 + flen]))
+            payload = payload[8 + flen :]
+        if len(payload) == 4:  # Crypto-NAK
             self.mac = payload
         elif len(payload) in (8, 12, 16):
             raise SyncException("Packet is a runt")
-        elif len(payload) in (20, 24):   # Symmetric authentication
+        elif len(payload) in (20, 24):  # Symmetric authentication
             self.mac = payload
 
     @staticmethod
@@ -402,13 +414,17 @@ class SyncPacket(Packet):
             self.root_delay >>= 16
             self.root_dispersion >>= 16
             self.reference_timestamp = SyncPacket.ntp_to_posix(
-                self.reference_timestamp)
+                self.reference_timestamp
+            )
             self.origin_timestamp = SyncPacket.ntp_to_posix(
-                self.origin_timestamp)
+                self.origin_timestamp
+            )
             self.receive_timestamp = SyncPacket.ntp_to_posix(
-                self.receive_timestamp)
+                self.receive_timestamp
+            )
             self.transmit_timestamp = SyncPacket.ntp_to_posix(
-                self.transmit_timestamp)
+                self.transmit_timestamp
+            )
             self.received = SyncPacket.ntp_to_posix(self.received)
 
     def t1(self):
@@ -430,43 +446,52 @@ class SyncPacket(Packet):
     def epsilon(self):
         "Residual error due to clock imprecision."
         # FIXME: Include client imprecision.
-        return SyncPacket.PHI * (self.t4() - self.t1()) + 2**self.precision
+        return (
+            SyncPacket.PHI * (self.t4() - self.t1())
+            + 2**self.precision
+        )
 
     def synchd(self):
         "Synchronization distance, estimates worst-case error in seconds"
         # This is "lambda" in NTP-speak, but that's a Python keyword
-        return abs(self.delta()/2 + self.epsilon())
+        return abs(self.delta() / 2 + self.epsilon())
 
     def adjust(self):
         "Adjustment implied by this packet - 'theta' in NTP-speak."
-        return ((self.t2()-self.t1())+(self.t3()-self.t4()))/2
+        return ((self.t2() - self.t1()) + (self.t3() - self.t4())) / 2
 
     def flatten(self):
         "Flatten the packet into an octet sequence."
-        body = struct.pack(SyncPacket.format,
-                           self.li_vn_mode,
-                           self.stratum,
-                           self.poll,
-                           self.precision,
-                           self.root_delay,
-                           self.root_dispersion,
-                           self.refid,
-                           self.reference_timestamp,
-                           self.origin_timestamp,
-                           self.receive_timestamp,
-                           self.transmit_timestamp)
+        body = struct.pack(
+            SyncPacket.format,
+            self.li_vn_mode,
+            self.stratum,
+            self.poll,
+            self.precision,
+            self.root_delay,
+            self.root_dispersion,
+            self.refid,
+            self.reference_timestamp,
+            self.origin_timestamp,
+            self.receive_timestamp,
+            self.transmit_timestamp,
+        )
         return body + self.extension
 
     def refid_octets(self):
         "Analyze refid into octets."
-        return ((self.refid >> 24) & 0xff,
-                (self.refid >> 16) & 0xff,
-                (self.refid >> 8) & 0xff,
-                self.refid & 0xff)
+        return (
+            (self.refid >> 24) & 0xFF,
+            (self.refid >> 16) & 0xFF,
+            (self.refid >> 8) & 0xFF,
+            self.refid & 0xFF,
+        )
 
     def refid_as_string(self):
         "Sometimes it's a clock name or KOD type"
-        return ntp.poly.polystr(struct.pack(*(("BBBB",) + self.refid_octets())))
+        return ntp.poly.polystr(
+            struct.pack(*(("BBBB",) + self.refid_octets()))
+        )
 
     def refid_as_address(self):
         "Sometimes it's an IPV4 address."
@@ -483,20 +508,28 @@ class SyncPacket(Packet):
 
     def __repr__(self):
         "Represent a posixized sync packet in an eyeball-friendly format."
-        r = "<NTP:%s:%d:%d:" % (self.leap(), self.version(), self.mode())
+        r = "<NTP:%s:%d:%d:" % (
+            self.leap(),
+            self.version(),
+            self.mode(),
+        )
         r += "%f:%f" % (self.root_delay, self.root_dispersion)
         rs = self.refid_as_string()
         if not all(c in string.printable for c in rs):
             rs = self.refid_as_address()
         r += ":" + rs
         r += ":" + ntp.util.rfc3339(
-            SyncPacket.ntp_to_posix(self.reference_timestamp))
+            SyncPacket.ntp_to_posix(self.reference_timestamp)
+        )
         r += ":" + ntp.util.rfc3339(
-            SyncPacket.ntp_to_posix(self.origin_timestamp))
+            SyncPacket.ntp_to_posix(self.origin_timestamp)
+        )
         r += ":" + ntp.util.rfc3339(
-            SyncPacket.ntp_to_posix(self.receive_timestamp))
+            SyncPacket.ntp_to_posix(self.receive_timestamp)
+        )
         r += ":" + ntp.util.rfc3339(
-            SyncPacket.ntp_to_posix(self.transmit_timestamp))
+            SyncPacket.ntp_to_posix(self.transmit_timestamp)
+        )
         if self.extfields:
             r += ":" + repr(self.extfields)
         if self.mac:
@@ -508,17 +541,21 @@ class SyncPacket(Packet):
 class ControlPacket(Packet):
     "Mode 6 request/response."
 
-    def __init__(self, session, opcode=0, associd=0, qdata=''):
-        Packet.__init__(self, mode=ntp.magic.MODE_CONTROL,
-                        version=session.pktversion,
-                        session=session)
-        self.r_e_m_op = opcode    # ntpq operation code
-        self.sequence = 1         # sequence number of request (uint16_t)
-        self.status = 0           # status word for association (uint16_t)
-        self.associd = associd    # association ID (uint16_t)
-        self.offset = 0           # offset of this batch of data (uint16_t)
-        self.extension = qdata    # Data for this packet
-        self.count = len(qdata)   # length of data
+    def __init__(self, session, opcode=0, associd=0, qdata=""):
+        Packet.__init__(
+            self,
+            mode=ntp.magic.MODE_CONTROL,
+            version=session.pktversion,
+            session=session,
+        )
+        self.r_e_m_op = opcode  # ntpq operation code
+        self.sequence = 1  # sequence number of request (uint16_t)
+        self.status = 0  # status word for association (uint16_t)
+        self.associd = associd  # association ID (uint16_t)
+        self.offset = 0  # offset of this batch of data (uint16_t)
+        self.extension = qdata  # Data for this packet
+        self.count = len(qdata)  # length of data
+
     format = "!BBHHHHH"
     HEADER_LEN = 12
 
@@ -535,38 +572,47 @@ class ControlPacket(Packet):
         return self.r_e_m_op & 0x1F
 
     def errcode(self):
-        return (self.status >> 8) & 0xff
+        return (self.status >> 8) & 0xFF
 
     def end(self):
         return self.count + self.offset
 
     def stats(self):
         "Return statistics on a fragment."
-        return "%5d %5d\t%3d octets\n" % (self.offset, self.end(), self.count)
+        return "%5d %5d\t%3d octets\n" % (
+            self.offset,
+            self.end(),
+            self.count,
+        )
 
     def analyze(self, rawdata):
         rawdata = ntp.poly.polybytes(rawdata)
-        (self.li_vn_mode,
-         self.r_e_m_op,
-         self.sequence,
-         self.status,
-         self.associd,
-         self.offset,
-         self.count) = struct.unpack(ControlPacket.format,
-                                     rawdata[:ControlPacket.HEADER_LEN])
-        self.extension = rawdata[ControlPacket.HEADER_LEN:]
+        (
+            self.li_vn_mode,
+            self.r_e_m_op,
+            self.sequence,
+            self.status,
+            self.associd,
+            self.offset,
+            self.count,
+        ) = struct.unpack(
+            ControlPacket.format, rawdata[: ControlPacket.HEADER_LEN]
+        )
+        self.extension = rawdata[ControlPacket.HEADER_LEN :]
         return (self.sequence, self.status, self.associd, self.offset)
 
     def flatten(self):
         "Flatten the packet into an octet sequence."
-        body = struct.pack(ControlPacket.format,
-                           self.li_vn_mode,
-                           self.r_e_m_op,
-                           self.sequence,
-                           self.status,
-                           self.associd,
-                           self.offset,
-                           self.count)
+        body = struct.pack(
+            ControlPacket.format,
+            self.li_vn_mode,
+            self.r_e_m_op,
+            self.sequence,
+            self.status,
+            self.associd,
+            self.offset,
+            self.count,
+        )
         return body + self.extension
 
     def send(self):
@@ -586,7 +632,11 @@ class Peer:
         self.variables = self.session.readvar()
 
     def __str__(self):
-        return "<Peer: associd=%s status=%0x>" % (self.associd, self.status)
+        return "<Peer: associd=%s status=%0x>" % (
+            self.associd,
+            self.status,
+        )
+
     __repr__ = __str__
 
 
@@ -611,7 +661,9 @@ SERR_BADNONCE = "***Unexpected nonce response format"
 SERR_BADPARAM = "***Unknown parameter '%s'"
 SERR_NOCRED = "***No credentials"
 SERR_SERVER = "***Server error code %s"
-SERR_STALL = "***No response, probably high-traffic server with low MRU limit"
+SERR_STALL = (
+    "***No response, probably high-traffic server with low MRU limit"
+)
 SERR_BADTAG = "***Bad MRU tag %s"
 SERR_BADSORT = "***Sort order %s is not implemented"
 SERR_NOTRUST = "***No trusted keys have been declared"
@@ -632,7 +684,9 @@ def dump_hex_printable(xdata, outfp=sys.stdout):
         if linelen < rowsize:  # Pad out the line to keep columns neat
             line += "   " * (rowsize - linelen)
         # Output printable data in string form
-        linedata = [chr(x) if (32 <= x < 127) else "." for x in linedata]
+        linedata = [
+            chr(x) if (32 <= x < 127) else "." for x in linedata
+        ]
         line += "".join(linedata) + "\n"
         outfp.write(line)
 
@@ -641,14 +695,14 @@ class MRUEntry:
     "A traffic entry for an MRU list."
 
     def __init__(self):
-        self.addr = None        # text of IPv4 or IPv6 address and port
-        self.last = None        # timestamp of last receipt
-        self.first = None       # timestamp of first receipt
-        self.mv = None          # mode and version
-        self.rs = None          # restriction mask (RES_* bits)
-        self.ct = 0             # count of packets received
-        self.sc = None          # score
-        self.dr = None          # dropped packets
+        self.addr = None  # text of IPv4 or IPv6 address and port
+        self.last = None  # timestamp of last receipt
+        self.first = None  # timestamp of first receipt
+        self.mv = None  # mode and version
+        self.rs = None  # restriction mask (RES_* bits)
+        self.ct = 0  # count of packets received
+        self.sc = None  # score
+        self.dr = None  # dropped packets
 
     def avgint(self):
         last = ntp.ntpc.lfptofloat(self.last)
@@ -657,21 +711,21 @@ class MRUEntry:
 
     def sortaddr(self):
         addr = self.addr
-        if addr[0] == '[':
+        if addr[0] == "[":
             # IPv6   [n:n:n::n:n]:sock
             # or     [n:n:n::n:n%x]:sock
-            addr = addr[1:addr.find(']')]
-            pct = addr.find('%')
+            addr = addr[1 : addr.find("]")]
+            pct = addr.find("%")
             if pct > 0:
                 # <addr>%<n> for local IPv6 address on interface n
                 addr = addr[:pct]
             return socket.inet_pton(socket.AF_INET6, addr)
         else:
             # IPv4   a.b.c.d:sock
-            addr = addr[:addr.find(':')]
+            addr = addr[: addr.find(":")]
             # prefix with 0s so IPv6 sorts after IPv4
             # Need 16 rather than 12 to catch ::1
-            return b'\0'*16 + socket.inet_pton(socket.AF_INET, addr)
+            return b"\0" * 16 + socket.inet_pton(socket.AF_INET, addr)
 
     def __repr__(self):
         return "<MRUEntry: " + repr(self.__dict__)[1:-1] + ">"
@@ -681,8 +735,8 @@ class MRUList:
     "A sequence of address-timespan pairs returned by ntpd in one response."
 
     def __init__(self):
-        self.entries = []       # A list of MRUEntry objects
-        self.now = None         # server timestamp marking end of operation
+        self.entries = []  # A list of MRUEntry objects
+        self.now = None  # server timestamp marking end of operation
 
     def is_complete(self):
         "Is the server done shipping entries for this span?"
@@ -693,7 +747,6 @@ class MRUList:
 
 
 class ControlException(BaseException):
-
     def __init__(self, message, errorcode=0):
         self.message = message
         self.errorcode = errorcode
@@ -715,13 +768,15 @@ class ControlSession:
         ntp.control.CERR_UNKNOWNVAR: "UNKNOWNVAR",
         ntp.control.CERR_BADVALUE: "BADVALUE",
         ntp.control.CERR_RESTRICT: "RESTRICT",
-        }
+    }
 
     def __init__(self):
         self.debug = 0
         self.ai_family = socket.AF_UNSPEC
-        self.primary_timeout = DEFTIMEOUT       # Timeout for first select
-        self.secondary_timeout = DEFSTIMEOUT    # Timeout for later selects
+        self.primary_timeout = DEFTIMEOUT  # Timeout for first select
+        self.secondary_timeout = (
+            DEFSTIMEOUT  # Timeout for later selects
+        )
         # Packet version number we use
         self.pktversion = ntp.magic.NTP_OLDVERSION + 1
         self.always_auth = False  # Always send authenticated requests
@@ -765,23 +820,35 @@ class ControlSession:
         # give it an IPv4 address to lookup.
 
         def hinted_lookup(port, hints):
-            return socket.getaddrinfo(hname, port, self.ai_family,
-                                      socket.SOCK_DGRAM,
-                                      socket.IPPROTO_UDP,
-                                      hints)
+            return socket.getaddrinfo(
+                hname,
+                port,
+                self.ai_family,
+                socket.SOCK_DGRAM,
+                socket.IPPROTO_UDP,
+                hints,
+            )
+
         try:
-            return hinted_lookup(port="ntp", hints=socket.AI_NUMERICHOST)
+            return hinted_lookup(
+                port="ntp", hints=socket.AI_NUMERICHOST
+            )
         except socket.gaierror as e:
-            ntp.util.dolog(self.logfp,
-                           "ntpq: numeric-mode lookup of %s failed, %s"
-                           % (hname, e.strerror), self.debug, 3)
+            ntp.util.dolog(
+                self.logfp,
+                "ntpq: numeric-mode lookup of %s failed, %s"
+                % (hname, e.strerror),
+                self.debug,
+                3,
+            )
         try:
             return hinted_lookup(port="ntp", hints=0)
         except socket.gaierror as e1:
             if self.logfp is not None:
-                self.logfp.write("ntpq: standard-mode lookup "
-                                 "of %s failed, %s\n"
-                                 % (hname, e1.strerror))
+                self.logfp.write(
+                    "ntpq: standard-mode lookup "
+                    "of %s failed, %s\n" % (hname, e1.strerror)
+                )
             # EAI_NODATA and AI_CANONNAME should both exist - they're in the
             # POSIX API.  If this code throws AttributeErrors there is
             # probably a very old and broken socket layer in your Python
@@ -802,12 +869,15 @@ class ControlSession:
                         return hinted_lookup(port="ntp", hints=0)
                     except socket.gaierror as e2:
                         if self.logfp is not None:
-                            self.logfp.write("ntpq: ndp lookup failed, %s\n"
-                                             % e2.strerror)
+                            self.logfp.write(
+                                "ntpq: ndp lookup failed, %s\n"
+                                % e2.strerror
+                            )
             except AttributeError:  # pragma: no cover
                 if self.logfp is not None:
                     self.logfp.write(
-                        "ntpq: API error, missing socket attributes\n")
+                        "ntpq: API error, missing socket attributes\n"
+                    )
         return None
 
     def openhost(self, hname, fam=socket.AF_UNSPEC):
@@ -823,19 +893,24 @@ class ControlSession:
         else:
             self.hostname = canonname or hname
             self.isnum = False
-        ntp.util.dolog(self.logfp, "Opening host %s" % self.hostname,
-                       self.debug, 3)
+        ntp.util.dolog(
+            self.logfp, "Opening host %s" % self.hostname, self.debug, 3
+        )
         self.port = sockaddr[1]
         try:
             self.sock = socket.socket(family, socktype, protocol)
         except socket.error as e:
-            raise ControlException("Error opening %s: %s [%d]"
-                                   % (hname, e.strerror, e.errno))
+            raise ControlException(
+                "Error opening %s: %s [%d]"
+                % (hname, e.strerror, e.errno)
+            )
         try:
             self.sock.connect(sockaddr)
         except socket.error as e:
-            raise ControlException("Error connecting to %s: %s [%d]"
-                                   % (hname, e.strerror, e.errno))
+            raise ControlException(
+                "Error connecting to %s: %s [%d]"
+                % (hname, e.strerror, e.errno)
+            )
         return True
 
     def password(self):
@@ -848,8 +923,11 @@ class ControlSession:
                     pass
             if self.auth and self.hostname == "localhost":
                 try:
-                    (self.keyid, self.keytype, self.passwd) \
-                        = self.auth.control()
+                    (
+                        self.keyid,
+                        self.keytype,
+                        self.passwd,
+                    ) = self.auth.control()
                     return
                 except ValueError:
                     # There are no trusted keys.  Barf.
@@ -883,9 +961,12 @@ class ControlSession:
         "Send a packet to the host."
         while len(xdata) % 4:
             xdata += b"\x00"
-        ntp.util.dolog(self.logfp,
-                       "Sending %d octets.  seq=%d"
-                       % (len(xdata), self.sequence), self.debug, 3)
+        ntp.util.dolog(
+            self.logfp,
+            "Sending %d octets.  seq=%d" % (len(xdata), self.sequence),
+            self.debug,
+            3,
+        )
         try:
             self.sock.sendall(ntp.poly.polybytes(xdata))
         except socket.error:
@@ -893,7 +974,9 @@ class ControlSession:
             if self.logfp is not None:
                 self.logfp.write("Write to %s failed\n" % self.hostname)
             return -1
-        if (self.debug >= 5) and (self.logfp is not None):  # pragma: no cover
+        if (self.debug >= 5) and (
+            self.logfp is not None
+        ):  # pragma: no cover
             # special, not replacing with dolog()
             self.logfp.write("Request packet:\n")
             dump_hex_printable(xdata, self.logfp)
@@ -904,15 +987,21 @@ class ControlSession:
         if (self.debug >= 1) and (self.logfp is not None):
             # special, not replacing with dolog()
             if self.debug >= 3:
-                self.logfp.write("\n")   # extra space to help find clumps
-            self.logfp.write("sendrequest: opcode=%d, associd=%d, qdata=%s\n"
-                             % (opcode, associd, qdata))
+                self.logfp.write(
+                    "\n"
+                )  # extra space to help find clumps
+            self.logfp.write(
+                "sendrequest: opcode=%d, associd=%d, qdata=%s\n"
+                % (opcode, associd, qdata)
+            )
 
         # Check to make sure the data will fit in one packet
         if len(qdata) > ntp.control.CTL_MAX_DATA_LEN:
             if self.logfp is not None:
-                self.logfp.write("***Internal error! Data too large (%d)\n" %
-                                 len(qdata))
+                self.logfp.write(
+                    "***Internal error! Data too large (%d)\n"
+                    % len(qdata)
+                )
             return -1
 
         # Assemble the packet
@@ -926,7 +1015,7 @@ class ControlSession:
         # Do not include these in the payload count.
         if pkt.extension:
             pkt.extension = ntp.poly.polybytes(pkt.extension)
-            while ((ControlPacket.HEADER_LEN + len(pkt.extension)) & 3):
+            while (ControlPacket.HEADER_LEN + len(pkt.extension)) & 3:
                 pkt.extension += b"\x00"
 
         # If it isn't authenticated we can just send it.  Otherwise
@@ -940,12 +1029,15 @@ class ControlSession:
         # Pad out packet to a multiple of 8 octets to be sure
         # receiver can handle it. Note: these pad bytes should
         # *not* be counted in the header count field.
-        while ((ControlPacket.HEADER_LEN + len(pkt.extension)) & (MODE_SIX_ALIGNMENT - 1)):
+        while (ControlPacket.HEADER_LEN + len(pkt.extension)) & (
+            MODE_SIX_ALIGNMENT - 1
+        ):
             pkt.extension += b"\x00"
 
         # Do the MAC compuation.
-        mac = Authenticator.compute_mac(pkt.flatten(),
-                                        self.keyid, self.keytype, self.passwd)
+        mac = Authenticator.compute_mac(
+            pkt.flatten(), self.keyid, self.keytype, self.passwd
+        )
         if mac is None:
             raise ControlException(SERR_NOKEY)
         else:
@@ -960,16 +1052,17 @@ class ControlSession:
         # packet in the sequence is received we'll know how much data we
         # should have had.  Note we use one long time out, should reconsider.
         fragments = []
-        self.response = ''
+        self.response = ""
         seenlastfrag = False
         bail = 0
         # TODO: refactor to simplify while retaining semantic info
         if self.logfp is not None:
             warn = self.logfp.write
         else:
-            warn = (lambda x: x)
-        warndbg = (lambda txt, th: ntp.util.dolog(self.logfp, txt,
-                                                  self.debug, th))
+            warn = lambda x: x
+        warndbg = lambda txt, th: ntp.util.dolog(
+            self.logfp, txt, self.debug, th
+        )
 
         warndbg("Fragment collection begins", 1)
         # Loop until we have an error or a complete response.  Nearly all
@@ -979,7 +1072,7 @@ class ControlSession:
             #  loop more than MAXFRAGS times, but enforce a sane bound
             #  on how long we're willing to spend here.
             bail += 1
-            if bail >= (2*MAXFRAGS):
+            if bail >= (2 * MAXFRAGS):
                 raise ControlException(SERR_TOOMUCH)
 
             if not fragments:
@@ -987,14 +1080,20 @@ class ControlSession:
             else:
                 tvo = self.secondary_timeout / 1000
 
-            warndbg("At %s, select with timeout %d begins"
-                    % (time.asctime(), tvo), 5)
+            warndbg(
+                "At %s, select with timeout %d begins"
+                % (time.asctime(), tvo),
+                5,
+            )
             try:
                 (rd, _, _) = select.select([self.sock], [], [], tvo)
             except select.error:
                 raise ControlException(SERR_SELECT)
-            warndbg("At %s, select with timeout %d ends"
-                    % (time.asctime(), tvo), 5)
+            warndbg(
+                "At %s, select with timeout %d ends"
+                % (time.asctime(), tvo),
+                5,
+            )
 
             if not rd:
                 # Timed out.  Return what we have
@@ -1002,15 +1101,21 @@ class ControlSession:
                     if timeo:
                         raise ControlException(SERR_TIMEOUT)
                 if timeo:
-                    if (self.debug >= 1) and \
-                       (self.logfp is not None):  # pragma: no cover
+                    if (self.debug >= 1) and (
+                        self.logfp is not None
+                    ):  # pragma: no cover
                         # special, not replacing with dolog()
                         self.logfp.write(
-                            "ERR_INCOMPLETE: Received fragments:\n")
-                        for (i, frag) in enumerate(fragments):
-                            self.logfp.write("%d: %s" % (i+1, frag.stats()))
-                        self.logfp.write("last fragment %sreceived\n"
-                                         % ("not ", "")[seenlastfrag])
+                            "ERR_INCOMPLETE: Received fragments:\n"
+                        )
+                        for i, frag in enumerate(fragments):
+                            self.logfp.write(
+                                "%d: %s" % (i + 1, frag.stats())
+                            )
+                        self.logfp.write(
+                            "last fragment %sreceived\n"
+                            % ("not ", "")[seenlastfrag]
+                        )
                 raise ControlException(SERR_INCOMPLETE)
 
             warndbg("At %s, socket read begins" % time.asctime(), 4)
@@ -1021,7 +1126,7 @@ class ControlSession:
                 raise ControlException(SERR_SOCKET)
 
             if self.flakey and self.flakey >= random.random():
-                warndbg('Flaky: I deliberately dropped a packet.', 1)
+                warndbg("Flaky: I deliberately dropped a packet.", 1)
                 rawdata = None
 
             warndbg("Received %d octets" % len(rawdata), 3)
@@ -1032,24 +1137,34 @@ class ControlSession:
                 raise ControlException(SERR_UNSPEC)
 
             # Validate that packet header is sane, and the correct type
-            valid = self.__validate_packet(rpkt, rawdata, opcode, associd)
+            valid = self.__validate_packet(
+                rpkt, rawdata, opcode, associd
+            )
             if not valid:  # pragma: no cover
                 continue
 
             # Someday, perhaps, check authentication here
             if self._authpass and self.auth:
                 _pend = rpkt.count + MODE_SIX_HEADER_LENGTH
-                _pend += (-_pend % MODE_SIX_ALIGNMENT)
-                if len(rawdata) < (_pend + KEYID_LENGTH + MINIMUM_MAC_LENGTH):
-                    self.logfp.write('AUTH - packet too short for MAC %d < %d\n' %
-                                     (len(rawdata), (_pend + KEYID_LENGTH + MINIMUM_MAC_LENGTH)))
+                _pend += -_pend % MODE_SIX_ALIGNMENT
+                if len(rawdata) < (
+                    _pend + KEYID_LENGTH + MINIMUM_MAC_LENGTH
+                ):
+                    self.logfp.write(
+                        "AUTH - packet too short for MAC %d < %d\n"
+                        % (
+                            len(rawdata),
+                            (_pend + KEYID_LENGTH + MINIMUM_MAC_LENGTH),
+                        )
+                    )
                     self._authpass = False
-                elif not self.auth.verify_mac(rawdata, packet_end=_pend,
-                                              mac_begin=_pend):
+                elif not self.auth.verify_mac(
+                    rawdata, packet_end=_pend, mac_begin=_pend
+                ):
                     self._authpass = False
 
             # Clip off the MAC, if any
-            rpkt.extension = rpkt.extension[:rpkt.count]
+            rpkt.extension = rpkt.extension[: rpkt.count]
 
             if rpkt.count == 0 and rpkt.more():
                 warn("Received count of 0 in non-final fragment\n")
@@ -1062,35 +1177,54 @@ class ControlSession:
                 continue
 
             # Find the most recent fragment with a
-            not_earlier = [frag for frag in fragments
-                           if frag.offset >= rpkt.offset]
+            not_earlier = [
+                frag for frag in fragments if frag.offset >= rpkt.offset
+            ]
             if not_earlier:
                 not_earlier = not_earlier[0]
                 if not_earlier.offset == rpkt.offset:
-                    warn("duplicate %d octets at %d ignored, prior "
-                         " %d at %d\n"
-                         % (rpkt.count, rpkt.offset,
-                            not_earlier.count, not_earlier.offset))
+                    warn(
+                        "duplicate %d octets at %d ignored, prior "
+                        " %d at %d\n"
+                        % (
+                            rpkt.count,
+                            rpkt.offset,
+                            not_earlier.count,
+                            not_earlier.offset,
+                        )
+                    )
                     continue
 
             if fragments:
                 last = fragments[-1]
                 if last.end() > rpkt.offset:
-                    warn("received frag at %d overlaps with %d octet "
-                         "frag at %d\n"
-                         % (rpkt.offset, last.count, last.offset))
+                    warn(
+                        "received frag at %d overlaps with %d octet "
+                        "frag at %d\n"
+                        % (rpkt.offset, last.count, last.offset)
+                    )
                     continue
 
             if not_earlier and rpkt.end() > not_earlier.offset:
-                warn("received %d octet frag at %d overlaps with "
-                     "frag at %d\n"
-                     % (rpkt.count, rpkt.offset, not_earlier.offset))
+                warn(
+                    "received %d octet frag at %d overlaps with "
+                    "frag at %d\n"
+                    % (rpkt.count, rpkt.offset, not_earlier.offset)
+                )
                 continue
 
-            warndbg("Recording fragment %d, size = %d offset = %d, "
-                    " end = %d, more=%s"
-                    % (len(fragments)+1, rpkt.count,
-                       rpkt.offset, rpkt.end(), rpkt.more()), 3)
+            warndbg(
+                "Recording fragment %d, size = %d offset = %d, "
+                " end = %d, more=%s"
+                % (
+                    len(fragments) + 1,
+                    rpkt.count,
+                    rpkt.offset,
+                    rpkt.end(),
+                    rpkt.more(),
+                ),
+                3,
+            )
 
             # Passed all tests, insert it into the frag list.
             fragments.append(rpkt)
@@ -1106,24 +1240,36 @@ class ControlSession:
             # If there aren't any, we're done.
             if seenlastfrag and fragments[0].offset == 0:
                 for f in range(1, len(fragments)):
-                    if fragments[f-1].end() != fragments[f].offset:
-                        warndbg("Hole in fragment sequence, %d of %d"
-                                % (f, len(fragments)), 1)
+                    if fragments[f - 1].end() != fragments[f].offset:
+                        warndbg(
+                            "Hole in fragment sequence, %d of %d"
+                            % (f, len(fragments)),
+                            1,
+                        )
                         break
                 else:
-                    tempfraglist = [ntp.poly.polystr(f.extension)
-                                    for f in fragments]
-                    self.response = ntp.poly.polybytes("".join(tempfraglist))
-                    warndbg("Fragment collection ends. %d bytes "
-                            " in %d fragments"
-                            % (len(self.response), len(fragments)), 1)
+                    tempfraglist = [
+                        ntp.poly.polystr(f.extension) for f in fragments
+                    ]
+                    self.response = ntp.poly.polybytes(
+                        "".join(tempfraglist)
+                    )
+                    warndbg(
+                        "Fragment collection ends. %d bytes "
+                        " in %d fragments"
+                        % (len(self.response), len(fragments)),
+                        1,
+                    )
                     # special loggers, not replacing with dolog()
                     if self.debug >= 5:  # pragma: no cover
                         warn("Response packet:\n")
                         dump_hex_printable(self.response, self.logfp)
                     elif self.debug >= 3:  # pragma: no cover
                         # FIXME: Garbage when retrieving assoc list (binary)
-                        warn("Response packet:\n%s\n" % repr(self.response))
+                        warn(
+                            "Response packet:\n%s\n"
+                            % repr(self.response)
+                        )
                     elif self.debug >= 2:  # pragma: no cover
                         # FIXME: Garbage when retrieving assoc list (binary)
                         eol = self.response.find(b"\n")
@@ -1132,21 +1278,26 @@ class ControlSession:
                     return None
                 break
         if not self._authpass:
-            warn('AUTH: Content untrusted due to authentication failure!\n')
+            warn(
+                "AUTH: Content untrusted due to authentication failure!\n"
+            )
 
     def __validate_packet(self, rpkt, rawdata, opcode, associd):
         # TODO: refactor to simplify while retaining semantic info
         if self.logfp is not None:
             warn = self.logfp.write
         else:
-            warn = (lambda x: x)
-        warndbg = (lambda txt, th: ntp.util.dolog(self.logfp, txt,
-                                                  self.debug, th))
+            warn = lambda x: x
+        warndbg = lambda txt, th: ntp.util.dolog(
+            self.logfp, txt, self.debug, th
+        )
 
-        if ((rpkt.version() > ntp.magic.NTP_VERSION) or
-           (rpkt.version() < ntp.magic.NTP_OLDVERSION)):
-            warndbg("Fragment received with version %d"
-                    % rpkt.version(), 1)
+        if (rpkt.version() > ntp.magic.NTP_VERSION) or (
+            rpkt.version() < ntp.magic.NTP_OLDVERSION
+        ):
+            warndbg(
+                "Fragment received with version %d" % rpkt.version(), 1
+            )
             return False
         if rpkt.mode() != ntp.magic.MODE_CONTROL:
             warndbg("Fragment received with mode %d" % rpkt.mode(), 1)
@@ -1158,42 +1309,57 @@ class ControlSession:
         # Check opcode and sequence number for a match.
         # Could be old data getting to us.
         if rpkt.sequence != self.sequence:
-            warndbg("Received sequence number %d, wanted %d" %
-                    (rpkt.sequence, self.sequence), 1)
+            warndbg(
+                "Received sequence number %d, wanted %d"
+                % (rpkt.sequence, self.sequence),
+                1,
+            )
             return False
         if rpkt.opcode() != opcode:
-            warndbg("Received opcode %d, wanted %d" %
-                    (rpkt.opcode(), opcode), 1)
+            warndbg(
+                "Received opcode %d, wanted %d"
+                % (rpkt.opcode(), opcode),
+                1,
+            )
             return False
 
         # Check the error code.  If non-zero, return it.
         if rpkt.is_error():
             if rpkt.more():
-                warn("Error %d received on non-final fragment\n"
-                     % rpkt.errcode())
+                warn(
+                    "Error %d received on non-final fragment\n"
+                    % rpkt.errcode()
+                )
             self.keyid = self.passwd = None
             raise ControlException(
                 SERR_SERVER
                 % ControlSession.server_errors[rpkt.errcode()],
-                rpkt.errcode())
+                rpkt.errcode(),
+            )
 
         # Check the association ID to make sure it matches what we expect
         if rpkt.associd != associd:
-            warn("Association ID %d doesn't match expected %d\n"
-                 % (rpkt.associd, associd))
+            warn(
+                "Association ID %d doesn't match expected %d\n"
+                % (rpkt.associd, associd)
+            )
 
         # validate received payload size is padded to next 32-bit
         # boundary and no smaller than claimed by rpkt.count
         if len(rawdata) & 0x3:
-            warn("Response fragment not padded, size = %d\n"
-                 % len(rawdata))
+            warn(
+                "Response fragment not padded, size = %d\n"
+                % len(rawdata)
+            )
             return False
 
         shouldbesize = (ControlPacket.HEADER_LEN + rpkt.count + 3) & ~3
         if len(rawdata) < shouldbesize:
-            warn("Response fragment claims %u octets payload, "
-                 "above %d received\n"
-                 % (rpkt.count, len(rawdata) - ControlPacket.HEADER_LEN))
+            warn(
+                "Response fragment claims %u octets payload, "
+                "above %d received\n"
+                % (rpkt.count, len(rawdata) - ControlPacket.HEADER_LEN)
+            )
             raise ControlException(SERR_INCOMPLETE)
 
         return True
@@ -1210,7 +1376,10 @@ class ControlSession:
             try:
                 res = self.getresponse(opcode, associd, not retry)
             except ControlException as e:
-                if retry and e.message in (SERR_TIMEOUT, SERR_INCOMPLETE):
+                if retry and e.message in (
+                    SERR_TIMEOUT,
+                    SERR_INCOMPLETE,
+                ):
                     retry = False
                     continue
                 else:
@@ -1221,13 +1390,15 @@ class ControlSession:
 
     def readstat(self, associd=0):
         "Read peer status, or throw an exception."
-        self.doquery(opcode=ntp.control.CTL_OP_READSTAT, associd=associd)
+        self.doquery(
+            opcode=ntp.control.CTL_OP_READSTAT, associd=associd
+        )
         if len(self.response) % 4:
             raise ControlException(SERR_BADLENGTH)
         idlist = []
         if associd == 0:
-            for i in range(len(self.response)//4):
-                data = self.response[4*i:4*i+4]
+            for i in range(len(self.response) // 4):
+                data = self.response[4 * i : 4 * i + 4]
                 (associd, status) = struct.unpack("!HH", data)
                 idlist.append(Peer(self, associd, status))
         idlist.sort(key=lambda a: a.associd)
@@ -1277,7 +1448,9 @@ class ControlSession:
                     except ValueError:
                         if (value[0] == '"') and (value[-1] == '"'):
                             value = value[1:-1]
-                        castedvalue = value  # str / unknown, stillneed casted
+                        castedvalue = (
+                            value  # str / unknown, stillneed casted
+                        )
             else:  # no value
                 castedvalue = value
             if raw:
@@ -1286,8 +1459,13 @@ class ControlSession:
                 items.append((key, castedvalue))
         return ntp.util.OrderedDict(items)
 
-    def readvar(self, associd=0, varlist=None,
-                opcode=ntp.control.CTL_OP_READVAR, raw=False):
+    def readvar(
+        self,
+        associd=0,
+        varlist=None,
+        opcode=ntp.control.CTL_OP_READVAR,
+        raw=False,
+    ):
         "Read system vars from the host as a dict, or throw an exception."
         if varlist is None:
             qdata = ""
@@ -1298,22 +1476,26 @@ class ControlSession:
 
     def config(self, configtext):
         "Send configuration text to the daemon. Return True if accepted."
-        self.doquery(opcode=ntp.control.CTL_OP_CONFIGURE,
-                     qdata=configtext, auth=True)
+        self.doquery(
+            opcode=ntp.control.CTL_OP_CONFIGURE,
+            qdata=configtext,
+            auth=True,
+        )
         # Copes with an implementation error - ntpd uses putdata without
         # setting the size correctly.
         if not self.response:
             raise ControlException(SERR_PERMISSION)
         elif b"\x00" in self.response:
-            self.response = self.response[:self.response.index(b"\x00")]
+            self.response = self.response[
+                : self.response.index(b"\x00")
+            ]
         self.response = self.response.rstrip()
         return self.response == ntp.poly.polybytes("Config Succeeded")
 
     def fetch_nonce(self):
         """
-Ask for, and get, a nonce that can be replayed.
-This combats source address spoofing
-"""
+        Ask for, and get, a nonce that can be replayed.
+        This combats source address spoofing"""
         for i in range(4):
             # retry 4 times
             self.doquery(opcode=ntp.control.CTL_OP_REQ_NONCE)
@@ -1338,9 +1520,9 @@ This combats source address spoofing
         items = list(variables.items())
         fake_list = []
         fake_dict = {}
-        if items:                   # See issue #642
+        if items:  # See issue #642
             items.sort(key=mru_kv_key)
-        for (tag, val) in items:
+        for tag, val in items:
             self.warndbg("tag=%s, val=%s" % (tag, val), 4)
             if tag == "nonce":
                 nonce = "%s=%s" % (tag, val)
@@ -1355,7 +1537,16 @@ This combats source address spoofing
             elif tag == "last.newest":
                 # more finished
                 continue
-            for prefix in ("addr", "last", "first", "ct", "mv", "rs", "sc", "dr"):
+            for prefix in (
+                "addr",
+                "last",
+                "first",
+                "ct",
+                "mv",
+                "rs",
+                "sc",
+                "dr",
+            ):
                 if tag.startswith(prefix + "."):
                     (member, idx) = tag.split(".")
                     try:
@@ -1372,51 +1563,80 @@ This combats source address spoofing
             mru = MRUEntry()
             self.slots += 1
             # Always 6 in practice, in the tests not so much
-#            if len(fake_dict[str(idx)]) != 6:
-#                continue
-            for prefix in ("addr", "last", "first", "ct", "mv", "rs", "sc", "dr"):
-                if prefix in fake_dict[str(idx)]:  # dodgy test needs this line
+            #            if len(fake_dict[str(idx)]) != 6:
+            #                continue
+            for prefix in (
+                "addr",
+                "last",
+                "first",
+                "ct",
+                "mv",
+                "rs",
+                "sc",
+                "dr",
+            ):
+                if (
+                    prefix in fake_dict[str(idx)]
+                ):  # dodgy test needs this line
                     setattr(mru, prefix, fake_dict[str(idx)][prefix])
             span.entries.append(mru)
         if direct is not None:
             direct(span.entries)
         return nonce
 
-    def __mru_query_error(self, e, restarted_count, cap_frags, limit, frags):
+    def __mru_query_error(
+        self, e, restarted_count, cap_frags, limit, frags
+    ):
         if e.errorcode is None:
             raise e
         elif e.errorcode == ntp.control.CERR_UNKNOWNVAR:
             # None of the supplied prior entries match, so
             # toss them from our list and try again.
-            self.warndbg("no overlap between prior entries and "
-                         "server MRU list", 1)
+            self.warndbg(
+                "no overlap between prior entries and "
+                "server MRU list",
+                1,
+            )
             restarted_count += 1
             if restarted_count > 8:
                 raise ControlException(SERR_STALL)
-            self.warndbg("--->   Restarting from the beginning, "
-                         "retry #%u" % restarted_count, 1)
+            self.warndbg(
+                "--->   Restarting from the beginning, "
+                "retry #%u" % restarted_count,
+                1,
+            )
         elif e.errorcode == ntp.control.CERR_BADVALUE:
             if cap_frags:
                 cap_frags = False
-                self.warndbg("Reverted to row limit from "
-                             "fragments limit.", 1)
+                self.warndbg(
+                    "Reverted to row limit from " "fragments limit.", 1
+                )
             else:
                 # ntpd has lower cap on row limit
                 self.ntpd_row_limit -= 1
                 limit = min(limit, self.ntpd_row_limit)
-                self.warndbg("Row limit reduced to %d following "
-                             "CERR_BADVALUE." % limit, 1)
+                self.warndbg(
+                    "Row limit reduced to %d following "
+                    "CERR_BADVALUE." % limit,
+                    1,
+                )
         elif e.errorcode in (SERR_INCOMPLETE, SERR_TIMEOUT):
             # Reduce the number of rows/frags requested by
             # half to recover from lost response fragments.
             if cap_frags:
                 frags = max(2, frags / 2)
-                self.warndbg("Frag limit reduced to %d following "
-                             "incomplete response." % frags, 1)
+                self.warndbg(
+                    "Frag limit reduced to %d following "
+                    "incomplete response." % frags,
+                    1,
+                )
             else:
                 limit = max(2, limit / 2)
-                self.warndbg("Row limit reduced to %d following "
-                             " incomplete response." % limit, 1)
+                self.warndbg(
+                    "Row limit reduced to %d following "
+                    " incomplete response." % limit,
+                    1,
+                )
         elif e.errorcode:
             raise e
         return restarted_count, cap_frags, limit, frags
@@ -1442,23 +1662,26 @@ This combats source address spoofing
             limit = min(3 * MAXFRAGS, self.ntpd_row_limit)
             req_buf = "%s, frags=%d" % (nonce, frags)
             if variables:
-                if 'resall' in variables:
-                    variables['resall'] = hex(variables['resall'])
-                if 'resany' in variables:
-                    variables['resany'] = hex(variables['resany'])
+                if "resall" in variables:
+                    variables["resall"] = hex(variables["resall"])
+                if "resany" in variables:
+                    variables["resany"] = hex(variables["resany"])
             parms, firstParms = generate_mru_parms(variables)
             req_buf += firstParms
 
             while True:
                 # Request additions to the MRU list
                 try:
-                    self.doquery(opcode=ntp.control.CTL_OP_READ_MRU,
-                                 qdata=req_buf)
+                    self.doquery(
+                        opcode=ntp.control.CTL_OP_READ_MRU,
+                        qdata=req_buf,
+                    )
                     recoverable_read_errors = False
                 except ControlException as e:
                     recoverable_read_errors = True
-                    res = self.__mru_query_error(e, restarted_count,
-                                                 cap_frags, limit, frags)
+                    res = self.__mru_query_error(
+                        e, restarted_count, cap_frags, limit, frags
+                    )
                     restarted_count, cap_frags, limit, frags = res
 
                 # Parse the response
@@ -1503,37 +1726,45 @@ This combats source address spoofing
                     if cap_frags:
                         frags = min(MAXFRAGS, frags + 1)
                     else:
-                        limit = min(3 * MAXFRAGS,
-                                    self.ntpd_row_limit,
-                                    max(limit + 1,
-                                        limit * 33 / 32))
+                        limit = min(
+                            3 * MAXFRAGS,
+                            self.ntpd_row_limit,
+                            max(limit + 1, limit * 33 / 32),
+                        )
 
                 # Prepare next query with as many address and last-seen
                 # timestamps as will fit in a single packet.  A new nonce
                 # might be required.
-                if time.time() - self.nonce_xmit >= ntp.control.NONCE_TIMEOUT:
+                if (
+                    time.time() - self.nonce_xmit
+                    >= ntp.control.NONCE_TIMEOUT
+                ):
                     nonce = self.fetch_nonce()
-                req_buf = "%s, %s=%d%s" % \
-                          (nonce,
-                           "frags" if cap_frags else "limit",
-                           frags if cap_frags else limit,
-                           parms)
+                req_buf = "%s, %s=%d%s" % (
+                    nonce,
+                    "frags" if cap_frags else "limit",
+                    frags if cap_frags else limit,
+                    parms,
+                )
                 req_buf += generate_mru_lastseen(span, len(req_buf))
                 if direct is not None:
                     span.entries = []
         except KeyboardInterrupt:  # pragma: no cover
-            pass        # We can test for interruption with is_complete()
+            pass  # We can test for interruption with is_complete()
 
         stitch_mru(span, sorter, sortkey)
         return span
 
     def __ordlist(self, listtype):
         "Retrieve ordered-list data."
-        self.doquery(opcode=ntp.control.CTL_OP_READ_ORDLIST_A,
-                     qdata=listtype, auth=True)
+        self.doquery(
+            opcode=ntp.control.CTL_OP_READ_ORDLIST_A,
+            qdata=listtype,
+            auth=True,
+        )
         stanzas = []
-        for (key, value) in self.__parse_varlist().items():
-            if key[-1].isdigit() and '.' in key:
+        for key, value in self.__parse_varlist().items():
+            if key[-1].isdigit() and "." in key:
                 (stem, stanza) = key.split(".")
                 stanza = int(stanza)
                 if stanza > len(stanzas) - 1:
@@ -1591,35 +1822,49 @@ def parse_mru_variables(variables):
             "-drop": lambda e: e.dr,
         }
         if sortkey == "lstint":
-            sortkey = None   # normal/default case, no need to sort
+            sortkey = None  # normal/default case, no need to sort
         if sortkey is not None:
             sorter = sortdict.get(sortkey)
             if sorter is None:
                 raise ControlException(SERR_BADSORT % sortkey)
     for k in list(variables.keys()):
-        if k in ("mincount", "mindrop", "minscore",
-                 "resall", "resany", "kod", "limited",
-                 "maxlstint", "minlstint", "laddr", "recent",
-                 "sort", "frags", "limit"):
+        if k in (
+            "mincount",
+            "mindrop",
+            "minscore",
+            "resall",
+            "resany",
+            "kod",
+            "limited",
+            "maxlstint",
+            "minlstint",
+            "laddr",
+            "recent",
+            "sort",
+            "frags",
+            "limit",
+        ):
             continue
-        elif k.startswith('addr.') or k.startswith('last.'):
-            kn = k.split('.')
+        elif k.startswith("addr.") or k.startswith("last."):
+            kn = k.split(".")
             if len(kn) != 2 or kn[1] not in map(str, list(range(16))):
                 raise ControlException(SERR_BADPARAM % k)
             continue
         else:
             raise ControlException(SERR_BADPARAM % k)
-    if 'frags' in variables:
-        frags = int(variables.get('frags'))
-        del variables['frags']
-    if 'kod' in variables:
-        variables['resany'] = variables.get('resany', 0) \
-                              | ntp.magic.RES_KOD
-        del variables['kod']
-    if 'limited' in variables:
-        variables['resany'] = variables.get('resany', 0) \
-                              | ntp.magic.RES_LIMITED
-        del variables['limited']
+    if "frags" in variables:
+        frags = int(variables.get("frags"))
+        del variables["frags"]
+    if "kod" in variables:
+        variables["resany"] = (
+            variables.get("resany", 0) | ntp.magic.RES_KOD
+        )
+        del variables["kod"]
+    if "limited" in variables:
+        variables["resany"] = (
+            variables.get("resany", 0) | ntp.magic.RES_LIMITED
+        )
+        del variables["limited"]
     return sorter, sortkey, frags
 
 
@@ -1632,14 +1877,16 @@ def stitch_mru(span, sorter, sortkey):
     # with a later most-recent-transmission time.
     addrdict = {}
     deletia = []
-    for (i, entry) in enumerate(span.entries):
+    for i, entry in enumerate(span.entries):
         if entry.addr not in addrdict:
             addrdict[entry.addr] = []
         addrdict[entry.addr].append((i, entry.last))
     for addr in addrdict:
         deletia += sorted(addrdict[addr], key=lambda x: x[1])[:-1]
     deletia = [x[0] for x in deletia]
-    deletia.sort(reverse=True)  # Delete from top down so indices don't change
+    deletia.sort(
+        reverse=True
+    )  # Delete from top down so indices don't change
     for i in deletia:
         span.entries.pop(i)
 
@@ -1655,8 +1902,11 @@ def generate_mru_parms(variables):
     if not variables:
         return "", ""
     # generate all sans recent
-    parmStrs = [("%s=%s" % it)
-                for it in list(variables.items()) if (it[0] != "recent")]
+    parmStrs = [
+        ("%s=%s" % it)
+        for it in list(variables.items())
+        if (it[0] != "recent")
+    ]
     parms = ", " + ", ".join(parmStrs)
     # Only ship 'recent' on the first request
     if "recent" in variables:
@@ -1672,8 +1922,10 @@ def generate_mru_lastseen(span, existingBufferSize):
     for i in range(len(span.entries)):
         e = span.entries[len(span.entries) - i - 1]
         incr = ", addr.%d=%s, last.%d=%s" % (i, e.addr, i, e.last)
-        if (existingBufferSize + len(buf) + len(incr) >=
-                ntp.control.CTL_MAX_DATA_LEN):
+        if (
+            existingBufferSize + len(buf) + len(incr)
+            >= ntp.control.CTL_MAX_DATA_LEN
+        ):
             break
         else:
             buf += incr
@@ -1681,7 +1933,7 @@ def generate_mru_lastseen(span, existingBufferSize):
 
 
 def mru_kv_key(token):
-    bits = token[0].split('.')
+    bits = token[0].split(".")
     if len(bits) == 1:
         return -2
     try:
@@ -1698,14 +1950,14 @@ class Authenticator:
         self.passwords = {}
         if keyfile is not None:
             for line in open(keyfile):
-                if '#' in line:
-                    line = line[:line.index("#")]
+                if "#" in line:
+                    line = line[: line.index("#")]
                 line = line.strip()
                 if not line:
                     continue
                 (keyid, keytype, passwd) = line.split()
-                if keytype.upper() in ['AES', 'AES128CMAC']:
-                    keytype = 'AES-128'
+                if keytype.upper() in ["AES", "AES128CMAC"]:
+                    keytype = "AES-128"
                 if len(passwd) > 20:
                     # if len(passwd) > 64:
                     #      print('AUTH: Truncating key %s to 256bits (32Bytes)' % keyid)
@@ -1713,11 +1965,11 @@ class Authenticator:
                 self.passwords[int(keyid)] = (keytype, passwd)
 
     def __len__(self):
-        'return the number of keytype/passwd tuples stored'
+        "return the number of keytype/passwd tuples stored"
         return len(self.passwords)
 
     def __getitem__(self, keyid):
-        'get a keytype/passwd tuple by keyid'
+        "get a keytype/passwd tuple by keyid"
         return self.passwords.get(keyid)
 
     def control(self, keyid=None):
@@ -1742,13 +1994,16 @@ class Authenticator:
 
     @staticmethod
     def compute_mac(payload, keyid, keytype, passwd):
-        'Create the authentication payload to send'
+        "Create the authentication payload to send"
         if not ntp.ntpc.checkname(keytype):
             return False
-        mac2 = ntp.ntpc.mac(ntp.poly.polybytes(payload),
-                            ntp.poly.polybytes(passwd), keytype)[:20]
+        mac2 = ntp.ntpc.mac(
+            ntp.poly.polybytes(payload),
+            ntp.poly.polybytes(passwd),
+            keytype,
+        )[:20]
         if not mac2 or len(mac2) == 0:
-            return b''
+            return b""
         return struct.pack("!I", keyid) + mac2
 
     @staticmethod
@@ -1762,8 +2017,8 @@ class Authenticator:
     def verify_mac(self, packet, packet_end=48, mac_begin=48):
         "Does the MAC on this packet verify according to credentials we have?"
         payload = packet[:packet_end]
-        keyid = packet[mac_begin:mac_begin+KEYID_LENGTH]
-        mac = packet[mac_begin+KEYID_LENGTH:]
+        keyid = packet[mac_begin : mac_begin + KEYID_LENGTH]
+        mac = packet[mac_begin + KEYID_LENGTH :]
         (keyid,) = struct.unpack("!I", keyid)
         if keyid not in self.passwords:
             # print('AUTH: No key %08x...' % keyid)
@@ -1771,14 +2026,20 @@ class Authenticator:
         (keytype, passwd) = self.passwords[keyid]
         if not ntp.ntpc.checkname(keytype):
             return False
-        mac2 = ntp.ntpc.mac(ntp.poly.polybytes(payload),
-                            ntp.poly.polybytes(passwd), keytype)[:20]
+        mac2 = ntp.ntpc.mac(
+            ntp.poly.polybytes(payload),
+            ntp.poly.polybytes(passwd),
+            keytype,
+        )[:20]
         if not mac2:
             return False
         # typically preferred to avoid timing attacks client-side (in theory)
         try:
-            return hmac.compare_digest(mac, mac2)  # supported 2.7.7+ and 3.3+
+            return hmac.compare_digest(
+                mac, mac2
+            )  # supported 2.7.7+ and 3.3+
         except AttributeError:
             return mac == mac2  # solves issue #666
+
 
 # end

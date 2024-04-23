@@ -13,10 +13,12 @@ import sys
 try:
     import ntp.util
     import ntp.agentx_packet
+
     ax = ntp.agentx_packet
 except ImportError as e:
     sys.stderr.write(
-        "AgentX: can't find Python AgentX Packet library.\n")
+        "AgentX: can't find Python AgentX Packet library.\n"
+    )
     sys.stderr.write("%s\n" % e)
     sys.exit(1)
 
@@ -28,25 +30,30 @@ pingTime = 60
 def gen_next(generator):
     if str is bytes:  # Python 2
         return generator.next()
-    else:  # Python 3
-        return next(generator)
+    return next(generator)  # Python 3
 
 
 class MIBControl:
-    def __init__(self, oidTree=None, mibRoot=(), rangeSubid=0, upperBound=None,
-                 mibContext=None):
+    def __init__(
+        self,
+        oid_tree=None,
+        mib_root=(),
+        range_subid=0,
+        upper_bound=None,
+        mib_context=None,
+    ):
         self.oidTree = {}  # contains callbacks for the MIB
-        if oidTree is not None:
-            self.oidTree = oidTree
+        if oid_tree is not None:
+            self.oidTree = oid_tree
         # The undo system is only for the last operation
         self.inSetP = False  # Are we currently in the set procedure?
         self.setVarbinds = []  # Varbind of the current set operation
         self.setHandlers = []  # Handlers for commit/undo/cleanup of set
         self.setUndoData = []  # Previous values for undoing
-        self.mibRoot = mibRoot
-        self.rangeSubid = rangeSubid
-        self.upperBound = upperBound
-        self.context = mibContext
+        self.mibRoot = mib_root
+        self.rangeSubid = range_subid
+        self.upperBound = upper_bound
+        self.context = mib_context
 
     def mib_rootOID(self):
         return self.mibRoot
@@ -64,60 +71,60 @@ class MIBControl:
         if isinstance(oid, ax.OID):  # get it in a mungable format
             oid = tuple(oid.subids)
         # dynamic is the generator for tables
-        currentLevel = self.oidTree
-        remainingOID = oid
+        current_level = self.oidTree
+        remaining_oid = oid
         while True:
-            node, remainingOID = ntp.util.slicedata(remainingOID, 1)
+            node, remaining_oid = ntp.util.slicedata(remaining_oid, 1)
             node = node[0]
-            if node not in currentLevel.keys():
-                currentLevel[node] = {"reader": None, "writer": None,
-                                      "subids": None}
-            if not remainingOID:  # We have reached the target node
-                currentLevel[node]["reader"] = reader
-                currentLevel[node]["writer"] = writer
+            if node not in current_level.keys():
+                current_level[node] = {
+                    "reader": None,
+                    "writer": None,
+                    "subids": None,
+                }
+            if not remaining_oid:  # We have reached the target node
+                current_level[node]["reader"] = reader
+                current_level[node]["writer"] = writer
                 if dynamic is not None:
                     # can't be both dynamic and non-dynamic
-                    currentLevel[node]["subids"] = dynamic
+                    current_level[node]["subids"] = dynamic
                 return
-            else:
-                if currentLevel[node]["subids"] is None:
-                    currentLevel[node]["subids"] = {}
-                currentLevel = currentLevel[node]["subids"]
+            if current_level[node]["subids"] is None:
+                current_level[node]["subids"] = {}
+            current_level = current_level[node]["subids"]
 
-    def getOID_core(self, nextP, searchoid, returnGenerator=False):
+    def getOID_core(self, next_p, searchoid, return_generator=False):
         gen = walkMIBTree(self.oidTree, self.mibRoot)
         while True:
             try:
                 oid, reader, writer = gen_next(gen)
-                if nextP:  # GetNext
+                if next_p:  # GetNext
                     # For getnext any OID greater than the start qualifies
-                    oidhit = (oid > searchoid)
+                    oidhit = oid > searchoid
                 else:  # Get
                     # For get we need a *specific* OID
-                    oidhit = (oid.subids == searchoid.subids)
+                    oidhit = oid.subids == searchoid.subids
                 if oidhit and (reader is not None):
                     # We only return OIDs that have a minimal implementation
                     # walkMIBTree handles the generation of dynamic trees
-                    if returnGenerator:
+                    if return_generator:
                         return oid, reader, writer, gen
-                    else:
-                        return oid, reader, writer
+                    return oid, reader, writer
             except StopIteration:  # Couldn't find anything in the tree
-                if returnGenerator:
+                if return_generator:
                     return None, None, None, None
-                else:
-                    return None, None, None
+                return None, None, None
 
     # These exist instead of just using getOID_core so semantics are clearer
-    def getOID(self, searchoid, returnGenerator=False):
+    def getOID(self, searchoid, return_generator=False):
         "Get the requested OID"
-        return self.getOID_core(False, searchoid, returnGenerator)
+        return self.getOID_core(False, searchoid, return_generator)
 
-    def getNextOID(self, searchoid, returnGenerator=False):
+    def getNextOID(self, searchoid, return_generator=False):
         "Get the next lexicographical OID"
-        return self.getOID_core(True, searchoid, returnGenerator)
+        return self.getOID_core(True, searchoid, return_generator)
 
-    def getOIDsInRange(self, oidrange, firstOnly=False):
+    def getOIDsInRange(self, oidrange, first_only=False):
         "Get a list of every (optionally the first) OID in a range"
         oids = []
         gen = walkMIBTree(self.oidTree, self.mibRoot)
@@ -127,16 +134,18 @@ class MIBControl:
                 oid, reader, writer = gen_next(gen)
                 if reader is None:
                     continue  # skip unimplemented OIDs
-                elif oid.subids == oidrange.start.subids:
+                if oid.subids == oidrange.start.subids:
                     # ok, found the start, do we need to skip it?
                     if oidrange.start.include:
                         oids.append((oid, reader, writer))
                         break
-                    else:
-                        continue
-                elif oid > oidrange.start:
+                    continue
+                if oid > oidrange.start:
                     # If we are here it means we hit the start but skipped
-                    if not oidrange.end.isNull() and oid >= oidrange.end:
+                    if (
+                        not oidrange.end.isNull()
+                        and oid >= oidrange.end
+                    ):
                         # We fell off the range
                         return []
                     oids.append((oid, reader, writer))
@@ -144,7 +153,7 @@ class MIBControl:
             except StopIteration:
                 # Couldn't find *anything*
                 return []
-        if firstOnly:
+        if first_only:
             return oids
         # Start filling in the rest of the range
         while True:
@@ -152,29 +161,41 @@ class MIBControl:
                 oid, reader, writer = gen_next(gen)
                 if reader is None:
                     continue  # skip unimplemented OIDs
-                elif not oidrange.end.isNull() and oid >= oidrange.end:
+                if not oidrange.end.isNull() and oid >= oidrange.end:
                     break  # past the end of a bounded range
-                else:
-                    oids.append((oid, reader, writer))
+                oids.append((oid, reader, writer))
             except StopIteration:
                 break  # We have run off the end of the MIB
         return oids
 
 
 class PacketControl:
-    def __init__(self, sock, dbase, spinGap=0.001, timeout=defaultTimeout,
-                 logfp=None, debug=10000):
-        self.log = (lambda txt, dbg: ntp.util.dolog(logfp, txt, debug, dbg))
+    def __init__(
+        self,
+        sock,
+        dbase,
+        spin_gap=0.001,
+        timeout=defaultTimeout,
+        logfp=None,
+        debug=10000,
+    ):
+        self.log = lambda txt, dbg: ntp.util.dolog(
+            logfp, txt, debug, dbg
+        )
         # take a pre-made socket instead of making our own so that
         # PacketControl doesn't have to know or care about implementation
         self.socket = sock
-        self.spinGap = spinGap  # sleep() time on each loop
+        self.spinGap = spin_gap  # sleep() time on each loop
         # indexed on: (session_id, transaction_id, packet_id)
         # contains: (timeout, packet class)
-        self.packetLog = {}  # Sent packets kept until response is received
+        self.packetLog = (
+            {}
+        )  # Sent packets kept until response is received
         self.loopCallback = None  # called each loop in runforever mode
         self.database = dbase  # class for handling data requests
-        self.receivedData = b""  # buffer for data from incomplete packets
+        self.receivedData = (
+            b""  # buffer for data from incomplete packets
+        )
         self.receivedPackets = []  # use as FIFO
         self.timeout = timeout
         self.sessionID = None  # need this for all packets
@@ -182,14 +203,16 @@ class PacketControl:
         self.lastReception = None
         self.stillConnected = False
         # indexed on pdu code
-        self.pduHandlers = {ax.PDU_GET: self.handle_GetPDU,
-                            ax.PDU_GET_NEXT: self.handle_GetNextPDU,
-                            ax.PDU_GET_BULK: self.handle_GetBulkPDU,
-                            ax.PDU_TEST_SET: self.handle_TestSetPDU,
-                            ax.PDU_COMMIT_SET: self.handle_CommitSetPDU,
-                            ax.PDU_UNDO_SET: self.handle_UndoSetPDU,
-                            ax.PDU_CLEANUP_SET: self.handle_CleanupSetPDU,
-                            ax.PDU_RESPONSE: self.handle_ResponsePDU}
+        self.pduHandlers = {
+            ax.PDU_GET: self.handle_GetPDU,
+            ax.PDU_GET_NEXT: self.handle_GetNextPDU,
+            ax.PDU_GET_BULK: self.handle_GetBulkPDU,
+            ax.PDU_TEST_SET: self.handle_TestSetPDU,
+            ax.PDU_COMMIT_SET: self.handle_CommitSetPDU,
+            ax.PDU_UNDO_SET: self.handle_UndoSetPDU,
+            ax.PDU_CLEANUP_SET: self.handle_CleanupSetPDU,
+            ax.PDU_RESPONSE: self.handle_ResponsePDU,
+        }
 
     def mainloop(self, runforever):
         if self.stillConnected is not True:
@@ -212,44 +235,62 @@ class PacketControl:
             packet = self.receivedPackets.pop(0)
             if packet.sessionID != self.sessionID:
                 self.log(
-                    "Received packet with incorrect session ID: %s" % packet,
-                    3)
-                resp = ax.ResponsePDU(True, packet.sessionID,
-                                      packet.transactionID, packet.packetID,
-                                      0, ax.RSPERR_NOT_OPEN, 0)
+                    "Received packet with incorrect session ID: %s"
+                    % packet,
+                    3,
+                )
+                resp = ax.ResponsePDU(
+                    True,
+                    packet.sessionID,
+                    packet.transactionID,
+                    packet.packetID,
+                    0,
+                    ax.RSPERR_NOT_OPEN,
+                    0,
+                )
                 self.sendPacket(resp, False)
                 continue
             ptype = packet.pduType
             if ptype in self.pduHandlers:
                 self.pduHandlers[ptype](packet)
             else:
-                self.log("Dropping packet type %i, not implemented" % ptype,
-                         2)
+                self.log(
+                    "Dropping packet type %i, not implemented" % ptype,
+                    2,
+                )
         self.checkResponses()
         if self.lastReception is not None:
-            currentTime = time.time()
-            if (currentTime - self.lastReception) > pingTime:
+            current_time = time.time()
+            if (current_time - self.lastReception) > pingTime:
                 self.sendPing()
 
     def initNewSession(self):
         self.log("Initializing new session...", 3)
         # We already have a connection, need to open a session.
-        openpkt = ax.OpenPDU(True, 23, 0, 0, self.timeout, (),
-                             "NTPsec SNMP subagent")
+        openpkt = ax.OpenPDU(
+            True, 23, 0, 0, self.timeout, (), "NTPsec SNMP subagent"
+        )
         self.sendPacket(openpkt, False)
         response = self.waitForResponse(openpkt, True)
         self.sessionID = response.sessionID
         # Register the tree
-        register = ax.RegisterPDU(True, self.sessionID, 1, 1, self.timeout, 1,
-                                  self.database.mib_rootOID(),
-                                  self.database.mib_rangeSubid(),
-                                  self.database.mib_upperBound(),
-                                  self.database.mib_context())
+        register = ax.RegisterPDU(
+            True,
+            self.sessionID,
+            1,
+            1,
+            self.timeout,
+            1,
+            self.database.mib_rootOID(),
+            self.database.mib_rangeSubid(),
+            self.database.mib_upperBound(),
+            self.database.mib_context(),
+        )
         self.sendPacket(register, False)
         self.waitForResponse(register)
         self.stillConnected = True
 
-    def waitForResponse(self, opkt, ignoreSID=False):
+    def waitForResponse(self, opkt, ignore_sid=False):
         "Wait for a response to a specific packet, dropping everything else"
         while True:
             self.packetEater()
@@ -257,10 +298,13 @@ class PacketControl:
                 packet = self.receivedPackets.pop(0)
                 if packet.__class__ != ax.ResponsePDU:
                     continue
-                haveit = (opkt.transactionID == packet.transactionID) and \
-                         (opkt.packetID == packet.packetID)
-                if not ignoreSID:
-                    haveit = haveit and (opkt.sessionID == packet.sessionID)
+                haveit = (
+                    opkt.transactionID == packet.transactionID
+                ) and (opkt.packetID == packet.packetID)
+                if not ignore_sid:
+                    haveit = haveit and (
+                        opkt.sessionID == packet.sessionID
+                    )
                 if haveit:
                     self.log("Received waited for response", 4)
                     return packet
@@ -268,12 +312,12 @@ class PacketControl:
 
     def checkResponses(self):
         "Check for expected responses that have timed out"
-        currentTime = time.time()
+        current_time = time.time()
         for key in list(self.packetLog.keys()):
-            expiration, originalPkt, callback = self.packetLog[key]
-            if currentTime > expiration:
+            expiration, original_pkt, callback = self.packetLog[key]
+            if current_time > expiration:
                 if callback is not None:
-                    callback(None, originalPkt)
+                    callback(None, original_pkt)
                 del self.packetLog[key]
 
     def packetEater(self):
@@ -284,36 +328,53 @@ class PacketControl:
             if datalen < 20:
                 return None  # We don't even have a packet header, bail
             try:
-                pkt, fullPkt, extraData = ax.decode_packet(self.receivedData)
-                if not fullPkt:
+                pkt, full_pkt, extra_data = ax.decode_packet(
+                    self.receivedData
+                )
+                if not full_pkt:
                     return None
-                self.receivedData = extraData
+                self.receivedData = extra_data
                 self.receivedPackets.append(pkt)
                 if pkt.transactionID > self.highestTransactionID:
                     self.highestTransactionID = pkt.transactionID
                 self.log("Received a full packet: %s" % repr(pkt), 4)
-            except (ax.ParseVersionError, ax.ParsePDUTypeError,
-                    ax.ParseError) as e:
-                if e.header["type"] != ax.PDU_RESPONSE:
+            except (
+                ax.ParseVersionError,
+                ax.ParsePDUTypeError,
+                ax.ParseError,
+            ) as error:
+                if error.header["type"] != ax.PDU_RESPONSE:
                     # Response errors are silently dropped, per RFC
                     # Everything else sends an error response
-                    self.sendErrorResponse(e.header, ax.RSPERR_PARSE_ERROR, 0)
+                    self.sendErrorResponse(
+                        error.header, ax.RSPERR_PARSE_ERROR, 0
+                    )
                 # *Hopefully* the packet length was correct.....
                 #  if not, all packets will be scrambled. Maybe dump the
                 #  whole buffer if too many failures in a row?
-                self.receivedData = e.remainingData
+                self.receivedData = error.remainingData
 
-    def sendPacket(self, packet, expectsReply, replyTimeout=defaultTimeout,
-                   callback=None):
+    def sendPacket(
+        self,
+        packet,
+        expects_reply,
+        reply_timeout=defaultTimeout,
+        callback=None,
+    ):
         encoded = packet.encode()
-        self.log("Sending packet (with reply: %s): %s" % (expectsReply,
-                                                          repr(packet)), 4)
+        self.log(
+            "Sending packet (with reply: %s): %s"
+            % (expects_reply, repr(packet)),
+            4,
+        )
         self.socket.sendall(encoded)
-        if expectsReply:
-            index = (packet.sessionID,
-                     packet.transactionID,
-                     packet.packetID)
-            self.packetLog[index] = (replyTimeout, packet, callback)
+        if expects_reply:
+            index = (
+                packet.sessionID,
+                packet.transactionID,
+                packet.packetID,
+            )
+            self.packetLog[index] = (reply_timeout, packet, callback)
 
     def sendPing(self):
         # DUMMY packetID, does this need to change? or does the pktID only
@@ -322,10 +383,11 @@ class PacketControl:
         self.highestTransactionID = tid
         pkt = ax.PingPDU(True, self.sessionID, tid, 1)
 
-        def callback(resp, orig):
+        def callback(resp, _):  # orig
             if resp is None:  # Timed out. Need to restart the session.
                 # Er, problem: Can't handle reconnect from inside PacketControl
                 self.stillConnected = False
+
         self.sendPacket(pkt, True, callback=callback)
 
     def sendNotify(self, varbinds, context=None):
@@ -333,19 +395,26 @@ class PacketControl:
         # count relative to a given transaction ID?
         tid = self.highestTransactionID + 5  # +5 to avoid collisions
         self.highestTransactionID = tid
-        pkt = ax.NotifyPDU(True, self.sessionID, tid, 1, varbinds, context)
+        pkt = ax.NotifyPDU(
+            True, self.sessionID, tid, 1, varbinds, context
+        )
 
         def resendNotify(pkt, orig):
             if pkt is None:
                 self.sendPacket(orig, True, callback=resendNotify)
+
         self.sendPacket(pkt, True, resendNotify)
 
-    def sendErrorResponse(self, errorHeader, errorType, errorIndex):
-        err = ax.ResponsePDU(errorHeader["flags"]["bigEndian"],
-                             errorHeader["session_id"],
-                             errorHeader["transaction_id"],
-                             errorHeader["packet_id"],
-                             0, errorType, errorIndex)
+    def sendErrorResponse(self, error_header, error_type, error_index):
+        err = ax.ResponsePDU(
+            error_header["flags"]["bigEndian"],
+            error_header["session_id"],
+            error_header["transaction_id"],
+            error_header["packet_id"],
+            0,
+            error_type,
+            error_index,
+        )
         self.sendPacket(err, False)
 
     def pollSocket(self):
@@ -376,7 +445,9 @@ class PacketControl:
             oid, reader, _ = self.database.getOID(target)
             if (oid != target) or (reader is None):
                 # This OID must not be implemented yet.
-                binds.append(ax.Varbind(ax.VALUE_NO_SUCH_OBJECT, target))
+                binds.append(
+                    ax.Varbind(ax.VALUE_NO_SUCH_OBJECT, target)
+                )
             else:
                 vbind = reader(oid)
                 if vbind is None:  # No data available.
@@ -389,8 +460,16 @@ class PacketControl:
             # There should also be a situation that leads to noSuchInstance
             #  but I do not understand the requirements for that
         # TODO: Need to implement genError
-        resp = ax.ResponsePDU(True, self.sessionID, packet.transactionID,
-                              packet.packetID, 0, ax.ERR_NOERROR, 0, binds)
+        resp = ax.ResponsePDU(
+            True,
+            self.sessionID,
+            packet.transactionID,
+            packet.packetID,
+            0,
+            ax.ERR_NOERROR,
+            0,
+            binds,
+        )
         self.sendPacket(resp, False)
 
     def handle_GetNextPDU(self, packet):
@@ -399,34 +478,43 @@ class PacketControl:
             while True:
                 oids = self.database.getOIDsInRange(oidr, True)
                 if not oids:  # Nothing found
-                    binds.append(ax.Varbind(ax.VALUE_END_OF_MIB_VIEW,
-                                            oidr.start))
+                    binds.append(
+                        ax.Varbind(ax.VALUE_END_OF_MIB_VIEW, oidr.start)
+                    )
                     break
-                else:
-                    oid, reader, _ = oids[0]
-                    vbind = reader(oid)
-                    if vbind is None:  # No data available
-                        # Re-do search for this OID range, starting from just
-                        # after the current location
-                        oidr = ax.SearchRange(oid, oidr.end, False)
-                        continue
-                    else:
-                        binds.append(vbind)
-                        break
+                oid, reader, _ = oids[0]
+                vbind = reader(oid)
+                if vbind is None:  # No data available
+                    # Re-do search for this OID range, starting from just
+                    # after the current location
+                    oidr = ax.SearchRange(oid, oidr.end, False)
+                    continue
+                binds.append(vbind)
+                break
         # TODO: Need to implement genError
-        resp = ax.ResponsePDU(True, self.sessionID, packet.transactionID,
-                              packet.packetID, 0, ax.ERR_NOERROR, 0, binds)
+        resp = ax.ResponsePDU(
+            True,
+            self.sessionID,
+            packet.transactionID,
+            packet.packetID,
+            0,
+            ax.ERR_NOERROR,
+            0,
+            binds,
+        )
         self.sendPacket(resp, False)
 
     def handle_GetBulkPDU(self, packet):
         binds = []
-        nonreps = packet.oidranges[:packet.nonReps]
-        repeats = packet.oidranges[packet.nonReps:]
+        nonreps = packet.oidranges[: packet.nonReps]
+        repeats = packet.oidranges[packet.nonReps :]
         # Handle non-repeats
         for oidr in nonreps:
             oids = self.database.getOIDsInRange(oidr, True)
             if not oids:  # Nothing found
-                binds.append(ax.Varbind(ax.VALUE_END_OF_MIB_VIEW, oidr.start))
+                binds.append(
+                    ax.Varbind(ax.VALUE_END_OF_MIB_VIEW, oidr.start)
+                )
             else:
                 oid, reader, _ = oids[0]
                 binds.append(reader(oid))
@@ -434,12 +522,22 @@ class PacketControl:
         for oidr in repeats:
             oids = self.database.getOIDsInRange(oidr)
             if not oids:  # Nothing found
-                binds.append(ax.Varbind(ax.VALUE_END_OF_MIB_VIEW, oidr.start))
+                binds.append(
+                    ax.Varbind(ax.VALUE_END_OF_MIB_VIEW, oidr.start)
+                )
             else:
-                for oid, reader, _ in oids[:packet.maxReps]:
+                for oid, reader, _ in oids[: packet.maxReps]:
                     binds.append(reader(oid))
-        resp = ax.ResponsePDU(True, self.sessionID, packet.transactionID,
-                              packet.packetID, 0, ax.ERR_NOERROR, 0, binds)
+        resp = ax.ResponsePDU(
+            True,
+            self.sessionID,
+            packet.transactionID,
+            packet.packetID,
+            0,
+            ax.ERR_NOERROR,
+            0,
+            binds,
+        )
         self.sendPacket(resp, False)
 
     def handle_TestSetPDU(self, packet):  # WIP / TODO
@@ -454,38 +552,53 @@ class PacketControl:
         self.database.setHandlers = []
         self.database.setUndoData = []
         error = None
-        for bindIndex in range(len(packet.varbinds)):
-            varbind = packet.varbinds[bindIndex]
+        for bind_index in range(len(packet.varbinds)):
+            varbind = packet.varbinds[bind_index]
             # Find an OID, then validate it
             oid, reader, writer = self.database.getOID(varbind.oid)
             if oid is None:  # doesn't exist, can we create it?
                 # DUMMY, assume we can't create anything
                 error = ax.ERR_NO_ACCESS
                 break
-            elif writer is None:  # exists, writing not implemented
+            if writer is None:  # exists, writing not implemented
                 error = ax.ERR_NOT_WRITABLE
                 break
             # Ok, we have an existing or new OID, assemble the orders
             # If we created a new bind undoData is None, must delete it
-            undoData = reader(oid)
+            undo_data = reader(oid)
             error = writer("test", varbind)
             if error != ax.ERR_NOERROR:
                 break
             self.database.setVarbinds.append(varbind)
             self.database.setHandlers.append(writer)
-            self.database.setUndoData.append(undoData)
+            self.database.setUndoData.append(undo_data)
         if error != ax.ERR_NOERROR:
-            resp = ax.ResponsePDU(True, self.sessionID, packet.transactionID,
-                                  packet.packetID, 0, error, bindIndex)
+            resp = ax.ResponsePDU(
+                True,
+                self.sessionID,
+                packet.transactionID,
+                packet.packetID,
+                0,
+                error,
+                bind_index,
+            )
             self.sendPacket(resp, False)
-            for i in range(bindIndex):
+            for i in range(bind_index):
                 # Errored out, clear the successful ones
-                self.database.setHandlers[i]("clear",
-                                             self.database.setVarbinds[i])
+                self.database.setHandlers[i](
+                    "clear", self.database.setVarbinds[i]
+                )
             self.database.inSetP = False
         else:
-            resp = ax.ResponsePDU(True, self.sessionID, packet.transactionID,
-                                  packet.packetID, 0, ax.ERR_NOERROR, 0)
+            resp = ax.ResponsePDU(
+                True,
+                self.sessionID,
+                packet.transactionID,
+                packet.packetID,
+                0,
+                ax.ERR_NOERROR,
+                0,
+            )
             self.sendPacket(resp, False)
 
     def handle_CommitSetPDU(self, packet):
@@ -498,30 +611,58 @@ class PacketControl:
             if error != ax.ERR_NOERROR:
                 break
         if error != ax.ERR_NOERROR:
-            resp = ax.ResponsePDU(True, self.sessionID, packet.transactionID,
-                                  packet.packetID, 0, error, i)
+            resp = ax.ResponsePDU(
+                True,
+                self.sessionID,
+                packet.transactionID,
+                packet.packetID,
+                0,
+                error,
+                i,
+            )
         else:
-            resp = ax.ResponsePDU(True, self.sessionID, packet.transactionID,
-                                  packet.packetID, 0, ax.ERR_NOERROR, 0)
+            resp = ax.ResponsePDU(
+                True,
+                self.sessionID,
+                packet.transactionID,
+                packet.packetID,
+                0,
+                ax.ERR_NOERROR,
+                0,
+            )
         self.sendPacket(resp, False)
 
     def handle_UndoSetPDU(self, packet):
         varbinds = self.database.setVarbinds
         handlers = self.database.setHandlers
-        undoData = self.database.setUndoData
+        undo_data = self.database.setUndoData
         for i in range(len(varbinds)):
-            error = handlers[i]("undo", varbinds[i], undoData[i])
+            error = handlers[i]("undo", varbinds[i], undo_data[i])
             if error != ax.ERR_NOERROR:
                 break
         if error != ax.ERR_NOERROR:
-            resp = ax.ResponsePDU(True, self.sessionID, packet.transactionID,
-                                  packet.packetID, 0, error, i)
+            resp = ax.ResponsePDU(
+                True,
+                self.sessionID,
+                packet.transactionID,
+                packet.packetID,
+                0,
+                error,
+                i,
+            )
         else:
-            resp = ax.ResponsePDU(True, self.sessionID, packet.transactionID,
-                                  packet.packetID, 0, ax.ERR_NOERROR, 0)
+            resp = ax.ResponsePDU(
+                True,
+                self.sessionID,
+                packet.transactionID,
+                packet.packetID,
+                0,
+                ax.ERR_NOERROR,
+                0,
+            )
         self.sendPacket(resp, False)
 
-    def handle_CleanupSetPDU(self, packet):
+    def handle_CleanupSetPDU(self, _):  # packet
         varbinds = self.database.setVarbinds
         handlers = self.database.setHandlers
         for i in range(len(varbinds)):
@@ -529,12 +670,18 @@ class PacketControl:
         self.database.inSetP = False
 
     def handle_ResponsePDU(self, packet):
-        index = (packet.sessionID, packet.transactionID, packet.packetID)
+        index = (
+            packet.sessionID,
+            packet.transactionID,
+            packet.packetID,
+        )
         if index in self.packetLog:
-            timeout, originalPkt, callback = self.packetLog[index]
+            _, original_packet, callback = self.packetLog[
+                index
+            ]  # timeout
             del self.packetLog[index]
             if callback is not None:
-                callback(packet, originalPkt)
+                callback(packet, original_packet)
         else:
             # Ok, response with no associated packet.
             # Probably something that timed out.
@@ -546,42 +693,50 @@ def walkMIBTree(tree, rootpath=()):
     # {"reader": <func>, "writer": <func>, "subids": {.blah.}}
     # {"reader": <func>, "writer": <func>, "subids": <func>}
     # The "subids" function in dynamic nodes must return an MIB tree
-    nodeStack = []
-    oidStack = []
+    node_stack = []
+    oid_stack = []
     current = tree
-    currentKeys = list(current.keys())
-    currentKeys.sort()
-    keyID = 0
+    current_keys = list(current.keys())
+    current_keys.sort()
+    key_id = 0
     while True:
-        if keyID >= len(currentKeys):
-            if nodeStack:
+        if key_id >= len(current_keys):
+            if node_stack:
                 # No more nodes this level, pop higher node
-                current, currentKeys, keyID, key = nodeStack.pop()
-                oidStack.pop()
-                keyID += 1
+                current, current_keys, key_id, key = node_stack.pop()
+                oid_stack.pop()
+                key_id += 1
                 continue
-            else:  # Out of tree, we are done
-                return
-        key = currentKeys[keyID]
-        oid = ax.OID(rootpath + tuple(oidStack) + (key,))
-        yield (oid, current[key].get("reader"), current[key].get("writer"))
+            return
+        key = current_keys[key_id]
+        oid = ax.OID(rootpath + tuple(oid_stack) + (key,))
+        yield (
+            oid,
+            current[key].get("reader"),
+            current[key].get("writer"),
+        )
         subs = current[key].get("subids")
         if subs is not None:
             # Push current node, move down a level
-            nodeStack.append((current, currentKeys, keyID, key))
-            oidStack.append(key)
+            node_stack.append((current, current_keys, key_id, key))
+            oid_stack.append(key)
             if isinstance(subs, dict):
                 current = subs
             else:
                 current = subs()  # Tree generator function
                 if current == {}:  # no dynamic subids, pop
-                    current, currentKeys, keyID, key = nodeStack.pop()
-                    oidStack.pop()
-                    keyID += 1
+                    (
+                        current,
+                        current_keys,
+                        key_id,
+                        key,
+                    ) = node_stack.pop()
+                    oid_stack.pop()
+                    key_id += 1
                     continue
-            currentKeys = list(current.keys())
-            currentKeys.sort()
-            keyID = 0
-            key = currentKeys[keyID]
+            current_keys = list(current.keys())
+            current_keys.sort()
+            key_id = 0
+            key = current_keys[key_id]
             continue
-        keyID += 1
+        key_id += 1

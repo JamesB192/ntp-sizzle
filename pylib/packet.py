@@ -221,7 +221,7 @@ import ntp.control
 import ntp.magic
 import ntp.ntpc
 import ntp.util
-import ntp.poly
+from ntp import poly
 
 
 # Limit on packets in a single Mode 6 response.  Increasing this value to
@@ -292,7 +292,7 @@ class Packet:
 
     @extension.setter
     def extension(self, x):
-        self.__extension = ntp.poly.polybytes(x)
+        self.__extension = poly.polybytes(x)
 
     def leap(self):
         return ("no-leap", "add-leap", "del-leap",
@@ -343,7 +343,7 @@ class SyncPacket(Packet):
         self.trusted = True
         self.rescaled = False
         if data:
-            self.analyze(ntp.poly.polybytes(data))
+            self.analyze(poly.polybytes(data))
 
     def analyze(self, data):
         datalen = len(data)
@@ -466,11 +466,11 @@ class SyncPacket(Packet):
 
     def refid_as_string(self):
         "Sometimes it's a clock name or KOD type"
-        return ntp.poly.polystr(struct.pack(*(("BBBB",) + self.refid_octets())))
+        return poly.polystr(struct.pack(*(("BBBB",) + self.refid_octets())))
 
     def refid_as_address(self):
         "Sometimes it's an IPV4 address."
-        return ntp.poly.polystr("%d.%d.%d.%d" % self.refid_octets())
+        return poly.polystr("%d.%d.%d.%d" % self.refid_octets())
 
     def is_crypto_nak(self):
         return len(self.mac) == 4
@@ -545,7 +545,7 @@ class ControlPacket(Packet):
         return "%5d %5d\t%3d octets\n" % (self.offset, self.end(), self.count)
 
     def analyze(self, rawdata):
-        rawdata = ntp.poly.polybytes(rawdata)
+        rawdata = poly.polybytes(rawdata)
         (self.li_vn_mode,
          self.r_e_m_op,
          self.sequence,
@@ -627,7 +627,7 @@ def dump_hex_printable(xdata, outfp=sys.stdout):
         linelen = len(linedata)
         line = "%02x " * linelen
         # Will need linedata later
-        linedata = [ntp.poly.polyord(x) for x in linedata]
+        linedata = [poly.polyord(x) for x in linedata]
         line %= tuple(linedata)
         if linelen < rowsize:  # Pad out the line to keep columns neat
             line += "   " * (rowsize - linelen)
@@ -856,7 +856,7 @@ class ControlSession:
                     raise ControlException(SERR_NOTRUST)
             try:
                 if os.isatty(0):
-                    key_id = int(ntp.poly.polyinput("Keyid: "))
+                    key_id = int(poly.polyinput("Keyid: "))
                 else:
                     key_id = 0
                 if key_id == 0 or key_id > MAX_KEYID:
@@ -887,7 +887,7 @@ class ControlSession:
                        "Sending %d octets.  seq=%d"
                        % (len(xdata), self.sequence), self.debug, 3)
         try:
-            self.sock.sendall(ntp.poly.polybytes(xdata))
+            self.sock.sendall(poly.polybytes(xdata))
         except socket.error:
             # On failure, we don't know how much data was actually received
             if self.logfp is not None:
@@ -925,7 +925,7 @@ class ControlSession:
         # If we have data, pad it out to a 32-bit boundary.
         # Do not include these in the payload count.
         if pkt.extension:
-            pkt.extension = ntp.poly.polybytes(pkt.extension)
+            pkt.extension = poly.polybytes(pkt.extension)
             while ((ControlPacket.HEADER_LEN + len(pkt.extension)) & 3):
                 pkt.extension += b"\x00"
 
@@ -949,7 +949,7 @@ class ControlSession:
         if mac is None:
             raise ControlException(SERR_NOKEY)
         else:
-            pkt.extension += ntp.poly.polybytes(mac)
+            pkt.extension += poly.polybytes(mac)
         return pkt.send()
 
     def getresponse(self, opcode, associd, timeo):
@@ -1015,7 +1015,7 @@ class ControlSession:
 
             warndbg("At %s, socket read begins" % time.asctime(), 4)
             try:
-                rawdata = ntp.poly.polybytes(self.sock.recv(4096))
+                rawdata = poly.polybytes(self.sock.recv(4096))
             except socket.error:  # pragma: no cover
                 # usually, errno 111: connection refused
                 raise ControlException(SERR_SOCKET)
@@ -1111,9 +1111,9 @@ class ControlSession:
                                 % (f, len(fragments)), 1)
                         break
                 else:
-                    tempfraglist = [ntp.poly.polystr(f.extension)
+                    tempfraglist = [poly.polystr(f.extension)
                                     for f in fragments]
-                    self.response = ntp.poly.polybytes("".join(tempfraglist))
+                    self.response = poly.polybytes("".join(tempfraglist))
                     warndbg("Fragment collection ends. %d bytes "
                             " in %d fragments"
                             % (len(self.response), len(fragments)), 1)
@@ -1241,9 +1241,9 @@ class ControlSession:
         kvpairs = []
         instring = False
         response = ""
-        self.response = ntp.poly.polystr(self.response)
+        self.response = poly.polystr(self.response)
         for c in self.response:
-            cord = ntp.poly.polyord(c)
+            cord = poly.polyord(c)
             if c == '"':
                 response += c
                 instring = not instring
@@ -1307,7 +1307,7 @@ class ControlSession:
         elif b"\x00" in self.response:
             self.response = self.response[:self.response.index(b"\x00")]
         self.response = self.response.rstrip()
-        return self.response == ntp.poly.polybytes("Config Succeeded")
+        return self.response == poly.polybytes("Config Succeeded")
 
     def fetch_nonce(self):
         """
@@ -1318,8 +1318,8 @@ This combats source address spoofing
             # retry 4 times
             self.doquery(opcode=ntp.control.CTL_OP_REQ_NONCE)
             self.nonce_xmit = time.time()
-            if self.response.startswith(ntp.poly.polybytes("nonce=")):
-                return ntp.poly.polystr(self.response.strip())
+            if self.response.startswith(poly.polybytes("nonce=")):
+                return poly.polystr(self.response.strip())
             # maybe a delay between tries?
 
         # uh, oh, no nonce seen
@@ -1725,8 +1725,7 @@ class Authenticator:
         if keyid is not None:
             if keyid in self.passwords:
                 return (keyid,) + self.passwords[keyid]
-            else:
-                return (keyid, None, None)
+            return (keyid, None, None)
         for line in open("/etc/ntp.conf"):
             if line.startswith("control"):
                 keyid = int(line.split()[1])
@@ -1745,8 +1744,8 @@ class Authenticator:
         'Create the authentication payload to send'
         if not ntp.ntpc.checkname(keytype):
             return False
-        mac2 = ntp.ntpc.mac(ntp.poly.polybytes(payload),
-                            ntp.poly.polybytes(passwd), keytype)[:20]
+        mac2 = ntp.ntpc.mac(poly.polybytes(payload),
+                            poly.polybytes(passwd), keytype)[:20]
         if not mac2 or len(mac2) == 0:
             return b''
         return struct.pack("!I", keyid) + mac2
@@ -1771,8 +1770,8 @@ class Authenticator:
         (keytype, passwd) = self.passwords[keyid]
         if not ntp.ntpc.checkname(keytype):
             return False
-        mac2 = ntp.ntpc.mac(ntp.poly.polybytes(payload),
-                            ntp.poly.polybytes(passwd), keytype)[:20]
+        mac2 = ntp.ntpc.mac(poly.polybytes(payload),
+                            poly.polybytes(passwd), keytype)[:20]
         if not mac2:
             return False
         # typically preferred to avoid timing attacks client-side (in theory)
