@@ -758,10 +758,10 @@ class PeerStatusWord:
 
     def __init__(self, status, pktversion=ntp.magic.NTP_VERSION):
         # Event
-        self.event = ntp.control.CTL_PEER_EVENT(status)
+        self.event = status & 0xf
         # Event count
-        self.event_count = ntp.control.CTL_PEER_NEVNT(status)
-        statval = ntp.control.CTL_PEER_STATVAL(status)
+        self.event_count = (status >> 4) & 0xf
+        statval = (status >> 8) & 0xff
         # Config
         if statval & ntp.control.CTL_PST_CONFIG:
             self.conf = "yes"
@@ -1215,9 +1215,9 @@ class PeerSummary:
         poll_sec = 1 << min(ppoll, hpoll)
         self.polls.append(poll_sec)
         if self.pktversion > ntp.magic.NTP_OLDVERSION:
-            c = " x.-+#*o"[ntp.control.CTL_PEER_STATVAL(rstatus) & 0x7]
+            c = " x.-+#*o"[(rstatus >> 8) & 0x7]
         else:
-            c = " .+*"[ntp.control.CTL_PEER_STATVAL(rstatus) & 0x3]
+            c = " .+*"[(rstatus >> 8) & 0x3]
         # Source host or clockname or poolname or servername
         # After new DNS, 2017-Apr-17
         # servers setup via numerical IP Address have only srcadr
@@ -1405,8 +1405,8 @@ class MRUSummary:
             stats += " %4hx %c %d %d %6d %8s %6s %5s %s" % (
                 entry.rs,
                 rscode,
-                ntp.magic.PKT_MODE(entry.mv),
-                ntp.magic.PKT_VERSION(entry.mv),
+                entry.mv & 0x7,
+                (entry.mv >> 3) & 0x7,
                 entry.ct,
                 score,
                 drop,

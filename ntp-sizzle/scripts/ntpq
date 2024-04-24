@@ -219,7 +219,7 @@ usage: help [ command ]
             "===========================================================\n"
         )
         for i, peer in enumerate(self.peers):
-            statval = ntp.control.CTL_PEER_STATVAL(peer.status)
+            statval = (peer.status >>8) & 0xff
             if (
                 not showall
                 and (
