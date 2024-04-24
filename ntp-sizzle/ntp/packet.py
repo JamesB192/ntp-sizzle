@@ -302,7 +302,7 @@ class Packet:
 
     def leap(self):
         return ("no-leap", "add-leap", "del-leap", "unsync")[
-            ntp.magic.PKT_LEAP(self.li_vn_mode)
+            (self.li_vn_mode >> 6) & 0x3
         ]
 
     def version(self):

@@ -65,7 +65,7 @@ def read_append(read_socket, packets, saved_packet):
     """Read the sockaet, appendin the derived packet list."""
     data, _ = read_socket.recvfrom(1024)
     in_packet = ntp.packet.SyncPacket(data)
-    resolved = saved_packet.resolved
+    resolved = saved_packet.resolved[0]
     if VERBOSITY >= 2:
         ntp.packet.dump_hex_printable(data)
     if CREDENTIALS:
