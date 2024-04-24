@@ -13,7 +13,7 @@ import ntp.magic
 from ntp import poly
 from ntp import c
 
-PIVOT = 1703823396
+PIVOT = 1712793600
 MILLION = int(1e6)
 BILLION = int(1e9)
 
@@ -46,9 +46,9 @@ def lfp_stamp_to_tspec(when, pivot=PIVOT):
     is in UN*X epoch. The NTP time stamp will be expanded around the
     pivot time p.
     """
-    l_fps = (when >> 32) & 0xFFFFFFFF
+    l_fps = (when >> 32) & ((1 << 32) - 1)
     sec = c.lfp2timet(l_fps, pivot)
-    return [sec, (when & 0xFFFFFFFF) * BILLION / 4294967296]
+    return [sec, (when & ((1 << 32) - 1)) * BILLION / (1 << 32)]
 
 
 def prettydate(in_string):

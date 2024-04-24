@@ -37,7 +37,7 @@
 
 int dumbslew(int64_t s, int32_t us);
 int dumbstep(int64_t s, int32_t ns);
-uint64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot);
+int64_t ntpcal_ntp_to_time(uint32_t ntp, int64_t pivot);
 
 const char *version = "2024.04.24";
 int   SYS_TYPE = 1;
@@ -66,7 +66,7 @@ int dumbstep(int64_t s, int32_t ns) {
  * the shift is 2^31, we can do some *very* fast math without explicit
  * divisions.
  */
-uint64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot) {
+int64_t ntpcal_ntp_to_time(uint32_t ntp, int64_t pivot) {
     uint64_t res;
 
     res  = (uint64_t)pivot;
@@ -103,11 +103,11 @@ static PyObject *py_step(PyObject *self, PyObject *args)
 static PyObject *py_lfp2timet(PyObject *self, PyObject *args)
 {
         uint32_t l_fp;
-        time_t pivot;
+        int64_t pivot;
         UNUSED_ARG(self);
-        if (!PyArg_ParseTuple(args, "Ii", &l_fp, &pivot))
+        if (!PyArg_ParseTuple(args, "IL", &l_fp, &pivot))
                 return NULL;
-        return Py_BuildValue("K", ntpcal_ntp_to_time(l_fp, pivot));
+        return Py_BuildValue("L", ntpcal_ntp_to_time(l_fp, pivot));
 }
 
 //uint64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot);
