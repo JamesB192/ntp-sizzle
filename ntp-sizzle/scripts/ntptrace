@@ -123,7 +123,7 @@ hyphen and the flag character."""
     + "\n"
 )
 
-BIN_VER = "2024.04.22"
+BIN_VER = "2024.04.24"
 ntp.util.stdversioncheck(BIN_VER)
 
 try:

@@ -2281,7 +2281,7 @@ USAGE: ntpq [-46dphinOV] [-c str] [-D lvl] [host ...]
 """
 
 if __name__ == "__main__":
-    BIN_VER = "2024.04.22"
+    BIN_VER = "2024.04.24"
     ntp.util.stdversioncheck(BIN_VER)
     try:
         (options, arguments) = getopt.getopt(

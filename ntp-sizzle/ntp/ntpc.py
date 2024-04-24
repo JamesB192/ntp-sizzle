@@ -7,9 +7,7 @@
 from __future__ import absolute_import
 import re
 import time
-import cryptography.hazmat.primitives.hashes
-import cryptography.hazmat.primitives.ciphers
-import cryptography.hazmat.primitives.cmac
+from cryptography.hazmat.primitives import ciphers, cmac, hashes
 import ntp.control
 import ntp.magic
 from ntp import poly
@@ -263,41 +261,41 @@ def adj_systime(bigstep, pivot=PIVOT):
 
 # --- === *** === ---
 
-hashes = {
-    "md5": cryptography.hazmat.primitives.hashes.MD5(),
-    "sha1": cryptography.hazmat.primitives.hashes.SHA1(),
-    "sm3": cryptography.hazmat.primitives.hashes.SM3(),
-    "shake128": cryptography.hazmat.primitives.hashes.SHAKE128(16),
-    "shake256": cryptography.hazmat.primitives.hashes.SHAKE256(32),
-    "sha3-512": cryptography.hazmat.primitives.hashes.SHA3_512(),
-    "sha3-384": cryptography.hazmat.primitives.hashes.SHA3_384(),
-    "sha3-256": cryptography.hazmat.primitives.hashes.SHA3_256(),
-    "sha3-224": cryptography.hazmat.primitives.hashes.SHA3_224(),
-    "blake2s256": cryptography.hazmat.primitives.hashes.BLAKE2s(32),
-    "blake2b512": cryptography.hazmat.primitives.hashes.BLAKE2b(64),
-    "sha512_256": cryptography.hazmat.primitives.hashes.SHA512_256(),
-    "sha512_224": cryptography.hazmat.primitives.hashes.SHA512_224(),
-    "sha512": cryptography.hazmat.primitives.hashes.SHA512(),
-    "sha384": cryptography.hazmat.primitives.hashes.SHA384(),
-    "sha256": cryptography.hazmat.primitives.hashes.SHA256(),
-    "sha224": cryptography.hazmat.primitives.hashes.SHA224(),
+hash_list = {
+    "md5": hashes.MD5(),
+    "sha1": hashes.SHA1(),
+    "sm3": hashes.SM3(),
+    "shake128": hashes.SHAKE128(16),
+    "shake256": hashes.SHAKE256(32),
+    "sha3-512": hashes.SHA3_512(),
+    "sha3-384": hashes.SHA3_384(),
+    "sha3-256": hashes.SHA3_256(),
+    "sha3-224": hashes.SHA3_224(),
+    "blake2s256": hashes.BLAKE2s(32),
+    "blake2b512": hashes.BLAKE2b(64),
+    "sha512_256": hashes.SHA512_256(),
+    "sha512_224": hashes.SHA512_224(),
+    "sha512": hashes.SHA512(),
+    "sha384": hashes.SHA384(),
+    "sha256": hashes.SHA256(),
+    "sha224": hashes.SHA224(),
 }
 
 algorithms = {
-    "aes": cryptography.hazmat.primitives.ciphers.algorithms.AES,
-    "aes128": cryptography.hazmat.primitives.ciphers.algorithms.AES128,
-    "aes192": cryptography.hazmat.primitives.ciphers.algorithms.AES,
-    "aes256": cryptography.hazmat.primitives.ciphers.algorithms.AES256,
-    "camellia128": cryptography.hazmat.primitives.ciphers.algorithms.Camellia,
-    "camellia192": cryptography.hazmat.primitives.ciphers.algorithms.Camellia,
-    "camellia256": cryptography.hazmat.primitives.ciphers.algorithms.Camellia,
-    "sm4": cryptography.hazmat.primitives.ciphers.algorithms.SM4,
+    "aes": ciphers.algorithms.AES,
+    "aes128": ciphers.algorithms.AES128,
+    "aes192": ciphers.algorithms.AES,
+    "aes256": ciphers.algorithms.AES256,
+    "camellia128": ciphers.algorithms.Camellia,
+    "camellia192": ciphers.algorithms.Camellia,
+    "camellia256": ciphers.algorithms.Camellia,
+    "sm4": ciphers.algorithms.SM4,
 }
 
 
 def checkname(name):
     """Check if name is a valid algorithm name."""
-    if name.lower() in hashes:
+    if name.lower() in hash_list:
         return True
     return name.lower() in algorithms
 
@@ -305,20 +303,17 @@ def checkname(name):
 def mac(data, key, name):
     """Compute HMAC or CMAC from data, key, and algorithm name."""
     lname = name.lower()
-    if lname in hashes:
-        digest = cryptography.hazmat.primitives.hashes.Hash(
-            hashes[lname]
+    if lname in hash_list:
+        digest = hashes.Hash(
+            hash_list[lname]
         )
         digest.update(key)
         digest.update(data)
         return digest.finalize()[:20]
     if lname in algorithms:
-        work = cryptography.hazmat.primitives.cmac.CMAC(
+        work = cmac.CMAC(
             algorithms[lname](poly.polybytes(key))
         )
         work.update(poly.polybytes(data))
         return work.finalize()[:20]
     return b""
-
-
-ntp.util.stdversioncheck(c.version)

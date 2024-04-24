@@ -139,7 +139,8 @@ def list_algos():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="NTPsec key generator."
+        description="NTPsec key generator.",
+        prog="ntpkeygone",
     )
     parser.add_argument(
         "-L",
@@ -204,6 +205,13 @@ if __name__ == "__main__":
         action="store_false",
         default=False,
         help="generate text keys (default)",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="%(prog)s 2024.04.24",
+        help="Output version information and exit",
     )
     parser.add_argument(
         "-x",

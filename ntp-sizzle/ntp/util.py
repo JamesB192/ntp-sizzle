@@ -134,15 +134,16 @@ def safeargcast(arg, castfunc, errtext, usage):
 
 def stdversion():
     "Returns the NTPsec version string in a standard format"
-    return "ntpsec-%s" % "2024.04.22"
+    return "2024.04.24"
 
 
 def stdversioncheck(foreign):
     "Print a warning to stderr if module and foreign versions do not match."
-    if stdversion() != foreign:
-        sys.stderr.write("Module/Binary version mismatch\n")
-        sys.stderr.write("Binary: %s\n" % foreign)
+    if not stdversion() == foreign == ntp.ntpc.c.version:
+        sys.stderr.write("Script/Module/Extension version mismatch\n")
+        sys.stderr.write("Script: %s\n" % foreign)
         sys.stderr.write("Module: %s\n" % ntp.util.stdversion())
+        sys.stderr.write("Extension: %s\n" % ntp.ntpc.c.version)
 
 
 def rfc3339(t):

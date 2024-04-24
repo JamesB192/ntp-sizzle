@@ -8,7 +8,7 @@ long_description = (this_directory / "README.markdown").read_text()
 
 setup(
     name="ntp-sizzle",
-    version="2024.04.22",
+    version="2024.04.24",
     description="A standalone fork of NTP tools originally from NTPsec",
     author="James Browning",
     author_email="JamesB.fe80@gmail.com",
@@ -35,7 +35,7 @@ setup(
     packages=find_packages(
         where=".",  # '.' by default
         include=["ntp*"],  # ['*'] by default
-        exclude=["ntp.tests"],  # empty by default
+        # exclude=["ntp.tests"],  # empty by default
     ),
     scripts=[
         "scripts/ntpkeygone",
@@ -71,5 +71,5 @@ setup(
         "Project": "https://github.com/jamesb192/ntp-sizzle",
         "TipLink": "https://www.patreon.com/JamesB192",
     },
-    data_files=["COPYING", ["COPYING"]],
+    data_files=[("./ntp", ["COPYING", "README.markdown"])]
 )

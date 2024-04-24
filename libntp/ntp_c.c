@@ -39,7 +39,7 @@ int dumbslew(int64_t s, int32_t us);
 int dumbstep(int64_t s, int32_t ns);
 uint64_t ntpcal_ntp_to_time(uint32_t ntp, time_t pivot);
 
-const char *version = "2024.04.22";
+const char *version = "2024.04.24";
 int   SYS_TYPE = 1;
 int  PEER_TYPE = 2;
 int CLOCK_TYPE = 3;
@@ -134,7 +134,7 @@ NTPSEC_PY_MODULE_INIT(c)
 {
         PyObject *m;
         // Create the module and add the functions
-        NTPSEC_PY_MODULE_DEF(m, "c",
+        NTPSEC_PY_MODULE_DEF(m, "ntp.c",
                              module_doc,
                              c_methods)
         PyModule_AddStringConstant(m, "version", version);
