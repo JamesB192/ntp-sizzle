@@ -1,0 +1,6 @@
+[MESSAGES CONTROL]
+disable =
+    consider-using-f-string,
+    raise-missing-from,
+    redefined-outer-name,
+    unspecified-encoding,
