@@ -30,7 +30,7 @@ digests = {
     "sha384": hashes.SHA384(),
     "sha256": hashes.SHA256(),
     "sha224": hashes.SHA224(),
-    }
+}
 
 algorithms = {
     "aes": ciphers.algorithms.AES,
@@ -41,7 +41,7 @@ algorithms = {
     "camellia-192": ciphers.algorithms.Camellia,
     "camellia-256": ciphers.algorithms.Camellia,
     "sm4": ciphers.algorithms.SM4,
-    }
+}
 
 
 def checkname(name):
@@ -63,7 +63,7 @@ def mac(data, key, name):
         work = cmac.CMAC(algorithms[lname](poly.polybytes(key)))
         work.update(poly.polybytes(data))
         return work.finalize()[:20]
-    return b''
+    return b""
 
 
 class Authenticator:

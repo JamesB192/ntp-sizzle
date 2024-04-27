@@ -36,22 +36,23 @@ OLD_CTL_PST_SEL_SYSPEER = 3
 
 
 # Units for formatting
-UNIT_NS = "ns"       # nano second
-UNIT_US = u"µs"      # micro second
-UNIT_MS = "ms"       # milli second
-UNIT_S = "s"         # second
-UNIT_KS = "ks"       # kilo seconds
+UNIT_NS = "ns"  # nano second
+UNIT_US = "µs"  # micro second
+UNIT_MS = "ms"  # milli second
+UNIT_S = "s"  # second
+UNIT_KS = "ks"  # kilo seconds
 UNITS_SEC = [UNIT_NS, UNIT_US, UNIT_MS, UNIT_S, UNIT_KS]
-UNIT_PPT = "ppt"     # parts per trillion
-UNIT_PPB = "ppb"     # parts per billion
-UNIT_PPM = "ppm"     # parts per million
-UNIT_PPK = u"‰"      # parts per thousand
+UNIT_PPT = "ppt"  # parts per trillion
+UNIT_PPB = "ppb"  # parts per billion
+UNIT_PPM = "ppm"  # parts per million
+UNIT_PPK = "‰"  # parts per thousand
 UNITS_PPX = [UNIT_PPT, UNIT_PPB, UNIT_PPM, UNIT_PPK]
 unitgroups = (UNITS_SEC, UNITS_PPX)
 
 
 # These two functions are not tested because they will muck up the module
 # for everything else, and they are simple.
+
 
 def check_unicode():  # pragma: no cover
     if "UTF-8" != sys.stdout.encoding:
@@ -78,11 +79,32 @@ def deunicode_units():  # pragma: no cover
 
 # Variables that have units
 S_VARS = ("tai", "poll")
-MS_VARS = ("rootdelay", "rootdisp", "rootdist", "offset", "sys_jitter",
-           "clk_jitter", "leapsmearoffset", "authdelay", "koffset", "kmaxerr",
-           "kesterr", "kprecis", "kppsjitter", "fuzz", "clk_wander_threshold",
-           "tick", "in", "out", "bias", "delay", "jitter", "dispersion",
-           "fudgetime1", "fudgetime2")
+MS_VARS = (
+    "rootdelay",
+    "rootdisp",
+    "rootdist",
+    "offset",
+    "sys_jitter",
+    "clk_jitter",
+    "leapsmearoffset",
+    "authdelay",
+    "koffset",
+    "kmaxerr",
+    "kesterr",
+    "kprecis",
+    "kppsjitter",
+    "fuzz",
+    "clk_wander_threshold",
+    "tick",
+    "in",
+    "out",
+    "bias",
+    "delay",
+    "jitter",
+    "dispersion",
+    "fudgetime1",
+    "fudgetime2",
+)
 PPM_VARS = ("frequency", "clk_wander")
 
 
@@ -147,7 +169,7 @@ def hexstr2octets(hexstr):
         hexstr = hexstr[:-1]  # slice off the last char
     values = []
     for index in range(0, len(hexstr), 2):
-        values.append(chr(int(hexstr[index:index+2], 16)))
+        values.append(chr(int(hexstr[index : index + 2], 16)))
     return "".join(values)
 
 
@@ -158,16 +180,16 @@ def slicedata(data, slicepoint):
 
 def portsplit(hostname):
     portsuffix = ""
-    if hostname.count(":") == 1:                # IPv4 with appended port
+    if hostname.count(":") == 1:  # IPv4 with appended port
         (hostname, portsuffix) = hostname.split(":")
         portsuffix = ":" + portsuffix
-    elif ']' in hostname:                       # IPv6
+    elif "]" in hostname:  # IPv6
         rbrak = hostname.rindex("]")
         if ":" in hostname[rbrak:]:
             portsep = hostname.rindex(":")
             portsuffix = hostname[portsep:]
             hostname = hostname[:portsep]
-            hostname = hostname[1:-1]   # Strip brackets
+            hostname = hostname[1:-1]  # Strip brackets
     return (hostname, portsuffix)
 
 
@@ -210,7 +232,7 @@ def parseConf(text):
             elif text[i] == "\\":  # Starting an escape sequence
                 i += 1
                 if text[i] in "'\"n\\":
-                    current.append(eval("\'\\" + text[i] + "\'"))
+                    current.append(eval("'\\" + text[i] + "'"))
             else:
                 current.append(text[i])
         else:
@@ -283,8 +305,11 @@ def stringfiltcooker(data):
         part = rescalestring(part, mostcommon)
         fitted = fitinfield(part, 7)
         cooked.append(fitted)
-    rendered = " ".join(cooked) + " " + UNITS_SEC[mostcommon +
-                                                  UNITS_SEC.index(UNIT_MS)]
+    rendered = (
+        " ".join(cooked)
+        + " "
+        + UNITS_SEC[mostcommon + UNITS_SEC.index(UNIT_MS)]
+    )
     return rendered
 
 
@@ -298,7 +323,9 @@ def getunitgroup(unit):
 def oomsbetweenunits(a, b):
     "Calculates how many orders of magnitude separate two units"
     group = getunitgroup(a)
-    if b is None:  # Caller is asking for the distance from the base unit
+    if (
+        b is None
+    ):  # Caller is asking for the distance from the base unit
         return group.index(a) * 3
     elif b in group:
         ia = group.index(a)
@@ -394,7 +421,9 @@ def scalestring(value):
         return formatzero(value)
     whole, dec, negative = breaknumberstring(value)
     hilen = len(whole)
-    if (hilen == 0) or isstringzero(whole):  # Need to shift to smaller units
+    if (hilen == 0) or isstringzero(
+        whole
+    ):  # Need to shift to smaller units
         i = 0
         lolen = len(dec)
         while i < lolen:  # need to find the actual digits
@@ -406,7 +435,7 @@ def scalestring(value):
         if lolen < movechars:
             # Not enough digits to scale all the way down. Inventing
             # digits is unacceptable, so scale down as much as we can.
-            lounits = (i // 3)  # "always", unless out of digits
+            lounits = i // 3  # "always", unless out of digits
             movechars = lounits * 3
         newwhole = dec[:movechars].lstrip("0")
         newdec = dec[movechars:]
@@ -438,15 +467,21 @@ def fitinfield(value, fieldsize):
         if "." in value:  # Ok, we *do* have decimals to crop
             diff = vallen - fieldsize
             declen = len(value.split(".")[1])  # length of decimals
-            croplen = min(declen, diff)  # Never round above the decimal point
+            croplen = min(
+                declen, diff
+            )  # Never round above the decimal point
             roundlen = declen - croplen  # How many digits we round to
             newvalue = str(round(float(value), roundlen))
             splitted = newvalue.split(".")  # This should never fail
             declen = len(splitted[1])
-            if roundlen == 0:  # if rounding all the decimals don't display .0
+            if (
+                roundlen == 0
+            ):  # if rounding all the decimals don't display .0
                 # but do display the point, to show that there is more beyond
                 newvalue = splitted[0] + "."
-            elif roundlen > declen:  # some zeros have been cropped, fix that
+            elif (
+                roundlen > declen
+            ):  # some zeros have been cropped, fix that
                 padcount = roundlen - declen
                 newvalue = newvalue + ("0" * padcount)
         else:  # No decimals, nothing we can crop
@@ -506,7 +541,9 @@ def unitifyvar(value, varname, baseunit=None, width=8, unitSpace=False):
     return unitify(value, start, baseunit, width, unitSpace)
 
 
-def unitify(value, startingunit, baseunit=None, width=8, unitSpace=False):
+def unitify(
+    value, startingunit, baseunit=None, width=8, unitSpace=False
+):
     "Formats a numberstring with relevant units. Attempts to fit in width."
     if baseunit is None:
         baseunit = getunitgroup(startingunit)[0]
@@ -545,31 +582,31 @@ def f8dot4(f):
     if not isinstance(f, (int, float)):
         # huh?
         return "       X"
-    if str(float(f)).lower() == 'nan':
+    if str(float(f)).lower() == "nan":
         # yes, this is a better test than math.isnan()
         # it also catches None, strings, etc.
         return "     nan"
 
-    fmt = "%8d"          # xxxxxxxx or -xxxxxxx
+    fmt = "%8d"  # xxxxxxxx or -xxxxxxx
     if f >= 0:
         if f < 1000.0:
-            fmt = "%8.4f"    # xxx.xxxx  normal case
+            fmt = "%8.4f"  # xxx.xxxx  normal case
         elif f < 10000.0:
-            fmt = "%8.3f"    # xxxx.xxx
+            fmt = "%8.3f"  # xxxx.xxx
         elif f < 100000.0:
-            fmt = "%8.2f"    # xxxxx.xx
+            fmt = "%8.2f"  # xxxxx.xx
         elif f < 1000000.0:
-            fmt = "%8.1f"    # xxxxxx.x
+            fmt = "%8.1f"  # xxxxxx.x
     else:
         # negative number, account for minus sign
         if f > -100.0:
-            fmt = "%8.4f"      # -xx.xxxx  normal case
+            fmt = "%8.4f"  # -xx.xxxx  normal case
         elif f > -1000.0:
-            fmt = "%8.3f"      # -xxx.xxx
+            fmt = "%8.3f"  # -xxx.xxx
         elif f > -10000.0:
-            fmt = "%8.2f"      # -xxxx.xx
+            fmt = "%8.2f"  # -xxxx.xx
         elif f > -100000.0:
-            fmt = "%8.1f"      # -xxxxx.x
+            fmt = "%8.1f"  # -xxxxx.x
 
     return fmt % f
 
@@ -582,27 +619,27 @@ def f8dot3(f):
     if not isinstance(f, (int, float)):
         # huh?
         return "       X"
-    if str(float(f)).lower() == 'nan':
+    if str(float(f)).lower() == "nan":
         # yes, this is a better test than math.isnan()
         # it also catches None, strings, etc.
         return "     nan"
 
-    fmt = "%8d"          # xxxxxxxx or -xxxxxxx
+    fmt = "%8d"  # xxxxxxxx or -xxxxxxx
     if f >= 0:
         if f < 10000.0:
-            fmt = "%8.3f"    # xxxx.xxx  normal case
+            fmt = "%8.3f"  # xxxx.xxx  normal case
         elif f < 100000.0:
-            fmt = "%8.2f"    # xxxxx.xx
+            fmt = "%8.2f"  # xxxxx.xx
         elif f < 1000000.0:
-            fmt = "%8.1f"    # xxxxxx.x
+            fmt = "%8.1f"  # xxxxxx.x
     else:
         # negative number, account for minus sign
         if f > -1000.0:
-            fmt = "%8.3f"    # -xxx.xxx  normal case
+            fmt = "%8.3f"  # -xxx.xxx  normal case
         elif f > -10000.0:
-            fmt = "%8.2f"    # -xxxx.xx
+            fmt = "%8.2f"  # -xxxx.xx
         elif f > -100000.0:
-            fmt = "%8.1f"    # -xxxxx.x
+            fmt = "%8.1f"  # -xxxxx.x
 
     return fmt % f
 
@@ -635,7 +672,9 @@ class Cache:
             return None
 
     def set(self, key, value, customTTL=None):
-        ttl = customTTL if customTTL is not None else self.defaultTimeout
+        ttl = (
+            customTTL if customTTL is not None else self.defaultTimeout
+        )
         self._cache[key] = (value, monoclock(), ttl)
 
 
@@ -654,8 +693,9 @@ def canonicalize_dns(inhost, family=socket.AF_UNSPEC):
         raise TypeError
     (hostname, portsuffix) = portsplit(inhost)
     try:
-        ai = socket.getaddrinfo(hostname, None, family, 0, 0,
-                                socket.AI_CANONNAME)
+        ai = socket.getaddrinfo(
+            hostname, None, family, 0, 0, socket.AI_CANONNAME
+        )
     except socket.gaierror:
         return "DNSFAIL:%s" % hostname
     (family, socktype, proto, canonname, sockaddr) = ai[0]
@@ -699,9 +739,13 @@ def termsize():  # pragma: no cover
             try:
                 # OK, Python version < 3.3, cope
                 h, w, hp, wp = struct.unpack(
-                    'HHHH',
-                    fcntl.ioctl(2, termios.TIOCGWINSZ,
-                                struct.pack('HHHH', 0, 0, 0, 0)))
+                    "HHHH",
+                    fcntl.ioctl(
+                        2,
+                        termios.TIOCGWINSZ,
+                        struct.pack("HHHH", 0, 0, 0, 0),
+                    ),
+                )
                 size = (w, h)
             except IOError:
                 pass
@@ -747,7 +791,7 @@ class PeerStatusWord:
                 ntp.control.CTL_PST_SEL_EXCESS: "backup",
                 ntp.control.CTL_PST_SEL_SYSPEER: "sys.peer",
                 ntp.control.CTL_PST_SEL_PPS: "pps.peer",
-                }
+            }
             self.condition = seldict[statval & 0x7]
         else:
             if (statval & 0x3) == OLD_CTL_PST_SEL_REJECT:
@@ -776,13 +820,17 @@ class PeerStatusWord:
             ntp.magic.PEVNT_ARMED: "leap_armed",
             ntp.magic.PEVNT_NEWPEER: "sys_peer",
             ntp.magic.PEVNT_CLOCK: "clock_alarm",
-            }
-        self.last_event = event_dict.get(ntp.magic.PEER_EVENT | self.event, "")
+        }
+        self.last_event = event_dict.get(
+            ntp.magic.PEER_EVENT | self.event, ""
+        )
 
     def __str__(self):
-        return ("conf=%(conf)s, reach=%(reach)s, auth=%(auth)s, "
-                "cond=%(condition)s, event=%(last_event)s ec=%(event_count)s"
-                % self.__dict__)
+        return (
+            "conf=%(conf)s, reach=%(reach)s, auth=%(auth)s, "
+            "cond=%(condition)s, event=%(last_event)s ec=%(event_count)s"
+            % self.__dict__
+        )
 
 
 def cook(variables, showunits=False, sep=", "):
@@ -791,8 +839,10 @@ def cook(variables, showunits=False, sep=", "):
     text = ""
     specials = ("filtdelay", "filtoffset", "filtdisp", "filterror")
     longestspecial = len(max(specials, key=len))
-    for (name, (value, rawvalue)) in variables.items():
-        if name in specials:  # need special formatting for column alignment
+    for name, (value, rawvalue) in variables.items():
+        if (
+            name in specials
+        ):  # need special formatting for column alignment
             formatter = "%" + str(longestspecial) + "s ="
             item = formatter % name
         else:
@@ -822,21 +872,21 @@ def cook(variables, showunits=False, sep=", "):
             else:
                 # flasher bits
                 tstflagnames = (
-                    "pkt_dup",          # BOGON1
-                    "pkt_bogus",        # BOGON2
-                    "pkt_unsync",       # BOGON3
-                    "pkt_denied",       # BOGON4
-                    "pkt_auth",         # BOGON5
-                    "pkt_stratum",      # BOGON6
-                    "pkt_header",       # BOGON7
-                    "pkt_autokey",      # BOGON8
-                    "pkt_crypto",       # BOGON9
-                    "peer_stratum",     # BOGON10
-                    "peer_dist",        # BOGON11
-                    "peer_loop",        # BOGON12
-                    "peer_unreach"      # BOGON13
+                    "pkt_dup",  # BOGON1
+                    "pkt_bogus",  # BOGON2
+                    "pkt_unsync",  # BOGON3
+                    "pkt_denied",  # BOGON4
+                    "pkt_auth",  # BOGON5
+                    "pkt_stratum",  # BOGON6
+                    "pkt_header",  # BOGON7
+                    "pkt_autokey",  # BOGON8
+                    "pkt_crypto",  # BOGON9
+                    "peer_stratum",  # BOGON10
+                    "peer_dist",  # BOGON11
+                    "peer_loop",  # BOGON12
+                    "peer_unreach",  # BOGON13
                 )
-                for (i, n) in enumerate(tstflagnames):
+                for i, n in enumerate(tstflagnames):
                     if (1 << i) & value:
                         item += tstflagnames[i] + " "
             item = item[:-1]
@@ -865,7 +915,7 @@ def cook(variables, showunits=False, sep=", "):
         # add newline so we don't overflow screen
         lastcount = 0
         for c in text:
-            if c == '\n':
+            if c == "\n":
                 lastcount = 0
             else:
                 lastcount += 1
@@ -879,14 +929,24 @@ def cook(variables, showunits=False, sep=", "):
 class PeerSummary:
     "Reusable report generator for peer statistics"
 
-    def __init__(self, displaymode, pktversion, showhostnames,
-                 wideremote, showunits=False, termwidth=None,
-                 debug=0, logfp=sys.stderr):
-        self.displaymode = displaymode          # peers/apeers/opeers
-        self.pktversion = pktversion            # interpretation of flash bits
-        self.showhostnames = showhostnames      # If false, display numeric IPs
-        self.showunits = showunits              # If False show old style float
-        self.wideremote = wideremote            # show wide remote names?
+    def __init__(
+        self,
+        displaymode,
+        pktversion,
+        showhostnames,
+        wideremote,
+        showunits=False,
+        termwidth=None,
+        debug=0,
+        logfp=sys.stderr,
+    ):
+        self.displaymode = displaymode  # peers/apeers/opeers
+        self.pktversion = pktversion  # interpretation of flash bits
+        self.showhostnames = (
+            showhostnames  # If false, display numeric IPs
+        )
+        self.showunits = showunits  # If False show old style float
+        self.wideremote = wideremote  # show wide remote names?
         self.debug = debug
         self.logfp = logfp
         self.termwidth = termwidth
@@ -912,7 +972,7 @@ class PeerSummary:
     def prettyinterval(diff):
         "Print an interval in natural time units."
         if not isinstance(diff, int) or diff <= 0:
-            return '-'
+            return "-"
         if diff <= 2048:
             return str(diff)
         diff = (diff + 29) / 60
@@ -931,30 +991,41 @@ class PeerSummary:
         if len(hostname) <= maxlen:
             return hostname
         else:
-            return '-' + hostname[-maxlen+1:]
+            return "-" + hostname[-maxlen + 1 :]
 
     @staticmethod
     def is_clock(variables):
         "Does a set of variables look like it returned from a clock?"
-        return "srchost" in variables and '(' in variables["srchost"][0]
+        return "srchost" in variables and "(" in variables["srchost"][0]
 
     def header(self):
         "Column headers for peer display"
         if self.displaymode == "apeers":
-            self.__header = self.__remote + \
-                "   refid   assid  ".ljust(self.refidwidth) + \
-                self.__common + "jitter"
+            self.__header = (
+                self.__remote
+                + "   refid   assid  ".ljust(self.refidwidth)
+                + self.__common
+                + "jitter"
+            )
         elif self.displaymode == "opeers":
-            self.__header = self.__remote + \
-                "       local      ".ljust(self.refidwidth) + \
-                self.__common + "  disp"
-        elif self.displaymode == 'rpeers':
-            self.__header = ' st t when poll reach   delay   ' + \
-                            'offset   jitter refid           T remote'
+            self.__header = (
+                self.__remote
+                + "       local      ".ljust(self.refidwidth)
+                + self.__common
+                + "  disp"
+            )
+        elif self.displaymode == "rpeers":
+            self.__header = (
+                " st t when poll reach   delay   "
+                + "offset   jitter refid           T remote"
+            )
         else:
-            self.__header = self.__remote + \
-                "       refid      ".ljust(self.refidwidth) + \
-                self.__common + "jitter"
+            self.__header = (
+                self.__remote
+                + "       refid      ".ljust(self.refidwidth)
+                + self.__common
+                + "jitter"
+            )
         return self.__header
 
     def width(self):
@@ -963,13 +1034,13 @@ class PeerSummary:
 
     def summary(self, rstatus, variables, associd):
         "Peer status summary line."
-        clock_name = ''
+        clock_name = ""
         dstadr_refid = ""
         dstport = 0
-        estdelay = '.'
-        estdisp = '.'
-        estjitter = '.'
-        estoffset = '.'
+        estdelay = "."
+        estdisp = "."
+        estjitter = "."
+        estoffset = "."
         filtdelay = 0.0
         filtdisp = 0.0
         filtoffset = 0.0
@@ -984,12 +1055,12 @@ class PeerSummary:
         pmode = 0
         ppoll = 0
         precision = 0
-        ptype = '?'
+        ptype = "?"
         reach = 0
         rec = None
         reftime = None
         rootdelay = 0.0
-        saw6 = False        # x.6 floats for delay and friends
+        saw6 = False  # x.6 floats for delay and friends
         srcadr = None
         srchost = None
         srcport = 0
@@ -1071,14 +1142,14 @@ class PeerSummary:
                 if "refid" in self.__header:
                     dstadr_refid = rawvalue
             elif name == "rec":
-                rec = value         # l_fp timestamp
+                rec = value  # l_fp timestamp
                 last_sync = int(now - ntp.ntpc.lfptofloat(rec))
             elif name == "reftime":
-                reftime = value     # l_fp timestamp
+                reftime = value  # l_fp timestamp
                 last_sync = int(now - ntp.ntpc.lfptofloat(reftime))
             elif name == "rootdelay":
                 # FIXME, rootdelay never used.
-                rootdelay = value   # l_fp timestamp
+                rootdelay = value  # l_fp timestamp
             elif name == "rootdisp" or name == "dispersion":
                 estdisp = rawvalue if self.showunits else value
             elif name in ("srcadr", "peeradr"):
@@ -1108,29 +1179,33 @@ class PeerSummary:
                 continue
         if hmode == ntp.magic.MODE_BCLIENTX:
             # broadcastclient or multicastclient
-            ptype = 'b'
+            ptype = "b"
         elif hmode == ntp.magic.MODE_BROADCASTx:
             # broadcast or multicast server
-            if srcadr.startswith("224."):       # IANA multicast address prefix
-                ptype = 'M'
+            if srcadr.startswith(
+                "224."
+            ):  # IANA multicast address prefix
+                ptype = "M"
             else:
-                ptype = 'B'
+                ptype = "B"
         elif hmode == ntp.magic.MODE_CLIENT:
             if PeerSummary.is_clock(variables):
-                ptype = 'l'     # local refclock
+                ptype = "l"  # local refclock
             elif dstadr_refid == "POOL":
-                ptype = 'p'     # pool
+                ptype = "p"  # pool
             elif srcadr.startswith("224."):
-                ptype = 'a'     # manycastclient (compatibility with Classic)
+                ptype = (
+                    "a"  # manycastclient (compatibility with Classic)
+                )
             elif ntscookies > -1:
                 # FIXME: Will foo up if there are ever more than 9 cookies
-                ptype = chr(ntscookies + ord('0'))
+                ptype = chr(ntscookies + ord("0"))
             else:
-                ptype = 'u'     # unicast
+                ptype = "u"  # unicast
         elif hmode == ntp.magic.MODE_ACTIVEx:
-            ptype = 's'         # symmetric active
+            ptype = "s"  # symmetric active
         elif hmode == ntp.magic.MODE_PASSIVEx:
-            ptype = 'S'         # symmetric passive
+            ptype = "S"  # symmetric passive
 
         #
         # Got everything, format the line
@@ -1149,11 +1224,17 @@ class PeerSummary:
         # refclocks have both srcadr and srchost
         # pool has "0.0.0.0" (or "::") and srchost
         # slots setup via pool have only srcadr
-        if srcadr is not None \
-                and srcadr != "0.0.0.0" \
-                and not srcadr.startswith("127.127") \
-                and srcadr != "::":
-            if self.showhostnames & 2 and 'srchost' in locals() and srchost:
+        if (
+            srcadr is not None
+            and srcadr != "0.0.0.0"
+            and not srcadr.startswith("127.127")
+            and srcadr != "::"
+        ):
+            if (
+                self.showhostnames & 2
+                and "srchost" in locals()
+                and srchost
+            ):
                 clock_name = srchost
             elif self.showhostnames & 1:
                 try:
@@ -1163,7 +1244,7 @@ class PeerSummary:
                     if self.debug:
                         self.logfp.write("DNS lookup ends.\n")
                 except TypeError:  # pragma: no cover
-                    return ''
+                    return ""
             else:
                 clock_name = srcadr
         else:
@@ -1175,42 +1256,55 @@ class PeerSummary:
                 clock_name = ""
         if self.displaymode != "rpeers":
             if self.wideremote and len(clock_name) > self.namewidth:
-                line += ("%c%s\n" % (c, clock_name))
-                line += (" " * (self.namewidth + 2))
+                line += "%c%s\n" % (c, clock_name)
+                line += " " * (self.namewidth + 2)
             else:
-                line += ("%c%-*.*s " % (c, self.namewidth, self.namewidth,
-                                        clock_name[:self.namewidth]))
+                line += "%c%-*.*s " % (
+                    c,
+                    self.namewidth,
+                    self.namewidth,
+                    clock_name[: self.namewidth],
+                )
         # Destination address, assoc ID or refid.
         assocwidth = 7 if self.displaymode == "apeers" else 0
         if "." not in dstadr_refid and ":" not in dstadr_refid:
             dstadr_refid = "." + dstadr_refid + "."
-        if assocwidth and len(dstadr_refid) >= self.refidwidth - assocwidth:
+        if (
+            assocwidth
+            and len(dstadr_refid) >= self.refidwidth - assocwidth
+        ):
             visible = "..."
         else:
             visible = dstadr_refid
         if self.displaymode != "rpeers":
             line += self.high_truncate(visible, self.refidwidth)
             if self.displaymode == "apeers":
-                line += (" " * (self.refidwidth - len(visible) - assocwidth + 1))
-                line += ("%-6d" % (associd))
+                line += " " * (
+                    self.refidwidth - len(visible) - assocwidth + 1
+                )
+                line += "%-6d" % (associd)
             else:
-                line += (" " * (self.refidwidth - len(visible)))
+                line += " " * (self.refidwidth - len(visible))
         # The rest of the story
         if last_sync is None:
             last_sync = now
         jd = estjitter if have_jitter else estdisp
         if self.showunits:
-            fini = lambda x : unitify(x, UNIT_MS)
+            fini = lambda x: unitify(x, UNIT_MS)
         elif saw6:
-            fini = lambda x : f8dot4(x)
+            fini = lambda x: f8dot4(x)
         else:
-            fini = lambda x : f8dot3(x)
-        line += (
-            " %2ld %c %4.4s %4.4s  %3lo %s %s %s"
-            % (stratum, ptype,
-               PeerSummary.prettyinterval(last_sync),
-               PeerSummary.prettyinterval(poll_sec), reach,
-               fini(estdelay), fini(estoffset), fini(jd)))
+            fini = lambda x: f8dot3(x)
+        line += " %2ld %c %4.4s %4.4s  %3lo %s %s %s" % (
+            stratum,
+            ptype,
+            PeerSummary.prettyinterval(last_sync),
+            PeerSummary.prettyinterval(poll_sec),
+            reach,
+            fini(estdelay),
+            fini(estoffset),
+            fini(jd),
+        )
         line += "\n"
         # for debugging both case
         # if srcadr != None and srchost != None:
@@ -1227,8 +1321,9 @@ class PeerSummary:
 class MRUSummary:
     "Reusable class for MRU entry summary generation."
 
-    def __init__(self, showhostnames, wideremote=False,
-                 debug=0, logfp=sys.stderr):
+    def __init__(
+        self, showhostnames, wideremote=False, debug=0, logfp=sys.stderr
+    ):
         self.debug = debug
         self.logfp = logfp
         self.now = None
@@ -1248,7 +1343,7 @@ class MRUSummary:
             if count == 1:
                 favgint = 0
             else:
-                favgint = active / (count-1)
+                favgint = active / (count - 1)
             avgint = int(favgint + 0.5)
             if 5.0 < favgint or 1 == count:
                 stats += " %6d" % avgint
@@ -1257,18 +1352,20 @@ class MRUSummary:
             else:
                 stats += " %6.3f" % favgint
         else:
-            MJD_1970 = 40587     # MJD for 1 Jan 1970, Unix epoch
+            MJD_1970 = 40587  # MJD for 1 Jan 1970, Unix epoch
             days, lstint = divmod(int(last), 86400)
             stats = "%5d %5d %6d" % (days + MJD_1970, lstint, active)
         if entry.rs & ntp.magic.RES_KOD:
-            rscode = 'K'
+            rscode = "K"
         elif entry.rs & ntp.magic.RES_LIMITED:
-            rscode = 'L'
+            rscode = "L"
         else:
-            rscode = '.'
+            rscode = "."
         (ip, port) = portsplit(entry.addr)
         try:
-            if not self.showhostnames & 1:  # if not & 1 display numeric IPs
+            if (
+                not self.showhostnames & 1
+            ):  # if not & 1 display numeric IPs
                 dns = ip
             else:
                 dns = canonicalize_dns(ip)
@@ -1278,7 +1375,7 @@ class MRUSummary:
                     confirmed = False
                     try:
                         ai = socket.getaddrinfo(dns, None)
-                        for (_, _, _, _, sockaddr) in ai:
+                        for _, _, _, _, sockaddr in ai:
                             if sockaddr and sockaddr[0] == ip:
                                 confirmed = True
                                 break
@@ -1293,26 +1390,32 @@ class MRUSummary:
             if entry.sc:
                 score = float(entry.sc)
                 if score > 100000.0:
-                  score = "%8.1f" % score
+                    score = "%8.1f" % score
                 elif score > 10000.0:
-                  score = "%8.2f" % score
+                    score = "%8.2f" % score
                 else:
-                  score = "%8.3f" % score
+                    score = "%8.3f" % score
             else:
                 score = "-"
-            if entry.dr!= None:     # 0 is valid
+            if entry.dr != None:  # 0 is valid
                 drop = "%4d" % entry.dr
             else:
                 drop = "-"
-            stats += " %4hx %c %d %d %6d %8s %6s %5s %s" % \
-                     (entry.rs, rscode,
-                      ntp.magic.PKT_MODE(entry.mv),
-                      ntp.magic.PKT_VERSION(entry.mv),
-                      entry.ct, score, drop, port[1:], dns)
+            stats += " %4hx %c %d %d %6d %8s %6s %5s %s" % (
+                entry.rs,
+                rscode,
+                ntp.magic.PKT_MODE(entry.mv),
+                ntp.magic.PKT_VERSION(entry.mv),
+                entry.ct,
+                score,
+                drop,
+                port[1:],
+                dns,
+            )
             return stats
         except ValueError:
             # This can happen when ntpd ships a corrupt varlist
-            return ''
+            return ""
 
 
 class ReslistSummary:
@@ -1326,23 +1429,24 @@ class ReslistSummary:
     @staticmethod
     def __getPrefix(mask):
         if not mask:
-            prefix = ''
-        if ':' in mask:
-            sep = ':'
+            prefix = ""
+        if ":" in mask:
+            sep = ":"
             base = 16
         else:
-            sep = '.'
+            sep = "."
             base = 10
-        prefix = sum([bin(int(x, base)).count('1')
-                      for x in mask.split(sep) if x])
-        return '/' + str(prefix)
+        prefix = sum(
+            [bin(int(x, base)).count("1") for x in mask.split(sep) if x]
+        )
+        return "/" + str(prefix)
 
     def summary(self, variables):
         hits = variables.get("hits", "?")
         address = variables.get("addr", "?")
         mask = variables.get("mask", "?")
-        if address == '?' or mask == '?':
-            return ''
+        if address == "?" or mask == "?":
+            return ""
         address += ReslistSummary.__getPrefix(mask)
         flags = variables.get("flags", "?")
         # reslist responses are often corrupted
@@ -1351,7 +1455,7 @@ class ReslistSummary:
         # want to make ntpd stop generating garbage
         for c in s:
             if not c.isalnum() and c not in "/.: \n":
-                return ''
+                return ""
         return s
 
 
@@ -1363,13 +1467,15 @@ class IfstatsSummary:
  """
     width = 74
     # Numbers are the fieldsize
-    fields = {'name':  '%-24.24s',
-              'flags': '%4x',
-              'rx':    '%6d',
-              'tx':    '%6d',
-              'txerr': '%6d',
-              'pc':    '%5d',
-              'up':    '%8d'}
+    fields = {
+        "name": "%-24.24s",
+        "flags": "%4x",
+        "rx": "%6d",
+        "tx": "%6d",
+        "txerr": "%6d",
+        "pc": "%5d",
+        "up": "%8d",
+    }
 
     def summary(self, i, variables):
         formatted = {}
@@ -1382,38 +1488,40 @@ class IfstatsSummary:
                 else:
                     fmt = self.fields[name] % value
                 formatted[name] = fmt
-            enFlag = '.' if variables.get('en', False) else 'D'
+            enFlag = "." if variables.get("en", False) else "D"
             address = variables.get("addr", "?")
             bcast = variables.get("bcast")
             # Assemble the fields into a line
-            s = ("%3u %s %s %s %s %s %s %s %s\n    %s\n"
-                 % (i,
-                    formatted['name'],
-                    enFlag,
-                    formatted['flags'],
-                    formatted['rx'],
-                    formatted['tx'],
-                    formatted['txerr'],
-                    formatted['pc'],
-                    formatted['up'],
-                    address))
+            s = "%3u %s %s %s %s %s %s %s %s\n    %s\n" % (
+                i,
+                formatted["name"],
+                enFlag,
+                formatted["flags"],
+                formatted["rx"],
+                formatted["tx"],
+                formatted["txerr"],
+                formatted["pc"],
+                formatted["up"],
+                address,
+            )
             if bcast:
                 s += "    %s\n" % bcast
         except TypeError:  # pragma: no cover
             # Can happen when ntpd ships a corrupted response
-            return ''
+            return ""
 
         # FIXME, a brutal and slow way to check for invalid chars..
         # maybe just strip non-printing chars?
         for c in s:
             if not c.isalnum() and c not in "/.:[] %\n":
-                return ''
+                return ""
         return s
 
 
 try:
     from collections import OrderedDict
 except ImportError:  # pragma: no cover
+
     class OrderedDict(dict):
         "A stupid simple implementation in order to be back-portable to 2.6"
 
@@ -1424,7 +1532,7 @@ except ImportError:  # pragma: no cover
             dict.__init__(self)
             self.__keys = []
             if items:
-                for (k, v) in items:
+                for k, v in items:
                     self[k] = v
 
         def __setitem__(self, key, val):
@@ -1459,7 +1567,11 @@ def packetize(packets, period, clipdigits=0, periodized=False):
     if packets > period:
         return (packets, round(packets / period, clipdigits), "p/s")
     if periodized:
-        return (packets, periodize(period / packets, clipdigits)[1], "/p")
+        return (
+            packets,
+            periodize(period / packets, clipdigits)[1],
+            "/p",
+        )
     return (packets, round(period / packets, clipdigits), "s/p")
 
 

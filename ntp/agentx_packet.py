@@ -11,7 +11,12 @@ import ntp.poly
 from ntp.util import slicedata
 
 
-internetPrefix = (1, 3, 6, 1)  # Used by the prefix option of OID headers
+internetPrefix = (
+    1,
+    3,
+    6,
+    1,
+)  # Used by the prefix option of OID headers
 prefixCount = len(internetPrefix)
 
 # ==========================================================================
@@ -38,7 +43,9 @@ prefixCount = len(internetPrefix)
 
 
 class ParseError(Exception):
-    def __init__(self, message, header=None, packetData="", remainingData=""):
+    def __init__(
+        self, message, header=None, packetData="", remainingData=""
+    ):
         Exception.__init__(self)
         self.message = message
         self.header = header
@@ -77,8 +84,16 @@ class ParsePDUTypeError(ParseError):
 
 
 class AgentXPDU:
-    def __init__(self, pduType, bigEndian, sID, tactID, pktID,
-                 hascontext=False, context=None):
+    def __init__(
+        self,
+        pduType,
+        bigEndian,
+        sID,
+        tactID,
+        pktID,
+        hascontext=False,
+        context=None,
+    ):
         self.pduType = pduType
         self.bigEndian = bigEndian
         self.sessionID = sID
@@ -93,7 +108,9 @@ class AgentXPDU:
         names = dir(self)
         names.remove("context")
         for vname in names:
-            if vname[0] == "_":  # ignores specials, and what we want ignored
+            if (
+                vname[0] == "_"
+            ):  # ignores specials, and what we want ignored
                 continue
             var = getattr(self, vname)
             if callable(var):  # ignores methods
@@ -147,16 +164,25 @@ def decode_OpenPDU(data, header):
     timeout = struct.unpack("Bxxx", ntp.poly.polybytes(temp))[0]
     oid, data = decode_OID(data, header)
     description = decode_octetstr(data, header)[0]
-    result = OpenPDU(flags["bigEndian"], header["session_id"],
-                     header["transaction_id"], header["packet_id"],
-                     timeout, oid, description)
+    result = OpenPDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+        timeout,
+        oid,
+        description,
+    )
     return result
 
 
 class OpenPDU(AgentXPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID,
-                 timeout, oid, description):
-        AgentXPDU.__init__(self, PDU_OPEN, bigEndian, sID, tactID, pktID)
+    def __init__(
+        self, bigEndian, sID, tactID, pktID, timeout, oid, description
+    ):
+        AgentXPDU.__init__(
+            self, PDU_OPEN, bigEndian, sID, tactID, pktID
+        )
         self.timeout = timeout
         self.oid = classifyOID(oid)
         self.description = description
@@ -176,10 +202,18 @@ class OpenPDU(AgentXPDU):
         payload = struct.pack("Bxxx", self.timeout)
         payload += self.oid.encode(self.bigEndian)
         payload += encode_octetstr(self.bigEndian, self.description)
-        header = encode_pduheader(self.pduType,
-                                  False, False, False, False, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            False,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         return header + payload
 
 
@@ -188,17 +222,25 @@ def decode_ClosePDU(data, header):
     reason = data[0]  # Bxxx
     if isinstance(reason, str):
         reason = ord(reason)
-    result = ClosePDU(flags["bigEndian"], header["session_id"],
-                      header["transaction_id"], header["packet_id"],
-                      reason)
+    result = ClosePDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+        reason,
+    )
     return result
 
 
 class ClosePDU(AgentXPDU):
     def __init__(self, bigEndian, sID, tactID, pktID, reason):
-        AgentXPDU.__init__(self, PDU_CLOSE, bigEndian, sID, tactID, pktID)
+        AgentXPDU.__init__(
+            self, PDU_CLOSE, bigEndian, sID, tactID, pktID
+        )
         if reason not in definedReasons:  # pragma: no cover
-            raise ValueError("Close reason %s not in defined types" % reason)
+            raise ValueError(
+                "Close reason %s not in defined types" % reason
+            )
         self.reason = reason
 
     def __eq__(self, other):
@@ -210,10 +252,18 @@ class ClosePDU(AgentXPDU):
 
     def encode(self):
         payload = struct.pack("Bxxx", self.reason)
-        header = encode_pduheader(self.pduType,
-                                  False, False, False, False, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            False,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         return header + payload
 
 
@@ -222,33 +272,69 @@ def decode_xRegisterPDU(data, header):
     endianToken = getendian(flags["bigEndian"])
     context, data = decode_context(data, header)
     temp, data = slicedata(data, 4)
-    timeout, priority, rangeSubid = struct.unpack(endianToken + "BBBx",
-                                                  ntp.poly.polybytes(temp))
+    timeout, priority, rangeSubid = struct.unpack(
+        endianToken + "BBBx", ntp.poly.polybytes(temp)
+    )
     oid, data = decode_OID(data, header)
     if rangeSubid != 0:
         temp, data = slicedata(data, 4)
-        upperBound = struct.unpack(endianToken + "I",
-                                   ntp.poly.polybytes(temp))[0]
+        upperBound = struct.unpack(
+            endianToken + "I", ntp.poly.polybytes(temp)
+        )[0]
     else:
         upperBound = None
     if header["type"] == PDU_REGISTER:
-        result = RegisterPDU(flags["bigEndian"], header["session_id"],
-                             header["transaction_id"], header["packet_id"],
-                             timeout, priority, oid,
-                             rangeSubid, upperBound, context)
+        result = RegisterPDU(
+            flags["bigEndian"],
+            header["session_id"],
+            header["transaction_id"],
+            header["packet_id"],
+            timeout,
+            priority,
+            oid,
+            rangeSubid,
+            upperBound,
+            context,
+        )
     else:
-        result = UnregisterPDU(flags["bigEndian"], header["session_id"],
-                               header["transaction_id"], header["packet_id"],
-                               priority, oid, rangeSubid, upperBound, context)
+        result = UnregisterPDU(
+            flags["bigEndian"],
+            header["session_id"],
+            header["transaction_id"],
+            header["packet_id"],
+            priority,
+            oid,
+            rangeSubid,
+            upperBound,
+            context,
+        )
     return result
 
 
 class RegisterPDU(AgentXPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID,
-                 timeout, priority, subtree,
-                 rangeSubid=0, upperBound=None, context=None):
-        AgentXPDU.__init__(self, PDU_REGISTER,
-                           bigEndian, sID, tactID, pktID, True, context)
+    def __init__(
+        self,
+        bigEndian,
+        sID,
+        tactID,
+        pktID,
+        timeout,
+        priority,
+        subtree,
+        rangeSubid=0,
+        upperBound=None,
+        context=None,
+    ):
+        AgentXPDU.__init__(
+            self,
+            PDU_REGISTER,
+            bigEndian,
+            sID,
+            tactID,
+            pktID,
+            True,
+            context,
+        )
         self.timeout = timeout
         self.priority = priority
         self.subtree = classifyOID(subtree)
@@ -259,7 +345,9 @@ class RegisterPDU(AgentXPDU):
     def __eq__(self, other):
         if AgentXPDU.__eq__(self, other) is not True:
             return False
-        if hasattr(self, "timeout"):  # Relevant to UnregisterPDU subclass
+        if hasattr(
+            self, "timeout"
+        ):  # Relevant to UnregisterPDU subclass
             if self.timeout != other.timeout:
                 return False
         if self.priority != other.priority:
@@ -276,30 +364,65 @@ class RegisterPDU(AgentXPDU):
         endianToken = getendian(self.bigEndian)
         contextP, payload = encode_context(self.bigEndian, self.context)
         if self.pduType == PDU_REGISTER:
-            payload += struct.pack(endianToken + "BBBx", self.timeout,
-                                   self.priority, self.rangeSubid)
+            payload += struct.pack(
+                endianToken + "BBBx",
+                self.timeout,
+                self.priority,
+                self.rangeSubid,
+            )
         else:
-            payload += struct.pack(endianToken + "xBBx",
-                                   self.priority, self.rangeSubid)
+            payload += struct.pack(
+                endianToken + "xBBx", self.priority, self.rangeSubid
+            )
         payload += self.subtree.encode(self.bigEndian)
         if self.rangeSubid != 0:
             if self.upperBound is None:
-                raise ValueError("upperBound must be set if rangeSubid is set")
+                raise ValueError(
+                    "upperBound must be set if rangeSubid is set"
+                )
             payload += struct.pack(endianToken + "I", self.upperBound)
-        header = encode_pduheader(self.pduType, self._instReg, False, False,
-                                  contextP, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        header = encode_pduheader(
+            self.pduType,
+            self._instReg,
+            False,
+            False,
+            contextP,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         packet = header + payload
         return packet
 
 
 class UnregisterPDU(RegisterPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID, priority, subtree,
-                 rangeSubid=0, upperBound=None, context=None):
-        RegisterPDU.__init__(self, bigEndian, sID, tactID, pktID,
-                             None, priority, subtree,
-                             rangeSubid, upperBound, context)
+    def __init__(
+        self,
+        bigEndian,
+        sID,
+        tactID,
+        pktID,
+        priority,
+        subtree,
+        rangeSubid=0,
+        upperBound=None,
+        context=None,
+    ):
+        RegisterPDU.__init__(
+            self,
+            bigEndian,
+            sID,
+            tactID,
+            pktID,
+            None,
+            priority,
+            subtree,
+            rangeSubid,
+            upperBound,
+            context,
+        )
         self.pduType = PDU_UNREGISTER
         del self.timeout  # Unregister doesn't have a timeout
         self._instReg = False
@@ -310,20 +433,33 @@ def decode_xGetPDU(data, header):
     context, data = decode_context(data, header)
     oidranges = decode_searchrange_list(data, header)
     if header["type"] == PDU_GET_NEXT:
-        result = GetNextPDU(flags["bigEndian"], header["session_id"],
-                            header["transaction_id"], header["packet_id"],
-                            oidranges, context)
+        result = GetNextPDU(
+            flags["bigEndian"],
+            header["session_id"],
+            header["transaction_id"],
+            header["packet_id"],
+            oidranges,
+            context,
+        )
     else:
-        result = GetPDU(flags["bigEndian"], header["session_id"],
-                        header["transaction_id"], header["packet_id"],
-                        oidranges, context)
+        result = GetPDU(
+            flags["bigEndian"],
+            header["session_id"],
+            header["transaction_id"],
+            header["packet_id"],
+            oidranges,
+            context,
+        )
     return result
 
 
 class GetPDU(AgentXPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID, oidranges, context=None):
-        AgentXPDU.__init__(self, PDU_GET,
-                           bigEndian, sID, tactID, pktID, True, context)
+    def __init__(
+        self, bigEndian, sID, tactID, pktID, oidranges, context=None
+    ):
+        AgentXPDU.__init__(
+            self, PDU_GET, bigEndian, sID, tactID, pktID, True, context
+        )
         self.oidranges = oidranges
 
     def __eq__(self, other):
@@ -335,18 +471,31 @@ class GetPDU(AgentXPDU):
 
     def encode(self):
         contextP, payload = encode_context(self.bigEndian, self.context)
-        payload += encode_searchrange_list(self.bigEndian, self.oidranges)
-        header = encode_pduheader(self.pduType, False, False, False,
-                                  contextP, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        payload += encode_searchrange_list(
+            self.bigEndian, self.oidranges
+        )
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            contextP,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         return header + payload
 
 
 class GetNextPDU(GetPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID, oidranges, context=None):
-        GetPDU.__init__(self, bigEndian, sID, tactID, pktID,
-                        oidranges, context)
+    def __init__(
+        self, bigEndian, sID, tactID, pktID, oidranges, context=None
+    ):
+        GetPDU.__init__(
+            self, bigEndian, sID, tactID, pktID, oidranges, context
+        )
         self.pduType = PDU_GET_NEXT
 
 
@@ -355,20 +504,45 @@ def decode_GetBulkPDU(data, header):
     endianToken = getendian(flags["bigEndian"])
     context, data = decode_context(data, header)
     temp, data = slicedata(data, 4)
-    nonReps, maxReps = struct.unpack(endianToken + "HH",
-                                     ntp.poly.polybytes(temp))
+    nonReps, maxReps = struct.unpack(
+        endianToken + "HH", ntp.poly.polybytes(temp)
+    )
     oidranges = decode_searchrange_list(data, header)
-    result = GetBulkPDU(flags["bigEndian"], header["session_id"],
-                        header["transaction_id"], header["packet_id"],
-                        nonReps, maxReps, oidranges, context)
+    result = GetBulkPDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+        nonReps,
+        maxReps,
+        oidranges,
+        context,
+    )
     return result
 
 
 class GetBulkPDU(AgentXPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID,
-                 nonReps, maxReps, oidranges, context=None):
-        AgentXPDU.__init__(self, PDU_GET_BULK,
-                           bigEndian, sID, tactID, pktID, True, context)
+    def __init__(
+        self,
+        bigEndian,
+        sID,
+        tactID,
+        pktID,
+        nonReps,
+        maxReps,
+        oidranges,
+        context=None,
+    ):
+        AgentXPDU.__init__(
+            self,
+            PDU_GET_BULK,
+            bigEndian,
+            sID,
+            tactID,
+            pktID,
+            True,
+            context,
+        )
         self.nonReps = nonReps
         self.maxReps = maxReps
         self.oidranges = oidranges
@@ -387,12 +561,24 @@ class GetBulkPDU(AgentXPDU):
     def encode(self):
         endianToken = getendian(self.bigEndian)
         contextP, payload = encode_context(self.bigEndian, self.context)
-        payload += struct.pack(endianToken + "HH", self.nonReps, self.maxReps)
-        payload += encode_searchrange_list(self.bigEndian, self.oidranges)
-        header = encode_pduheader(self.pduType, False, False, False,
-                                  contextP, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        payload += struct.pack(
+            endianToken + "HH", self.nonReps, self.maxReps
+        )
+        payload += encode_searchrange_list(
+            self.bigEndian, self.oidranges
+        )
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            contextP,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         return header + payload
 
 
@@ -400,16 +586,31 @@ def decode_TestSetPDU(data, header):
     flags = header["flags"]
     context, data = decode_context(data, header)
     varbinds = decode_varbindlist(data, header)
-    result = TestSetPDU(flags["bigEndian"], header["session_id"],
-                        header["transaction_id"], header["packet_id"],
-                        varbinds, context)
+    result = TestSetPDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+        varbinds,
+        context,
+    )
     return result
 
 
 class TestSetPDU(AgentXPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID, varbinds, context=None):
-        AgentXPDU.__init__(self, PDU_TEST_SET,
-                           bigEndian, sID, tactID, pktID, True, context)
+    def __init__(
+        self, bigEndian, sID, tactID, pktID, varbinds, context=None
+    ):
+        AgentXPDU.__init__(
+            self,
+            PDU_TEST_SET,
+            bigEndian,
+            sID,
+            tactID,
+            pktID,
+            True,
+            context,
+        )
         self.varbinds = varbinds
 
     def __eq__(self, other):
@@ -422,93 +623,153 @@ class TestSetPDU(AgentXPDU):
     def encode(self):
         contextP, payload = encode_context(self.bigEndian, self.context)
         payload += encode_varbindlist(self.bigEndian, self.varbinds)
-        header = encode_pduheader(self.pduType, False, False, False,
-                                  contextP, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            contextP,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         return header + payload
 
 
 def decode_CommitSetPDU(data, header):
     flags = header["flags"]
-    result = CommitSetPDU(flags["bigEndian"], header["session_id"],
-                          header["transaction_id"], header["packet_id"])
+    result = CommitSetPDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+    )
     return result
 
 
 class CommitSetPDU(AgentXPDU):
     def __init__(self, bigEndian, sID, tactID, pktID):
-        AgentXPDU.__init__(self, PDU_COMMIT_SET,
-                           bigEndian, sID, tactID, pktID)
+        AgentXPDU.__init__(
+            self, PDU_COMMIT_SET, bigEndian, sID, tactID, pktID
+        )
 
     def encode(self):
-        header = encode_pduheader(self.pduType,
-                                  False, False, False, False, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, 0)
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            False,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            0,
+        )
         return header
 
 
 def decode_UndoSetPDU(data, header):
     flags = header["flags"]
-    result = UndoSetPDU(flags["bigEndian"], header["session_id"],
-                        header["transaction_id"], header["packet_id"])
+    result = UndoSetPDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+    )
     return result
 
 
 class UndoSetPDU(AgentXPDU):
     def __init__(self, bigEndian, sID, tactID, pktID):
-        AgentXPDU.__init__(self, PDU_UNDO_SET,
-                           bigEndian, sID, tactID, pktID)
+        AgentXPDU.__init__(
+            self, PDU_UNDO_SET, bigEndian, sID, tactID, pktID
+        )
 
     def encode(self):
-        header = encode_pduheader(self.pduType,
-                                  False, False, False, False, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, 0)
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            False,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            0,
+        )
         return header
 
 
 def decode_CleanupSetPDU(data, header):
     flags = header["flags"]
-    result = CleanupSetPDU(flags["bigEndian"], header["session_id"],
-                           header["transaction_id"], header["packet_id"])
+    result = CleanupSetPDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+    )
     return result
 
 
 class CleanupSetPDU(AgentXPDU):
     def __init__(self, bigEndian, sID, tactID, pktID):
-        AgentXPDU.__init__(self, PDU_CLEANUP_SET,
-                           bigEndian, sID, tactID, pktID)
+        AgentXPDU.__init__(
+            self, PDU_CLEANUP_SET, bigEndian, sID, tactID, pktID
+        )
 
     def encode(self):
-        header = encode_pduheader(self.pduType,
-                                  False, False, False, False, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, 0)
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            False,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            0,
+        )
         return header
 
 
 def decode_PingPDU(data, header):
     flags = header["flags"]
     context, data = decode_context(data, header)
-    result = PingPDU(flags["bigEndian"], header["session_id"],
-                     header["transaction_id"], header["packet_id"],
-                     context)
+    result = PingPDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+        context,
+    )
     return result
 
 
 class PingPDU(AgentXPDU):
     def __init__(self, bigEndian, sID, tactID, pktID, context=None):
-        AgentXPDU.__init__(self, PDU_PING,
-                           bigEndian, sID, tactID, pktID, True, context)
+        AgentXPDU.__init__(
+            self, PDU_PING, bigEndian, sID, tactID, pktID, True, context
+        )
 
     def encode(self):
         contextP, payload = encode_context(self.bigEndian, self.context)
-        header = encode_pduheader(self.pduType, False, False, False,
-                                  contextP, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            contextP,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         return header + payload
 
 
@@ -516,16 +777,31 @@ def decode_NotifyPDU(data, header):
     flags = header["flags"]
     context, data = decode_context(data, header)
     varbinds = decode_varbindlist(data, header)
-    result = NotifyPDU(flags["bigEndian"], header["session_id"],
-                       header["transaction_id"], header["packet_id"],
-                       varbinds, context)
+    result = NotifyPDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+        varbinds,
+        context,
+    )
     return result
 
 
 class NotifyPDU(AgentXPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID, varbinds, context=None):
-        AgentXPDU.__init__(self, PDU_NOTIFY,
-                           bigEndian, sID, tactID, pktID, True, context)
+    def __init__(
+        self, bigEndian, sID, tactID, pktID, varbinds, context=None
+    ):
+        AgentXPDU.__init__(
+            self,
+            PDU_NOTIFY,
+            bigEndian,
+            sID,
+            tactID,
+            pktID,
+            True,
+            context,
+        )
         self.varbinds = varbinds
 
     def __eq__(self, other):
@@ -538,10 +814,18 @@ class NotifyPDU(AgentXPDU):
     def encode(self):
         contextP, payload = encode_context(self.bigEndian, self.context)
         payload += encode_varbindlist(self.bigEndian, self.varbinds)
-        header = encode_pduheader(self.pduType, False, False, False,
-                                  contextP, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            contextP,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         return header + payload
 
 
@@ -549,20 +833,43 @@ def decode_xIndexAllocPDU(data, header):
     flags = header["flags"]
     context, data = decode_context(data, header)
     varbinds = decode_varbindlist(data, header)
-    isalloc = (header["type"] == PDU_INDEX_ALLOC)
+    isalloc = header["type"] == PDU_INDEX_ALLOC
     pdu = IndexAllocPDU if isalloc else IndexDeallocPDU
-    result = pdu(flags["bigEndian"], header["session_id"],
-                 header["transaction_id"], header["packet_id"],
-                 flags["newIndex"], flags["anyIndex"],
-                 varbinds, context)
+    result = pdu(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+        flags["newIndex"],
+        flags["anyIndex"],
+        varbinds,
+        context,
+    )
     return result
 
 
 class IndexAllocPDU(AgentXPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID,
-                 newIndex, anyIndex, varbinds, context=None):
-        AgentXPDU.__init__(self, PDU_INDEX_ALLOC,
-                           bigEndian, sID, tactID, pktID, True, context)
+    def __init__(
+        self,
+        bigEndian,
+        sID,
+        tactID,
+        pktID,
+        newIndex,
+        anyIndex,
+        varbinds,
+        context=None,
+    ):
+        AgentXPDU.__init__(
+            self,
+            PDU_INDEX_ALLOC,
+            bigEndian,
+            sID,
+            tactID,
+            pktID,
+            True,
+            context,
+        )
         self.newIndex = newIndex
         self.anyIndex = anyIndex
         self.varbinds = varbinds
@@ -581,19 +888,44 @@ class IndexAllocPDU(AgentXPDU):
     def encode(self):
         contextP, payload = encode_context(self.bigEndian, self.context)
         payload += encode_varbindlist(self.bigEndian, self.varbinds)
-        header = encode_pduheader(self.pduType,
-                                  False, self.newIndex, self.anyIndex,
-                                  contextP, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            self.newIndex,
+            self.anyIndex,
+            contextP,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         return header + payload
 
 
 class IndexDeallocPDU(IndexAllocPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID,
-                 newIndex, anyIndex, varbinds, context=None):
-        IndexAllocPDU.__init__(self, bigEndian, sID, tactID, pktID,
-                               newIndex, anyIndex, varbinds, context)
+    def __init__(
+        self,
+        bigEndian,
+        sID,
+        tactID,
+        pktID,
+        newIndex,
+        anyIndex,
+        varbinds,
+        context=None,
+    ):
+        IndexAllocPDU.__init__(
+            self,
+            bigEndian,
+            sID,
+            tactID,
+            pktID,
+            newIndex,
+            anyIndex,
+            varbinds,
+            context,
+        )
         self.pduType = PDU_INDEX_DEALLOC
 
 
@@ -602,17 +934,39 @@ def decode_AddAgentCapsPDU(data, header):
     context, data = decode_context(data, header)
     oid, data = decode_OID(data, header)
     descr = decode_octetstr(data, header)[0]
-    result = AddAgentCapsPDU(flags["bigEndian"], header["session_id"],
-                             header["transaction_id"], header["packet_id"],
-                             oid, descr, context)
+    result = AddAgentCapsPDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+        oid,
+        descr,
+        context,
+    )
     return result
 
 
 class AddAgentCapsPDU(AgentXPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID,
-                 oid, description, context=None):
-        AgentXPDU.__init__(self, PDU_ADD_AGENT_CAPS,
-                           bigEndian, sID, tactID, pktID, True, context)
+    def __init__(
+        self,
+        bigEndian,
+        sID,
+        tactID,
+        pktID,
+        oid,
+        description,
+        context=None,
+    ):
+        AgentXPDU.__init__(
+            self,
+            PDU_ADD_AGENT_CAPS,
+            bigEndian,
+            sID,
+            tactID,
+            pktID,
+            True,
+            context,
+        )
         self.oid = classifyOID(oid)
         self.description = description
 
@@ -629,10 +983,18 @@ class AddAgentCapsPDU(AgentXPDU):
         contextP, payload = encode_context(self.bigEndian, self.context)
         payload += self.oid.encode(self.bigEndian)
         payload += encode_octetstr(self.bigEndian, self.description)
-        header = encode_pduheader(self.pduType, False, False, False,
-                                  contextP, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            contextP,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         return header + payload
 
 
@@ -640,16 +1002,31 @@ def decode_RMAgentCapsPDU(data, header):
     flags = header["flags"]
     context, data = decode_context(data, header)
     oid, data = decode_OID(data, header)
-    result = RMAgentCapsPDU(flags["bigEndian"], header["session_id"],
-                            header["transaction_id"], header["packet_id"],
-                            oid, context)
+    result = RMAgentCapsPDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+        oid,
+        context,
+    )
     return result
 
 
 class RMAgentCapsPDU(AgentXPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID, oid, context=None):
-        AgentXPDU.__init__(self, PDU_RM_AGENT_CAPS,
-                           bigEndian, sID, tactID, pktID, True, context)
+    def __init__(
+        self, bigEndian, sID, tactID, pktID, oid, context=None
+    ):
+        AgentXPDU.__init__(
+            self,
+            PDU_RM_AGENT_CAPS,
+            bigEndian,
+            sID,
+            tactID,
+            pktID,
+            True,
+            context,
+        )
         self.oid = classifyOID(oid)
 
     def __eq__(self, other):
@@ -662,10 +1039,18 @@ class RMAgentCapsPDU(AgentXPDU):
     def encode(self):
         contextP, payload = encode_context(self.bigEndian, self.context)
         payload += self.oid.encode(self.bigEndian)
-        header = encode_pduheader(self.pduType, False, False, False,
-                                  contextP, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            contextP,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         return header + payload
 
 
@@ -673,22 +1058,41 @@ def decode_ResponsePDU(data, header):
     flags = header["flags"]
     endianToken = getendian(flags["bigEndian"])
     temp, data = slicedata(data, 8)
-    sysUptime, resError, resIndex = struct.unpack(endianToken + "IHH",
-                                                  ntp.poly.polybytes(temp))
+    sysUptime, resError, resIndex = struct.unpack(
+        endianToken + "IHH", ntp.poly.polybytes(temp)
+    )
     if data:
         varbinds = decode_varbindlist(data, header)
     else:
         varbinds = None
-    result = ResponsePDU(flags["bigEndian"], header["session_id"],
-                         header["transaction_id"], header["packet_id"],
-                         sysUptime, resError, resIndex, varbinds)
+    result = ResponsePDU(
+        flags["bigEndian"],
+        header["session_id"],
+        header["transaction_id"],
+        header["packet_id"],
+        sysUptime,
+        resError,
+        resIndex,
+        varbinds,
+    )
     return result
 
 
 class ResponsePDU(AgentXPDU):
-    def __init__(self, bigEndian, sID, tactID, pktID,
-                 sysUptime, resError, resIndex, varbinds=None):
-        AgentXPDU.__init__(self, PDU_RESPONSE, bigEndian, sID, tactID, pktID)
+    def __init__(
+        self,
+        bigEndian,
+        sID,
+        tactID,
+        pktID,
+        sysUptime,
+        resError,
+        resIndex,
+        varbinds=None,
+    ):
+        AgentXPDU.__init__(
+            self, PDU_RESPONSE, bigEndian, sID, tactID, pktID
+        )
         self.sysUptime = sysUptime
         self.resError = resError
         self.resIndex = resIndex
@@ -709,14 +1113,26 @@ class ResponsePDU(AgentXPDU):
 
     def encode(self):
         endianToken = getendian(self.bigEndian)
-        payload = struct.pack(endianToken + "IHH", self.sysUptime,
-                              self.resError, self.resIndex)
+        payload = struct.pack(
+            endianToken + "IHH",
+            self.sysUptime,
+            self.resError,
+            self.resIndex,
+        )
         if self.varbinds is not None:
             payload += encode_varbindlist(self.bigEndian, self.varbinds)
-        header = encode_pduheader(self.pduType,
-                                  False, False, False, False, self.bigEndian,
-                                  self.sessionID, self.transactionID,
-                                  self.packetID, len(payload))
+        header = encode_pduheader(
+            self.pduType,
+            False,
+            False,
+            False,
+            False,
+            self.bigEndian,
+            self.sessionID,
+            self.transactionID,
+            self.packetID,
+            len(payload),
+        )
         return header + payload
 
 
@@ -742,7 +1158,9 @@ def decode_OID(data, header):
     flags = header["flags"]
     # Need to split off the header to get the subid count
     header, data = slicedata(data, 4)
-    n_subid, prefix, include = struct.unpack("BBBx", ntp.poly.polybytes(header))
+    n_subid, prefix, include = struct.unpack(
+        "BBBx", ntp.poly.polybytes(header)
+    )
     if prefix != 0:
         subids = internetPrefix + (prefix,)
     else:
@@ -837,12 +1255,18 @@ class OID:
     def encode(self, bigEndian):
         subids = self.subids[:]  # we may need to modify the copy
         numsubs = len(subids)
-        if not (0 <= numsubs <= 128):  # OIDs can have a maximum of 128 subs
+        if not (
+            0 <= numsubs <= 128
+        ):  # OIDs can have a maximum of 128 subs
             raise ValueError("OID has too many subids")
         if subids[:prefixCount] == internetPrefix:
             if numsubs > prefixCount:
-                prefix = subids[prefixCount]  # the number after the prefix
-                subids = subids[prefixCount + 1:]  # +1 to strip prefix arg
+                prefix = subids[
+                    prefixCount
+                ]  # the number after the prefix
+                subids = subids[
+                    prefixCount + 1 :
+                ]  # +1 to strip prefix arg
             else:  # Have a prefix but nothing else, leave it as is.
                 prefix = 0
         else:
@@ -850,7 +1274,9 @@ class OID:
         n_subid = len(subids)
         include = int(bool(self.include))  # force integer bool
         endianToken = getendian(bigEndian)
-        body = struct.pack(endianToken + "BBBx", n_subid, prefix, include)
+        body = struct.pack(
+            endianToken + "BBBx", n_subid, prefix, include
+        )
         for subid in subids:
             body += struct.pack(endianToken + "I", subid)
         return body
@@ -860,7 +1286,7 @@ def encode_octetstr(bigEndian, octets):
     numoctets = len(octets)
     endianToken = getendian(bigEndian)
     header = struct.pack(endianToken + "I", numoctets)
-    pad = (numoctets % 4)
+    pad = numoctets % 4
     if pad > 0:  # Pad out the data to word boundary
         pad = 4 - pad
     pad = b"\x00" * pad
@@ -878,13 +1304,15 @@ def decode_octetstr(data, header):
     flags = header["flags"]
     header, data = slicedata(data, 4)
     endianToken = getendian(flags["bigEndian"])
-    numoctets = struct.unpack(endianToken + "I", ntp.poly.polybytes(header))[0]
+    numoctets = struct.unpack(
+        endianToken + "I", ntp.poly.polybytes(header)
+    )[0]
     if len(data) < numoctets:
         raise ValueError("Octet string shorter than length")
     pad = numoctets % 4
     if pad > 0:  # Pad out the data to word boundary
         pad = 4 - pad
-    return ntp.poly.polystr(data[:numoctets]), data[numoctets + pad:]
+    return ntp.poly.polystr(data[:numoctets]), data[numoctets + pad :]
 
 
 def sanity_octetstr(data):
@@ -902,8 +1330,9 @@ def decode_Varbind(data, header):
     flags = header["flags"]
     bindheader, data = slicedata(data, 4)
     endianToken = getendian(flags["bigEndian"])
-    valType = struct.unpack(endianToken + "Hxx",
-                            ntp.poly.polybytes(bindheader))[0]
+    valType = struct.unpack(
+        endianToken + "Hxx", ntp.poly.polybytes(bindheader)
+    )[0]
     name, data = decode_OID(data, header)
     if valType not in definedValueTypes.keys():
         raise ValueError("Value type %s not in defined types" % valType)
@@ -934,7 +1363,11 @@ class Varbind:
 
     def __repr__(self):
         fmt = "Varbind(vtype=%s, oid=%s, payload=%s)"
-        r = fmt % (repr(self.valueType), repr(self.oid), repr(self.payload))
+        r = fmt % (
+            repr(self.valueType),
+            repr(self.oid),
+            repr(self.payload),
+        )
         return r
 
     def sanity(self):
@@ -1133,9 +1566,13 @@ def encode_flagbyte(flags):
 
 
 def decode_flagbyte(flags):
-    flagDict = makeflags(bool(flags & 0x1), bool(flags & 0x2),
-                         bool(flags & 0x4), bool(flags & 0x8),
-                         bool(flags & 0x10))
+    flagDict = makeflags(
+        bool(flags & 0x1),
+        bool(flags & 0x2),
+        bool(flags & 0x4),
+        bool(flags & 0x8),
+        bool(flags & 0x10),
+    )
     return flagDict
 
 
@@ -1145,20 +1582,31 @@ def decode_flagbyte(flags):
 
 
 def makeflags(iR, nI, aI, cP, bE):
-    return {"instReg": iR,
-            "newIndex": nI,
-            "anyIndex": aI,
-            "contextP": cP,
-            "bigEndian": bE}
+    return {
+        "instReg": iR,
+        "newIndex": nI,
+        "anyIndex": aI,
+        "contextP": cP,
+        "bigEndian": bE,
+    }
 
 
 def getendian(bigEndian):
     return ">" if bigEndian else "<"
 
 
-def encode_pduheader(pduType, instanceRegistration, newIndex,
-                     anyIndex, nonDefaultContext, bigEndian,
-                     sessionID, transactionID, packetID, payloadLength):
+def encode_pduheader(
+    pduType,
+    instanceRegistration,
+    newIndex,
+    anyIndex,
+    nonDefaultContext,
+    bigEndian,
+    sessionID,
+    transactionID,
+    packetID,
+    payloadLength,
+):
     # version type flags reserved
     # sessionID
     # transactionID
@@ -1166,32 +1614,55 @@ def encode_pduheader(pduType, instanceRegistration, newIndex,
     # payload_length
     if pduType not in definedPDUTypes:
         raise ValueError("PDU type %s not in defined types" % pduType)
-    flags = encode_flagbyte(makeflags(instanceRegistration, newIndex,
-                                      anyIndex, nonDefaultContext,
-                                      bigEndian))
+    flags = encode_flagbyte(
+        makeflags(
+            instanceRegistration,
+            newIndex,
+            anyIndex,
+            nonDefaultContext,
+            bigEndian,
+        )
+    )
     # Yes, this is a kluge, it is less problematic then the next best kluge
     endianToken = getendian(bigEndian)
-    data = struct.pack(endianToken + "BBBxIIII", 1, pduType, flags,
-                       sessionID, transactionID,
-                       packetID, payloadLength)
+    data = struct.pack(
+        endianToken + "BBBxIIII",
+        1,
+        pduType,
+        flags,
+        sessionID,
+        transactionID,
+        packetID,
+        payloadLength,
+    )
     return data
 
 
-def decode_pduheader(data):  # Endianness is controlled from the PDU header
+def decode_pduheader(
+    data,
+):  # Endianness is controlled from the PDU header
     lineone, data = slicedata(data, 4)
-    version, pduType, flags = struct.unpack(">BBBx",
-                                            ntp.poly.polybytes(lineone))
+    version, pduType, flags = struct.unpack(
+        ">BBBx", ntp.poly.polybytes(lineone)
+    )
     # Slice up the flags
     flagDict = decode_flagbyte(flags)
     # Chop the remaining parts of the header from the rest of the datastream
     # then parse them
     fmt = getendian(flagDict["bigEndian"]) + "IIII"
     linen, data = slicedata(data, 16)  # 4 x 4-byte variables
-    sID, tactionID, pktID, dataLen = struct.unpack(fmt,
-                                                   ntp.poly.polybytes(linen))
-    result = {"version": version, "type": pduType, "flags": flagDict,
-              "session_id": sID, "transaction_id": tactionID,
-              "packet_id": pktID, "length": dataLen}
+    sID, tactionID, pktID, dataLen = struct.unpack(
+        fmt, ntp.poly.polybytes(linen)
+    )
+    result = {
+        "version": version,
+        "type": pduType,
+        "flags": flagDict,
+        "session_id": sID,
+        "transaction_id": tactionID,
+        "packet_id": pktID,
+        "length": dataLen,
+    }
     return result
 
 
@@ -1223,18 +1694,27 @@ def decode_packet(data):
         return None, False, data  # pkt, isFull?, buffer
     packetSlice, newData = slicedata(newData, header["length"])
     if header["version"] != 1:
-        raise ParseVersionError("Unknown packet version %i" %
-                                header["version"],
-                                header, packetSlice, newData)
+        raise ParseVersionError(
+            "Unknown packet version %i" % header["version"],
+            header,
+            packetSlice,
+            newData,
+        )
     pktType = header["type"]
     if pktType not in definedPDUTypes.keys():
-        raise ParsePDUTypeError("PDU type %s not in defined types" % pktType,
-                                header, packetSlice, newData)
+        raise ParsePDUTypeError(
+            "PDU type %s not in defined types" % pktType,
+            header,
+            packetSlice,
+            newData,
+        )
     decoder = definedPDUTypes[pktType]
     try:
         parsedPkt = decoder(packetSlice, header)
     except Exception:  # pragma: no cover
-        err = ParseError("Body parsing error", header, packetSlice, newData)
+        err = ParseError(
+            "Body parsing error", header, packetSlice, newData
+        )
         raise err
     return parsedPkt, True, newData  # pkt, isFull?, buffer
 
@@ -1243,15 +1723,27 @@ def bits2Bools(bitString, cropLength=None):
     bits = []
     for octet in bitString:
         octet = ord(octet)
-        bits.append(bool(octet & 0x80))  # Yes, these are backwards, that is
-        bits.append(bool(octet & 0x40))  # how SNMP wants them. It does make
-        bits.append(bool(octet & 0x20))  # sense if you think about it as a
-        bits.append(bool(octet & 0x10))  # stream of bits instead of octets.
+        bits.append(
+            bool(octet & 0x80)
+        )  # Yes, these are backwards, that is
+        bits.append(
+            bool(octet & 0x40)
+        )  # how SNMP wants them. It does make
+        bits.append(
+            bool(octet & 0x20)
+        )  # sense if you think about it as a
+        bits.append(
+            bool(octet & 0x10)
+        )  # stream of bits instead of octets.
         bits.append(bool(octet & 0x08))
-        bits.append(bool(octet & 0x04))  # If you don't like it go yell at
+        bits.append(
+            bool(octet & 0x04)
+        )  # If you don't like it go yell at
         bits.append(bool(octet & 0x02))  # the SNMP designers.
         bits.append(bool(octet & 0x01))
-    if cropLength is not None:  # used when a bitfield is not a multiple of 8
+    if (
+        cropLength is not None
+    ):  # used when a bitfield is not a multiple of 8
         bits = bits[:cropLength]
     return bits
 
@@ -1261,7 +1753,7 @@ def bools2Bits(bits):
     octets = []
     current = 0
     for bit in bits:
-        current += (int(bit) << (7 - bitCounter))
+        current += int(bit) << (7 - bitCounter)
         bitCounter += 1
         if bitCounter >= 8:  # end of byte
             bitCounter = 0
@@ -1292,43 +1784,56 @@ VALUE_END_OF_MIB_VIEW = 130
 # if the sanityChecker is None it means the data type is held in
 # a class, which has it's own .sanity() method
 definedValueTypes = {  # Used by the varbind functions
-    VALUE_INTEGER: (sanity_integer32,
-                    encode_integer32,
-                    decode_integer32),
-    VALUE_OCTET_STR: (sanity_octetstr,
-                      encode_octetstr,
-                      decode_octetstr),
-    VALUE_NULL: (sanity_nullvalue,
-                 encode_nullvalue,
-                 decode_nullvalue),
+    VALUE_INTEGER: (
+        sanity_integer32,
+        encode_integer32,
+        decode_integer32,
+    ),
+    VALUE_OCTET_STR: (
+        sanity_octetstr,
+        encode_octetstr,
+        decode_octetstr,
+    ),
+    VALUE_NULL: (sanity_nullvalue, encode_nullvalue, decode_nullvalue),
     VALUE_OID: (None, OID, decode_OID),
-    VALUE_IP_ADDR: (sanity_ipaddr,
-                    encode_ipaddr,
-                    decode_ipaddr),
-    VALUE_COUNTER32: (sanity_unsigned32,
-                      encode_unsigned32,
-                      decode_unsigned32),
-    VALUE_GAUGE32: (sanity_unsigned32,
-                    encode_unsigned32,
-                    decode_unsigned32),
-    VALUE_TIME_TICKS: (sanity_unsigned32,
-                       encode_unsigned32,
-                       decode_unsigned32),
-    VALUE_OPAQUE: (sanity_octetstr,
-                   encode_octetstr,
-                   decode_octetstr),
-    VALUE_COUNTER64: (sanity_integer64,
-                      encode_integer64,
-                      decode_integer64),
-    VALUE_NO_SUCH_OBJECT: (sanity_nullvalue,
-                           encode_nullvalue,
-                           decode_nullvalue),
-    VALUE_NO_SUCH_INSTANCE: (sanity_nullvalue,
-                             encode_nullvalue,
-                             decode_nullvalue),
-    VALUE_END_OF_MIB_VIEW: (sanity_nullvalue,
-                            encode_nullvalue,
-                            decode_nullvalue)}
+    VALUE_IP_ADDR: (sanity_ipaddr, encode_ipaddr, decode_ipaddr),
+    VALUE_COUNTER32: (
+        sanity_unsigned32,
+        encode_unsigned32,
+        decode_unsigned32,
+    ),
+    VALUE_GAUGE32: (
+        sanity_unsigned32,
+        encode_unsigned32,
+        decode_unsigned32,
+    ),
+    VALUE_TIME_TICKS: (
+        sanity_unsigned32,
+        encode_unsigned32,
+        decode_unsigned32,
+    ),
+    VALUE_OPAQUE: (sanity_octetstr, encode_octetstr, decode_octetstr),
+    VALUE_COUNTER64: (
+        sanity_integer64,
+        encode_integer64,
+        decode_integer64,
+    ),
+    VALUE_NO_SUCH_OBJECT: (
+        sanity_nullvalue,
+        encode_nullvalue,
+        decode_nullvalue,
+    ),
+    VALUE_NO_SUCH_INSTANCE: (
+        sanity_nullvalue,
+        encode_nullvalue,
+        decode_nullvalue,
+    ),
+    VALUE_END_OF_MIB_VIEW: (
+        sanity_nullvalue,
+        encode_nullvalue,
+        decode_nullvalue,
+    ),
+}
 
 # PDU types
 PDU_OPEN = 1
@@ -1367,7 +1872,8 @@ definedPDUTypes = {  # Used by the decode_packet function
     PDU_INDEX_DEALLOC: decode_xIndexAllocPDU,
     PDU_ADD_AGENT_CAPS: decode_AddAgentCapsPDU,
     PDU_RM_AGENT_CAPS: decode_RMAgentCapsPDU,
-    PDU_RESPONSE: decode_ResponsePDU}
+    PDU_RESPONSE: decode_ResponsePDU,
+}
 
 # Closing reasons
 RSN_OTHER = 1
@@ -1376,8 +1882,14 @@ RSN_PROTOCOL_ERROR = 3
 RSN_TIMEOUT = 4
 RSN_SHUTDOWN = 5
 RSN_BY_MANAGER = 6
-definedReasons = (RSN_OTHER, RSN_PARSE_ERROR, RSN_PROTOCOL_ERROR,
-                  RSN_TIMEOUT, RSN_SHUTDOWN, RSN_BY_MANAGER)
+definedReasons = (
+    RSN_OTHER,
+    RSN_PARSE_ERROR,
+    RSN_PROTOCOL_ERROR,
+    RSN_TIMEOUT,
+    RSN_SHUTDOWN,
+    RSN_BY_MANAGER,
+)
 
 # Error reasons
 ERR_NOERROR = 0
@@ -1394,11 +1906,20 @@ ERR_COMMIT_FAILED = 14
 ERR_UNDO_FAILED = 15
 ERR_NOT_WRITABLE = 17
 ERR_INCONSISTENT_NAME = 18
-definedErrors = (ERR_NOERROR, ERR_GENERR, ERR_NO_ACCESS, ERR_WRONG_TYPE,
-                 ERR_WRONG_LEN, ERR_WRONG_ENCODING, ERR_WRONG_VALUE,
-                 ERR_NO_CREATION, ERR_INCONSISTENT_VALUE,
-                 ERR_RESOURCE_UNAVAILABLE, ERR_NOT_WRITABLE,
-                 ERR_INCONSISTENT_NAME)
+definedErrors = (
+    ERR_NOERROR,
+    ERR_GENERR,
+    ERR_NO_ACCESS,
+    ERR_WRONG_TYPE,
+    ERR_WRONG_LEN,
+    ERR_WRONG_ENCODING,
+    ERR_WRONG_VALUE,
+    ERR_NO_CREATION,
+    ERR_INCONSISTENT_VALUE,
+    ERR_RESOURCE_UNAVAILABLE,
+    ERR_NOT_WRITABLE,
+    ERR_INCONSISTENT_NAME,
+)
 
 RSPERR_NO_AGENTX = 0
 RSPERR_OPEN_FAILED = 265
@@ -1414,10 +1935,19 @@ RSPERR_UNKNOWN_AGENT_CAPS = 265
 RSPERR_PARSE_ERROR = 266
 RSPERR_REQUEST_DENIED = 267
 RSPERR_PROCESSING_ERROR = 268
-responseErrors = (RSPERR_NO_AGENTX, RSPERR_OPEN_FAILED, RSPERR_NOT_OPEN,
-                  RSPERR_INDEX_WRONG_TYPE, RSPERR_INDEX_ALREADY_ALLOCATED,
-                  RSPERR_INDEX_NONE_AVAILABLE, RSPERR_INDEX_NOT_ALLOCATED,
-                  RSPERR_UNSUPPORTED_CONTEXT, RSPERR_DUPLICATE_REGISTRATION,
-                  RSPERR_UNKNOWN_REGISTRATION, RSPERR_UNKNOWN_AGENT_CAPS,
-                  RSPERR_PARSE_ERROR, RSPERR_REQUEST_DENIED,
-                  RSPERR_PROCESSING_ERROR)
+responseErrors = (
+    RSPERR_NO_AGENTX,
+    RSPERR_OPEN_FAILED,
+    RSPERR_NOT_OPEN,
+    RSPERR_INDEX_WRONG_TYPE,
+    RSPERR_INDEX_ALREADY_ALLOCATED,
+    RSPERR_INDEX_NONE_AVAILABLE,
+    RSPERR_INDEX_NOT_ALLOCATED,
+    RSPERR_UNSUPPORTED_CONTEXT,
+    RSPERR_DUPLICATE_REGISTRATION,
+    RSPERR_UNKNOWN_REGISTRATION,
+    RSPERR_UNKNOWN_AGENT_CAPS,
+    RSPERR_PARSE_ERROR,
+    RSPERR_REQUEST_DENIED,
+    RSPERR_PROCESSING_ERROR,
+)

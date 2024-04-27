@@ -21,17 +21,17 @@ class TestPylibUtilMethods(unittest.TestCase):
     def test_deunicode_units(self):
         u = ntp.util
 
-        self.assertEqual(u.UNIT_US, u"µs")
-        self.assertEqual(u.UNIT_PPK, u"‰")
-        self.assertEqual(u.UNITS_SEC, ["ns",  u"µs", "ms", "s", "ks"])
-        self.assertEqual(u.UNITS_PPX, ["ppt", "ppb", "ppm", u"‰"])
+        self.assertEqual(u.UNIT_US, "µs")
+        self.assertEqual(u.UNIT_PPK, "‰")
+        self.assertEqual(u.UNITS_SEC, ["ns", "µs", "ms", "s", "ks"])
+        self.assertEqual(u.UNITS_PPX, ["ppt", "ppb", "ppm", "‰"])
         u.deunicode_units()
         self.assertEqual(u.UNIT_US, "us")
         self.assertEqual(u.UNIT_PPK, "ppk")
-        self.assertEqual(u.UNITS_SEC, ["ns",  "us", "ms", "s", "ks"])
+        self.assertEqual(u.UNITS_SEC, ["ns", "us", "ms", "s", "ks"])
         self.assertEqual(u.UNITS_PPX, ["ppt", "ppb", "ppm", "ppk"])
-        u.UNIT_US = u"µs"
-        u.UNIT_PPK = u"‰"
+        u.UNIT_US = "µs"
+        u.UNIT_PPK = "‰"
         u.UNITS_SEC[1] = u.UNIT_US
         u.UNITS_PPX[3] = u.UNIT_PPK
 
@@ -53,6 +53,7 @@ class TestPylibUtilMethods(unittest.TestCase):
 
             def flush(self):
                 self.flushed = True
+
         try:
             timetemp = ntp.util.time
             ntp.util.time = faketimemod
@@ -66,8 +67,10 @@ class TestPylibUtilMethods(unittest.TestCase):
             # Test with logging on, above threshold
             jig.__init__()  # reset
             f(jig, "blah", 4, 3)
-            self.assertEqual((jig.written, jig.flushed),
-                             ("1970-01-01T00:00:01Z blah\n", True))
+            self.assertEqual(
+                (jig.written, jig.flushed),
+                ("1970-01-01T00:00:01Z blah\n", True),
+            )
         finally:
             ntp.util.time = timetemp
 
@@ -79,12 +82,14 @@ class TestPylibUtilMethods(unittest.TestCase):
             errtemp = sys.stderr
             sys.stderr = errjig
             # Test successful int
-            self.assertEqual(f("42", int, "blah %s", "\nDo the needful\n"), 42)
+            self.assertEqual(
+                f("42", int, "blah %s", "\nDo the needful\n"), 42
+            )
             self.assertEqual(errjig.data, [])
             # Test successful float
-            self.assertAlmostEqual(f("5.23", float, "blah %s",
-                                     "\nDo the needful\n"),
-                                   5.23)
+            self.assertAlmostEqual(
+                f("5.23", float, "blah %s", "\nDo the needful\n"), 5.23
+            )
             self.assertEqual(errjig.data, [])
             # Test failure
             try:
@@ -93,7 +98,9 @@ class TestPylibUtilMethods(unittest.TestCase):
             except SystemExit:
                 errored = True
             self.assertEqual(errored, True)
-            self.assertEqual(errjig.data, ["blah 23.5", "\nDo the needful\n"])
+            self.assertEqual(
+                errjig.data, ["blah 23.5", "\nDo the needful\n"]
+            )
         finally:
             sys.stderr = errtemp
 
@@ -106,25 +113,29 @@ class TestPylibUtilMethods(unittest.TestCase):
     def test_rfc3339(self):
         f = ntp.util.rfc3339
 
-        self.assertEqual(f(1480999786),
-                         '2016-12-06T04:49:46Z')
-        self.assertEqual(f(1480999786.5),
-                         '2016-12-06T04:49:46.5Z')
+        self.assertEqual(f(1480999786), "2016-12-06T04:49:46Z")
+        self.assertEqual(f(1480999786.5), "2016-12-06T04:49:46.5Z")
         # RFC 3339, 2 digits of seconds.
         # we round, but the spec is silent on rounding
         # Python 2 and 3 round differently
         if sys.version_info[0] < 3:
-            self.assertEqual(f(1480999786.025), "2016-12-06T04:49:46.03Z")
+            self.assertEqual(
+                f(1480999786.025), "2016-12-06T04:49:46.03Z"
+            )
         else:
-            self.assertEqual(f(1480999786.025), "2016-12-06T04:49:46.025Z")
+            self.assertEqual(
+                f(1480999786.025), "2016-12-06T04:49:46.025Z"
+            )
 
     def test_deformatNTPTime(self):
         f = ntp.util.deformatNTPTime
 
         # Test standard
-        self.assertEqual(f("0x0001020304050607.08090A0B0C0D0E0F"),
-                         "\x00\x01\x02\x03\x04\x05\x06\x07"
-                         "\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F")
+        self.assertEqual(
+            f("0x0001020304050607.08090A0B0C0D0E0F"),
+            "\x00\x01\x02\x03\x04\x05\x06\x07"
+            "\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F",
+        )
         # Test empty
         self.assertEqual(f(""), "")
 
@@ -147,13 +158,19 @@ class TestPylibUtilMethods(unittest.TestCase):
         self.assertEqual(f("foobaz", -2), ("foob", "az"))
 
     def test_portsplit(self):
-        self.assertEqual(ntp.util.portsplit("host.invalid"),
-                         ("host.invalid", ""))
-        self.assertEqual(ntp.util.portsplit("host.invalid:123"),
-                         ("host.invalid", ":123"))
-        self.assertEqual(ntp.util.portsplit(
-            "[0000:1111:2222:3333:4444:5555:6666:7777]:123"),
-            ("0000:1111:2222:3333:4444:5555:6666:7777", ":123"))
+        self.assertEqual(
+            ntp.util.portsplit("host.invalid"), ("host.invalid", "")
+        )
+        self.assertEqual(
+            ntp.util.portsplit("host.invalid:123"),
+            ("host.invalid", ":123"),
+        )
+        self.assertEqual(
+            ntp.util.portsplit(
+                "[0000:1111:2222:3333:4444:5555:6666:7777]:123"
+            ),
+            ("0000:1111:2222:3333:4444:5555:6666:7777", ":123"),
+        )
 
     def test_parseConf(self):
         data = """foo bar 42 #blah blah blah
@@ -161,16 +178,22 @@ class TestPylibUtilMethods(unittest.TestCase):
         "\\"\\n\\\\foo\\c" \\
         poi! """
         parsed = ntp.util.parseConf(data)
-        self.assertEqual(parsed,
-                         [[(False, "foo"), (False, "bar"), (False, 42)],
-                          [(True, "abcd"), (False, "poi?"), (False, 3.14)],
-                          [(True, "\"\n\\foo"), (False, "poi!")]])
+        self.assertEqual(
+            parsed,
+            [
+                [(False, "foo"), (False, "bar"), (False, 42)],
+                [(True, "abcd"), (False, "poi?"), (False, 3.14)],
+                [(True, '"\n\\foo'), (False, "poi!")],
+            ],
+        )
 
     def test_stringfilt(self):
         f = ntp.util.stringfilt
 
-        self.assertEqual(f("1.2345 2.3456 3.4567 4.5678 5.6789 6.789"),
-                         " 1.2345  2.3456  3.4567  4.5678  5.6789   6.789")
+        self.assertEqual(
+            f("1.2345 2.3456 3.4567 4.5678 5.6789 6.789"),
+            " 1.2345  2.3456  3.4567  4.5678  5.6789   6.789",
+        )
 
     def test_oomsbetweenunits(self):
         f = ntp.util.oomsbetweenunits
@@ -191,9 +214,13 @@ class TestPylibUtilMethods(unittest.TestCase):
         # Ditto, negative
         self.assertEqual(f("-1.23450"), ("-1.23450", 0))
         # Long, positive value, no scaling
-        self.assertEqual(f("1.234567890123456"), ("1.234567890123456", 0))
+        self.assertEqual(
+            f("1.234567890123456"), ("1.234567890123456", 0)
+        )
         # ditto, negative
-        self.assertEqual(f("-1.234567890123456"), ("-1.234567890123456", 0))
+        self.assertEqual(
+            f("-1.234567890123456"), ("-1.234567890123456", 0)
+        )
         # Zero
         self.assertEqual(f("0.000000"), ("0", -2))
         # Zero with point
@@ -213,14 +240,17 @@ class TestPylibUtilMethods(unittest.TestCase):
         # ditto, negative
         self.assertEqual(f("-0.1234567890"), ("-123.4567890", -1))
         # Bizarre 1
-        self.assertEqual(f("-000.000012345678900987654321"),
-                         ("-12.345678900987654321", -2))
+        self.assertEqual(
+            f("-000.000012345678900987654321"),
+            ("-12.345678900987654321", -2),
+        )
         # Bizarre 2
-        self.assertEqual(f("1234567890987654321000.00000000000042"),
-                         ("1.23456789098765432100000000000000042", 7))
+        self.assertEqual(
+            f("1234567890987654321000.00000000000042"),
+            ("1.23456789098765432100000000000000042", 7),
+        )
         # Bizarre 3
-        self.assertEqual(f("00000000.000000000000"),
-                         ("0", -4))
+        self.assertEqual(f("00000000.000000000000"), ("0", -4))
 
     def test_rescalestring(self):
         f = ntp.util.rescalestring
@@ -325,9 +355,11 @@ class TestPylibUtilMethods(unittest.TestCase):
         nu = ntp.util
 
         # Zero
-        self.assertEqual(f("0.000", nu.UNIT_MS), u"     0µs")
+        self.assertEqual(f("0.000", nu.UNIT_MS), "     0µs")
         # Zero, spaced
-        self.assertEqual(f("0.000", nu.UNIT_MS, unitSpace=True), u"    0 µs")
+        self.assertEqual(
+            f("0.000", nu.UNIT_MS, unitSpace=True), "    0 µs"
+        )
         # Standard, width=8
         self.assertEqual(f("1.234", nu.UNIT_MS), " 1.234ms")
         # ditto, negative
@@ -337,9 +369,9 @@ class TestPylibUtilMethods(unittest.TestCase):
         # ditto, negative
         self.assertEqual(f("-1234.5", nu.UNIT_MS), "-1.2345s")
         # Scale to smaller unit, width=8
-        self.assertEqual(f("0.01234", nu.UNIT_MS), u" 12.34µs")
+        self.assertEqual(f("0.01234", nu.UNIT_MS), " 12.34µs")
         # ditto, negative
-        self.assertEqual(f("-0.01234", nu.UNIT_MS), u"-12.34µs")
+        self.assertEqual(f("-0.01234", nu.UNIT_MS), "-12.34µs")
         # At baseunit
         self.assertEqual(f("12.0", nu.UNIT_NS), "    12ns")
         # Scale to baseunit
@@ -351,42 +383,59 @@ class TestPylibUtilMethods(unittest.TestCase):
         # Strip
         self.assertEqual(f("1.23", nu.UNIT_MS, width=None), "1.23ms")
         # Different width
-        self.assertEqual(f("1.234", nu.UNIT_MS, width=12), "     1.234ms")
+        self.assertEqual(
+            f("1.234", nu.UNIT_MS, width=12), "     1.234ms"
+        )
         # Outside of available units
         self.assertEqual(f("1234.5", nu.UNIT_KS), "1234.5ks")
         # Seconds
         self.assertEqual(f("42.23", nu.UNIT_S), "  42.23s")
         # Attempt to catch bug
-        self.assertEqual(f("15937.5", nu.UNIT_MS, width=None), "15.9375s")
+        self.assertEqual(
+            f("15937.5", nu.UNIT_MS, width=None), "15.9375s"
+        )
 
     def test_stringfiltcooker(self):
         # No scale
-        self.assertEqual(ntp.util.stringfiltcooker(
-            "1.02 34.5 0.67835 -23.0 9 6.7 1.00 .1"),
+        self.assertEqual(
+            ntp.util.stringfiltcooker(
+                "1.02 34.5 0.67835 -23.0 9 6.7 1.00 .1"
+            ),
             "   1.02    34.5 0.67835   -23.0       9     6.7    1.00     "
-            "0.1 ms"
+            "0.1 ms",
         )
         # Scale to larger unit
-        self.assertEqual(ntp.util.stringfiltcooker(
-            "1000.02 3400.5 0.67835 -23.0 9001 6.7 1.00 1234"),
+        self.assertEqual(
+            ntp.util.stringfiltcooker(
+                "1000.02 3400.5 0.67835 -23.0 9001 6.7 1.00 1234"
+            ),
             "1.00002  3.4005 0.00068 -0.0230   9.001  0.0067 0.00100   "
-            "1.234 s"
+            "1.234 s",
         )
         # Scale to smaller unit
-        self.assertEqual(ntp.util.stringfiltcooker(
-            "0.470 0.420 0.430 0.500 0.460 0.4200 0.490 0.480"),
-            u"    470     420     430     500     460   420.0     490     "
-            u"480 µs")
+        self.assertEqual(
+            ntp.util.stringfiltcooker(
+                "0.470 0.420 0.430 0.500 0.460 0.4200 0.490 0.480"
+            ),
+            "    470     420     430     500     460   420.0     490     "
+            "480 µs",
+        )
         # Can't scale
-        self.assertEqual(ntp.util.stringfiltcooker(
-            "0.47 0.42 0.43 0.50 0.46 0.42 0.49 0.48"),
+        self.assertEqual(
+            ntp.util.stringfiltcooker(
+                "0.47 0.42 0.43 0.50 0.46 0.42 0.49 0.48"
+            ),
             "   0.47    0.42    0.43    0.50    0.46    0.42    0.49    "
-            "0.48 ms")
+            "0.48 ms",
+        )
         # Can't scale, only one value blocking
-        self.assertEqual(ntp.util.stringfiltcooker(
-            "0.47 0.4200 0.4300 0.5000 0.4600 0.4200 0.4900 0.4800"),
+        self.assertEqual(
+            ntp.util.stringfiltcooker(
+                "0.47 0.4200 0.4300 0.5000 0.4600 0.4200 0.4900 0.4800"
+            ),
             "   0.47  0.4200  0.4300  0.5000  0.4600  0.4200  0.4900  "
-            "0.4800 ms")
+            "0.4800 ms",
+        )
 
     def test_unitrelativeto(self):
         f = ntp.util.unitrelativeto
@@ -504,8 +553,9 @@ class TestPylibUtilMethods(unittest.TestCase):
             monodata = [5, 10, 315, 20]
             cls.set("foo", 42)
             cls.set("bar", 23)
-            self.assertEqual(cls._cache, {"foo": (42, 5, 300),
-                                          "bar": (23, 10, 300)})
+            self.assertEqual(
+                cls._cache, {"foo": (42, 5, 300), "bar": (23, 10, 300)}
+            )
             self.assertEqual(monodata, [315, 20])
             # Test get, expired
             result = cls.get("foo")
@@ -521,8 +571,9 @@ class TestPylibUtilMethods(unittest.TestCase):
             monodata = [0, 0, 11, 15]
             cls.set("foo", 42, 10)
             cls.set("bar", 23, 20)
-            self.assertEqual(cls._cache, {"foo": (42, 0, 10),
-                                          "bar": (23, 0, 20)})
+            self.assertEqual(
+                cls._cache, {"foo": (42, 0, 10), "bar": (23, 0, 20)}
+            )
             self.assertEqual(monodata, [11, 15])
             # Test get, expired, custom TTL
             result = cls.get("foo")
@@ -555,32 +606,43 @@ class TestPylibUtilMethods(unittest.TestCase):
             fakesockmod.__init__()
             fakesockmod.gai_error_count = 1
             self.assertEqual(f("nothing"), "DNSFAIL:nothing")
-            self.assertEqual(fakesockmod.gai_calls,
-                             [("nothing", None, 0, 0, 0,
-                               socket.AI_CANONNAME)])
+            self.assertEqual(
+                fakesockmod.gai_calls,
+                [("nothing", None, 0, 0, 0, socket.AI_CANONNAME)],
+            )
             self.assertEqual(fakesockmod.gni_calls, [])
             # Test nameinfo fail
             fakesockmod.__init__()
             fakesockmod.gni_error_count = 1
             fakesockmod.gni_returns = [("www.Hastur.invalid", 42)]
-            fakesockmod.gai_returns = [(("family", "socktype", "proto",
-                                         "san.Hastur.invalid",
-                                         "42.23.%$.(#"),)]
+            fakesockmod.gai_returns = [
+                (
+                    (
+                        "family",
+                        "socktype",
+                        "proto",
+                        "san.Hastur.invalid",
+                        "42.23.%$.(#",
+                    ),
+                )
+            ]
             self.assertEqual(f("bar:42"), "san.hastur.invalid:42")
             # Test nameinfo fail, no canonname
             fakesockmod.__init__()
             mycache.__init__()
             fakesockmod.gni_error_count = 1
             fakesockmod.gni_returns = [("www.Hastur.invalid", 42)]
-            fakesockmod.gai_returns = [(("family", "socktype", "proto",
-                                         None, "42.23.%$.(#"),)]
+            fakesockmod.gai_returns = [
+                (("family", "socktype", "proto", None, "42.23.%$.(#"),)
+            ]
             self.assertEqual(f("bar:42"), "bar:42")
             # Test success
             fakesockmod.__init__()
             mycache.__init__()
             fakesockmod.gni_returns = [("www.Hastur.invalid", 42)]
-            fakesockmod.gai_returns = [(("family", "socktype", "proto",
-                                         None, "42.23.%$.(#"),)]
+            fakesockmod.gai_returns = [
+                (("family", "socktype", "proto", None, "42.23.%$.(#"),)
+            ]
             self.assertEqual(f("bar:42"), "www.hastur.invalid:42")
         finally:
             ntp.util.canonicalization_cache = cachetemp
@@ -615,15 +677,24 @@ class TestPylibUtilMethods(unittest.TestCase):
                 # Python 2.x version
                 try:
                     import fcntl
+
                     fcntltemp = fcntl
                     ntp.util.fcntl = fakefcntlmod
                     fakeosmod.isatty_returns = [True]
                     data = ["\x11\x11\x22\x22\x33\x33\x44\x44"]
                     fakefcntlmod.ioctl_returns = data
                     self.assertEqual(f(), (0x2222, 0x1111))
-                    self.assertEqual(fakefcntlmod.ioctl_calls,
-                                     [(2, ntp.util.termios.TIOCGWINSZ,
-                                       "\0\0\0\0\0\0\0\0", False)])
+                    self.assertEqual(
+                        fakefcntlmod.ioctl_calls,
+                        [
+                            (
+                                2,
+                                ntp.util.termios.TIOCGWINSZ,
+                                "\0\0\0\0\0\0\0\0",
+                                False,
+                            )
+                        ],
+                    )
                 finally:
                     ntp.util.fcntl = fcntltemp
         finally:
@@ -651,9 +722,11 @@ class TestPylibUtilMethods(unittest.TestCase):
         self.assertEqual(cls.condition, "pps.peer")
         self.assertEqual(cls.last_event, "")
         # Test __str__ of max status
-        self.assertEqual(str(cls),
-                         "conf=yes, reach=none, auth=ok , "
-                         "cond=pps.peer, event= ec=15")
+        self.assertEqual(
+            str(cls),
+            "conf=yes, reach=none, auth=ok , "
+            "cond=pps.peer, event= ec=15",
+        )
         # Test third options
         cls = c(0x57FF)
         self.assertEqual(cls.event, 15)
@@ -732,151 +805,238 @@ class TestPylibUtilMethods(unittest.TestCase):
             # Test empty
             self.assertEqual(f(od()), "\n")
             # Test prettydates
-            data = od((("reftime",
-                        ("0x00000000.00000000", "0x00000000.00000000")),
-                       ("clock",
-                        ("0x10000000.00000000", "0x10000000.00000000")),
-                       ("org",
-                        ("0x20000000.00000000", "0x20000000.00000000")),
-                       ("rec",
-                        ("0x30000000.00000000", "0x30000000.00000000")),
-                       ("xmt",
-                        ("0x40000000.00000000", "0x40000000.00000000"))))
-            self.assertEqual(f(data),
-                   "reftime=00000000.00000000 2036-02-07T06:28:16.000Z,\n"
-                   "clock=10000000.00000000 2044-08-10T03:52:32.000Z,\n"
-                   "org=20000000.00000000 2053-02-11T01:16:48.000Z,\n"
-                   "rec=30000000.00000000 2061-08-14T22:41:04.000Z,\n"
-                   "xmt=40000000.00000000 2070-02-15T20:05:20.000Z\n")
+            data = od(
+                (
+                    (
+                        "reftime",
+                        ("0x00000000.00000000", "0x00000000.00000000"),
+                    ),
+                    (
+                        "clock",
+                        ("0x10000000.00000000", "0x10000000.00000000"),
+                    ),
+                    (
+                        "org",
+                        ("0x20000000.00000000", "0x20000000.00000000"),
+                    ),
+                    (
+                        "rec",
+                        ("0x30000000.00000000", "0x30000000.00000000"),
+                    ),
+                    (
+                        "xmt",
+                        ("0x40000000.00000000", "0x40000000.00000000"),
+                    ),
+                )
+            )
+            self.assertEqual(
+                f(data),
+                "reftime=00000000.00000000 2036-02-07T06:28:16.000Z,\n"
+                "clock=10000000.00000000 2044-08-10T03:52:32.000Z,\n"
+                "org=20000000.00000000 2053-02-11T01:16:48.000Z,\n"
+                "rec=30000000.00000000 2061-08-14T22:41:04.000Z,\n"
+                "xmt=40000000.00000000 2070-02-15T20:05:20.000Z\n",
+            )
             # Test prettydates, with units
-            self.assertEqual(f(data, showunits=True),
-                   "reftime=00000000.00000000 2036-02-07T06:28:16.000Z,\n"
-                   "clock=10000000.00000000 2044-08-10T03:52:32.000Z,\n"
-                   "org=20000000.00000000 2053-02-11T01:16:48.000Z,\n"
-                   "rec=30000000.00000000 2061-08-14T22:41:04.000Z,\n"
-                   "xmt=40000000.00000000 2070-02-15T20:05:20.000Z\n")
+            self.assertEqual(
+                f(data, showunits=True),
+                "reftime=00000000.00000000 2036-02-07T06:28:16.000Z,\n"
+                "clock=10000000.00000000 2044-08-10T03:52:32.000Z,\n"
+                "org=20000000.00000000 2053-02-11T01:16:48.000Z,\n"
+                "rec=30000000.00000000 2061-08-14T22:41:04.000Z,\n"
+                "xmt=40000000.00000000 2070-02-15T20:05:20.000Z\n",
+            )
             # Test wide terminal
             termsize = (160, 24)
-            self.assertEqual(f(data),
-                   "reftime=00000000.00000000 2036-02-07T06:28:16.000Z, "
-                   "clock=10000000.00000000 2044-08-10T03:52:32.000Z, "
-                   "org=20000000.00000000 2053-02-11T01:16:48.000Z,\n"
-                   "rec=30000000.00000000 2061-08-14T22:41:04.000Z, "
-                   "xmt=40000000.00000000 2070-02-15T20:05:20.000Z\n")
+            self.assertEqual(
+                f(data),
+                "reftime=00000000.00000000 2036-02-07T06:28:16.000Z, "
+                "clock=10000000.00000000 2044-08-10T03:52:32.000Z, "
+                "org=20000000.00000000 2053-02-11T01:16:48.000Z,\n"
+                "rec=30000000.00000000 2061-08-14T22:41:04.000Z, "
+                "xmt=40000000.00000000 2070-02-15T20:05:20.000Z\n",
+            )
             # Test narrow terminal
             termsize = (40, 24)
-            self.assertEqual(f(data),
-                   "\nreftime=00000000.00000000 2036-02-07T06:28:16.000Z,\n"
-                   "clock=10000000.00000000 2044-08-10T03:52:32.000Z,\n"
-                   "org=20000000.00000000 2053-02-11T01:16:48.000Z,\n"
-                   "rec=30000000.00000000 2061-08-14T22:41:04.000Z,\n"
-                   "xmt=40000000.00000000 2070-02-15T20:05:20.000Z\n")
+            self.assertEqual(
+                f(data),
+                "\nreftime=00000000.00000000 2036-02-07T06:28:16.000Z,\n"
+                "clock=10000000.00000000 2044-08-10T03:52:32.000Z,\n"
+                "org=20000000.00000000 2053-02-11T01:16:48.000Z,\n"
+                "rec=30000000.00000000 2061-08-14T22:41:04.000Z,\n"
+                "xmt=40000000.00000000 2070-02-15T20:05:20.000Z\n",
+            )
             termsize = (80, 24)
             # Test ex-obscure cooking
-            data = od((("srcadr", ("1.1.1.1", "1.1.1.1")),
-                       ("peeradr", ("2.2.2.2", "2.2.2.2")),
-                       ("dstadr", ("3.3.3.3", "3.3.3.3")),
-                       ("refid", ("blah", "blah"))))
-            self.assertEqual(f(data),
-                             "srcadr=1.1.1.1, peeradr=2.2.2.2, "
-                             "dstadr=3.3.3.3, refid=blah\n")
+            data = od(
+                (
+                    ("srcadr", ("1.1.1.1", "1.1.1.1")),
+                    ("peeradr", ("2.2.2.2", "2.2.2.2")),
+                    ("dstadr", ("3.3.3.3", "3.3.3.3")),
+                    ("refid", ("blah", "blah")),
+                )
+            )
+            self.assertEqual(
+                f(data),
+                "srcadr=1.1.1.1, peeradr=2.2.2.2, "
+                "dstadr=3.3.3.3, refid=blah\n",
+            )
             # Test ex-obscure cooking
-            self.assertEqual(f(data, showunits=True),
-                             "srcadr=1.1.1.1, peeradr=2.2.2.2, "
-                             "dstadr=3.3.3.3, refid=blah\n")
+            self.assertEqual(
+                f(data, showunits=True),
+                "srcadr=1.1.1.1, peeradr=2.2.2.2, "
+                "dstadr=3.3.3.3, refid=blah\n",
+            )
             # Test leap
-            self.assertEqual(f(od((("leap", (0, "0")),)), showunits=True),
-                             "leap=00\n")
-            self.assertEqual(f(od((("leap", (1, "1")),)), showunits=True),
-                             "leap=01\n")
-            self.assertEqual(f(od((("leap", (2, "2")),)), showunits=True),
-                             "leap=10\n")
-            self.assertEqual(f(od((("leap", (3, "3")),)), showunits=True),
-                             "leap=11\n")
+            self.assertEqual(
+                f(od((("leap", (0, "0")),)), showunits=True),
+                "leap=00\n",
+            )
+            self.assertEqual(
+                f(od((("leap", (1, "1")),)), showunits=True),
+                "leap=01\n",
+            )
+            self.assertEqual(
+                f(od((("leap", (2, "2")),)), showunits=True),
+                "leap=10\n",
+            )
+            self.assertEqual(
+                f(od((("leap", (3, "3")),)), showunits=True),
+                "leap=11\n",
+            )
             # Test leap
             self.assertEqual(f(od((("leap", (0, "0")),))), "leap=00\n")
             self.assertEqual(f(od((("leap", (1, "1")),))), "leap=01\n")
             self.assertEqual(f(od((("leap", (2, "2")),))), "leap=10\n")
             self.assertEqual(f(od((("leap", (3, "3")),))), "leap=11\n")
             # Test leap, with units
-            self.assertEqual(f(od((("leap", (0, "0")),)), showunits=True),
-                             "leap=00\n")
-            self.assertEqual(f(od((("leap", (1, "1")),)), showunits=True),
-                             "leap=01\n")
-            self.assertEqual(f(od((("leap", (2, "2")),)), showunits=True),
-                             "leap=10\n")
-            self.assertEqual(f(od((("leap", (3, "3")),)), showunits=True),
-                             "leap=11\n")
+            self.assertEqual(
+                f(od((("leap", (0, "0")),)), showunits=True),
+                "leap=00\n",
+            )
+            self.assertEqual(
+                f(od((("leap", (1, "1")),)), showunits=True),
+                "leap=01\n",
+            )
+            self.assertEqual(
+                f(od((("leap", (2, "2")),)), showunits=True),
+                "leap=10\n",
+            )
+            self.assertEqual(
+                f(od((("leap", (3, "3")),)), showunits=True),
+                "leap=11\n",
+            )
             # Test reach
-            self.assertEqual(f(od((("reach", (1, "1")),))), "reach=001\n")
+            self.assertEqual(
+                f(od((("reach", (1, "1")),))), "reach=001\n"
+            )
             # Test reach, with units
-            self.assertEqual(f(od((("reach", (1, "1")),)), showunits=True),
-                             "reach=001\n")
+            self.assertEqual(
+                f(od((("reach", (1, "1")),)), showunits=True),
+                "reach=001\n",
+            )
             # Test specials
-            data = od((("filtdelay", ("1 2 3", "1 2 3")),
-                       ("filtoffset", ("2 3 4", "2 3 4")),
-                       ("filtdisp", ("3 4 5", "3 4 5")),
-                       ("filterror", ("4 5 6", "4 5 6"))))
-            self.assertEqual(f(data),
-                             " filtdelay =1\t2\t3, filtoffset =2\t3\t4,   "
-                             "filtdisp =3\t4\t5,  filterror =4\t5\t6\n")
+            data = od(
+                (
+                    ("filtdelay", ("1 2 3", "1 2 3")),
+                    ("filtoffset", ("2 3 4", "2 3 4")),
+                    ("filtdisp", ("3 4 5", "3 4 5")),
+                    ("filterror", ("4 5 6", "4 5 6")),
+                )
+            )
+            self.assertEqual(
+                f(data),
+                " filtdelay =1\t2\t3, filtoffset =2\t3\t4,   "
+                "filtdisp =3\t4\t5,  filterror =4\t5\t6\n",
+            )
             # Test specials, with units
-            self.assertEqual(f(data, showunits=True),
-                             " filtdelay =      1       2       3 ms,\n"
-                             "filtoffset =      2       3       4 ms,\n"
-                             "  filtdisp =      3       4       5 ms,\n"
-                             " filterror =      4       5       6 ms\n")
+            self.assertEqual(
+                f(data, showunits=True),
+                " filtdelay =      1       2       3 ms,\n"
+                "filtoffset =      2       3       4 ms,\n"
+                "  filtdisp =      3       4       5 ms,\n"
+                " filterror =      4       5       6 ms\n",
+            )
             # Test flash null
-            self.assertEqual(f(od((("flash", (0, "0")),))), "flash=00 ok\n")
+            self.assertEqual(
+                f(od((("flash", (0, "0")),))), "flash=00 ok\n"
+            )
             # Test flash all bits
-            self.assertEqual(f(od((("flash", (65535, "65535")),))),
-                             "\nflash=ffff pkt_dup pkt_bogus pkt_unsync "
-                             "pkt_denied pkt_auth pkt_stratum pkt_header "
-                             "pkt_autokey pkt_crypto peer_stratum "
-                             "peer_dist peer_loop peer_unreach\n")
+            self.assertEqual(
+                f(od((("flash", (65535, "65535")),))),
+                "\nflash=ffff pkt_dup pkt_bogus pkt_unsync "
+                "pkt_denied pkt_auth pkt_stratum pkt_header "
+                "pkt_autokey pkt_crypto peer_stratum "
+                "peer_dist peer_loop peer_unreach\n",
+            )
             # Test MS_VARS
-            data = od((("rootdelay", (0, "0")), ("rootdisp", (1, "1")),
-                       ("offset", (2, "2")), ("sys_jitter", (3, "3")),
-                       ("clk_jitter", (4, "4")), ("leapsmearoffset", (5, "5")),
-                       ("authdelay", (6, "6")), ("koffset", (7, "7")),
-                       ("kmaxerr", (8, "8")), ("kesterr", (9, "9")),
-                       ("kprecis", (10, "10")), ("kppsjitter", (11, "11")),
-                       ("fuzz", (12, "12")),
-                       ("clk_wander_threshold", (13, "13")),
-                       ("tick", (14, "14")), ("in", (15, "15")),
-                       ("out", (16, "16")), ("bias", (17, "17")),
-                       ("delay", (18, "18")), ("jitter", (19, "19")),
-                       ("dispersion", (20, "20")), ("fudgetime1", (21, "21")),
-                       ("fudgetime2", (21, "21"))))
-            self.assertEqual(f(data), "rootdelay=0, rootdisp=1, offset=2, "
-                             "sys_jitter=3, clk_jitter=4,\nleapsmearoffset=5, "
-                             "authdelay=6, koffset=7, kmaxerr=8, kesterr=9, "
-                             "kprecis=10,\nkppsjitter=11, fuzz=12, "
-                             "clk_wander_threshold=13, tick=14, in=15, "
-                             "out=16,\nbias=17, delay=18, jitter=19, "
-                             "dispersion=20, fudgetime1=21, fudgetime2=21\n")
+            data = od(
+                (
+                    ("rootdelay", (0, "0")),
+                    ("rootdisp", (1, "1")),
+                    ("offset", (2, "2")),
+                    ("sys_jitter", (3, "3")),
+                    ("clk_jitter", (4, "4")),
+                    ("leapsmearoffset", (5, "5")),
+                    ("authdelay", (6, "6")),
+                    ("koffset", (7, "7")),
+                    ("kmaxerr", (8, "8")),
+                    ("kesterr", (9, "9")),
+                    ("kprecis", (10, "10")),
+                    ("kppsjitter", (11, "11")),
+                    ("fuzz", (12, "12")),
+                    ("clk_wander_threshold", (13, "13")),
+                    ("tick", (14, "14")),
+                    ("in", (15, "15")),
+                    ("out", (16, "16")),
+                    ("bias", (17, "17")),
+                    ("delay", (18, "18")),
+                    ("jitter", (19, "19")),
+                    ("dispersion", (20, "20")),
+                    ("fudgetime1", (21, "21")),
+                    ("fudgetime2", (21, "21")),
+                )
+            )
+            self.assertEqual(
+                f(data),
+                "rootdelay=0, rootdisp=1, offset=2, "
+                "sys_jitter=3, clk_jitter=4,\nleapsmearoffset=5, "
+                "authdelay=6, koffset=7, kmaxerr=8, kesterr=9, "
+                "kprecis=10,\nkppsjitter=11, fuzz=12, "
+                "clk_wander_threshold=13, tick=14, in=15, "
+                "out=16,\nbias=17, delay=18, jitter=19, "
+                "dispersion=20, fudgetime1=21, fudgetime2=21\n",
+            )
             # Test MS_VARS, with units
-            self.assertEqual(f(data, showunits=True),
-                             "rootdelay=0ms, rootdisp=1ms, offset=2ms, "
-                             "sys_jitter=3ms, clk_jitter=4ms,\n"
-                             "leapsmearoffset=5ms, authdelay=6ms, "
-                             "koffset=7ms, kmaxerr=8ms, kesterr=9ms,\n"
-                             "kprecis=10ms, kppsjitter=11ms, fuzz=12ms, "
-                             "clk_wander_threshold=13ms,\ntick=14ms, in=15ms, "
-                             "out=16ms, bias=17ms, delay=18ms, jitter=19ms,\n"
-                             "dispersion=20ms, fudgetime1=21ms, "
-                             "fudgetime2=21ms\n")
+            self.assertEqual(
+                f(data, showunits=True),
+                "rootdelay=0ms, rootdisp=1ms, offset=2ms, "
+                "sys_jitter=3ms, clk_jitter=4ms,\n"
+                "leapsmearoffset=5ms, authdelay=6ms, "
+                "koffset=7ms, kmaxerr=8ms, kesterr=9ms,\n"
+                "kprecis=10ms, kppsjitter=11ms, fuzz=12ms, "
+                "clk_wander_threshold=13ms,\ntick=14ms, in=15ms, "
+                "out=16ms, bias=17ms, delay=18ms, jitter=19ms,\n"
+                "dispersion=20ms, fudgetime1=21ms, "
+                "fudgetime2=21ms\n",
+            )
             # Test S_VARS
             data = od((("tai", (0, "0")), ("poll", (1, "1"))))
             self.assertEqual(f(data), "tai=0, poll=1\n")
             # Test S_VARS, with units
-            self.assertEqual(f(data, showunits=True), "tai=0s, poll=1s\n")
+            self.assertEqual(
+                f(data, showunits=True), "tai=0s, poll=1s\n"
+            )
             # Test PPM_VARS
-            data = od((("frequency", (0, "0")), ("clk_wander", (1, "1"))))
+            data = od(
+                (("frequency", (0, "0")), ("clk_wander", (1, "1")))
+            )
             self.assertEqual(f(data), "frequency=0, clk_wander=1\n")
             # Test PPM_VARS, with units
-            self.assertEqual(f(data, showunits=True),
-                             "frequency=0ppm, clk_wander=1ppm\n")
+            self.assertEqual(
+                f(data, showunits=True),
+                "frequency=0ppm, clk_wander=1ppm\n",
+            )
             # Test unrecognized variable
             data = od((("yeahyeah", (1, "1")),))
             self.assertEqual(f(data), "yeahyeah=1\n")
@@ -919,11 +1079,14 @@ class TestPylibUtilMethods(unittest.TestCase):
             ent.rs = ntp.magic.RES_KOD
             ent.addr = "1.2.3.4:42"
             ent.mv = 0x17
-            fakesockmod.gai_returns = [("fam", "type", "proto",
-                                        "foo.bar.com", "1.2.3.4")]
-            self.assertEqual(cls.summary(ent),
-                             "64730 23296      0  400 K 7 2"
-                             "      1        -      -    42 1.2.3.4")
+            fakesockmod.gai_returns = [
+                ("fam", "type", "proto", "foo.bar.com", "1.2.3.4")
+            ]
+            self.assertEqual(
+                cls.summary(ent),
+                "64730 23296      0  400 K 7 2"
+                "      1        -      -    42 1.2.3.4",
+            )
             # Test summary, second options
             mycache._cache = {}
             cls.now = 0x00000000
@@ -932,30 +1095,49 @@ class TestPylibUtilMethods(unittest.TestCase):
             ent.last = "0x00000200.00000000"
             ent.ct = 65
             ent.rs = ntp.magic.RES_LIMITED
-            fakesockmod.gai_returns = [[("fam", "type", "proto",
-                                         "foo.bar.com", ("1.2.3.4", 42))]]
+            fakesockmod.gai_returns = [
+                [
+                    (
+                        "fam",
+                        "type",
+                        "proto",
+                        "foo.bar.com",
+                        ("1.2.3.4", 42),
+                    )
+                ]
+            ]
             cdns_jig_returns = ["foo.com"]
-            self.assertEqual(cls.summary(ent),
-                             "64730 23808    256   20 L 7 2     65"
-                             "        -      -    42 foo.com")
+            self.assertEqual(
+                cls.summary(ent),
+                "64730 23808    256   20 L 7 2     65"
+                "        -      -    42 foo.com",
+            )
             # Test summary, third options
             mycache._cache = {}
             ent.ct = 2
             ent.rs = 0
             fakesockmod.gai_error_count = 1
-            cdns_jig_returns = ["foobarbaz" * 5]  # 45 chars, will be cropped
-            self.assertEqual(cls.summary(ent),
-                             "64730 23808    256    0 . 7 2      2        -      -    42"
-                             " 1.2.3.4 (foobarbazfoobarbazfoobarbazfoob")
+            cdns_jig_returns = [
+                "foobarbaz" * 5
+            ]  # 45 chars, will be cropped
+            self.assertEqual(
+                cls.summary(ent),
+                "64730 23808    256    0 . 7 2      2        -      -    42"
+                " 1.2.3.4 (foobarbazfoobarbazfoobarbazfoob",
+            )
             # Test summary, wide
             mycache._cache = {}
             cls.wideremote = True
             fakesockmod.gai_error_count = 1
-            cdns_jig_returns = ["foobarbaz" * 5]  # 45 chars, will be cropped
-            self.assertEqual(cls.summary(ent),
-                             "64730 23808    256    0 . 7 2      2"
-                             "        -      -    42 1.2.3.4 "
-                             "(foobarbazfoobarbazfoobarbazfoobarbazfoobarbaz)")
+            cdns_jig_returns = [
+                "foobarbaz" * 5
+            ]  # 45 chars, will be cropped
+            self.assertEqual(
+                cls.summary(ent),
+                "64730 23808    256    0 . 7 2      2"
+                "        -      -    42 1.2.3.4 "
+                "(foobarbazfoobarbazfoobarbazfoobarbazfoobarbaz)",
+            )
         finally:
             ntp.util.socket = socktemp
             ntp.util.canonicalization_cache = cachetemp
@@ -975,10 +1157,16 @@ class TestPylibUtilMethods(unittest.TestCase):
         # Test summary
         # Test with everything
         cls = c()
-        data = {"hits": "blah", "addr": "42.23.1.2",
-                "mask": "FF:FF:0:0", "flags": "qwerty"}
-        self.assertEqual(cls.summary(data),
-                         "      blah 42.23.1.2/16\n           qwerty\n")
+        data = {
+            "hits": "blah",
+            "addr": "42.23.1.2",
+            "mask": "FF:FF:0:0",
+            "flags": "qwerty",
+        }
+        self.assertEqual(
+            cls.summary(data),
+            "      blah 42.23.1.2/16\n           qwerty\n",
+        )
         # Test with missing data
         data = {"addr": "42.23.1.2", "mask": "FF:FF:0:0"}
         self.assertEqual(cls.summary(data), "")
@@ -989,20 +1177,44 @@ class TestPylibUtilMethods(unittest.TestCase):
 
         cls = c()
         # Test with all variables available
-        data = od((("addr", "1.2.3.4"), ("bcast", "foo"),
-                   ("name", "Namus Maximus"), ("en", True), ("flags", 0xFACE),
-                   ("rx", 12), ("tx", 34), ("txerr", 56), ("pc", 78),
-                   ("up", 90)))
-        self.assertEqual(cls.summary(1, data),
-                         "  1 Namus Maximus            . face     12     34"
-                         "     56    78       90\n    1.2.3.4\n    foo\n")
+        data = od(
+            (
+                ("addr", "1.2.3.4"),
+                ("bcast", "foo"),
+                ("name", "Namus Maximus"),
+                ("en", True),
+                ("flags", 0xFACE),
+                ("rx", 12),
+                ("tx", 34),
+                ("txerr", 56),
+                ("pc", 78),
+                ("up", 90),
+            )
+        )
+        self.assertEqual(
+            cls.summary(1, data),
+            "  1 Namus Maximus            . face     12     34"
+            "     56    78       90\n    1.2.3.4\n    foo\n",
+        )
         # Test without bcast
-        data = od((("addr", "1.2.3.4"), ("name", "Namus Maximus"),
-                   ("en", True), ("flags", 0xFACE), ("rx", 12), ("tx", 34),
-                   ("txerr", 56), ("pc", 78), ("up", 90)))
-        self.assertEqual(cls.summary(1, data),
-                         "  1 Namus Maximus            . face     12     34"
-                         "     56    78       90\n    1.2.3.4\n")
+        data = od(
+            (
+                ("addr", "1.2.3.4"),
+                ("name", "Namus Maximus"),
+                ("en", True),
+                ("flags", 0xFACE),
+                ("rx", 12),
+                ("tx", 34),
+                ("txerr", 56),
+                ("pc", 78),
+                ("up", 90),
+            )
+        )
+        self.assertEqual(
+            cls.summary(1, data),
+            "  1 Namus Maximus            . face     12     34"
+            "     56    78       90\n    1.2.3.4\n",
+        )
         # Test with missing data
         self.assertEqual(cls.summary(1, od()), "")
 
@@ -1024,8 +1236,10 @@ class TestPeerSummary(unittest.TestCase):
         self.assertEqual(cls.namewidth, 15)
         self.assertEqual(cls.refidwidth, 15)
         self.assertEqual(cls._PeerSummary__remote, "     remote    ")
-        self.assertEqual(cls._PeerSummary__common,
-                         "st t when poll reach   delay   offset   ")
+        self.assertEqual(
+            cls._PeerSummary__common,
+            "st t when poll reach   delay   offset   ",
+        )
         self.assertEqual(cls._PeerSummary__header, None)
         self.assertEqual(cls.polls, [])
 
@@ -1067,19 +1281,25 @@ class TestPeerSummary(unittest.TestCase):
     def test_header(self):
         # Test peers
         cls = self.target("peers", 4, True, False)
-        self.assertEqual(cls.header(),
-                         "     remote           refid      st t when "
-                         "poll reach   delay   offset   jitter")
+        self.assertEqual(
+            cls.header(),
+            "     remote           refid      st t when "
+            "poll reach   delay   offset   jitter",
+        )
         # Test opeers
         cls = self.target("opeers", 4, True, False)
-        self.assertEqual(cls.header(),
-                         "     remote           local      st t when "
-                         "poll reach   delay   offset     disp")
+        self.assertEqual(
+            cls.header(),
+            "     remote           local      st t when "
+            "poll reach   delay   offset     disp",
+        )
         # Test apeers
         cls = self.target("apeers", 4, True, False)
-        self.assertEqual(cls.header(),
-                         "     remote       refid   assid  st t when "
-                         "poll reach   delay   offset   jitter")
+        self.assertEqual(
+            cls.header(),
+            "     remote       refid   assid  st t when "
+            "poll reach   delay   offset   jitter",
+        )
 
     def test_width(self):
         cls = self.target("peers", 4, True, False)
@@ -1098,41 +1318,44 @@ class TestPeerSummary(unittest.TestCase):
             cdns_jig_calls.append(ip)
             return cdns_jig_returns.pop(0)
 
-        data = ntp.util.OrderedDict((("delay", (1.234567, "1.234567")),
-                                     ("dstadr", ("1.2.3.4", "1.2.3.4")),
-                                     ("dstport", ("blah0", "blah0")),
-                                     ("filtdelay", ("blah1", "blah1")),
-                                     ("filtdisp", ("blah2", "blah2")),
-                                     ("filtoffset", ("blah3", "blah3")),
-                                     ("flash", ("blah4", "blah4")),
-                                     ("headway", ("blah5", "blah5")),
-                                     ("hmode", (6, "6")),
-                                     ("hpoll", (12, "12")),
-                                     ("jitter", (3.14159, "3.14159")),
-                                     ("keyid", ("blah6", "blah6")),
-                                     ("leap", ("blah7", "blah7")),
-                                     ("offset", (2.71828, "2.71828")),
-                                     ("pmode", ("blah8", "blah8")),
-                                     ("ppoll", (5, "5")),
-                                     ("precision", ("blah9", "blah9")),
-                                     ("reach", (500, "500")),
-                                     ("refid", ("FAIL", "FAIL")),
-                                     ("rec", ("0x00000000.00000000",
-                                              "0x00000000.00000000")),
-                                     ("reftime", ("0x00001000.00000000",
-                                                  "0x00001000.00000000")),
-                                     ("rootdelay", ("blah10", "blah10")),
-                                     ("rootdisp", (299792.458, "299792.458")),
-                                     ("srcadr", ("10.20.30.40",
-                                                 "10.20.30.40")),
-                                     ("srchost", ("15.25.35.45",
-                                                  "15.25.35.45")),
-                                     ("scrport", ("blah11", "blah11")),
-                                     ("stratum", (8, "8")),
-                                     ("ttl", ("blah12", "blah12")),
-                                     ("unreach", ("blah13", "blah13")),
-                                     ("xmt", ("blah14", "blah14")),
-                                     ("randomness!", ("foo!", "bar!"))))
+        data = ntp.util.OrderedDict(
+            (
+                ("delay", (1.234567, "1.234567")),
+                ("dstadr", ("1.2.3.4", "1.2.3.4")),
+                ("dstport", ("blah0", "blah0")),
+                ("filtdelay", ("blah1", "blah1")),
+                ("filtdisp", ("blah2", "blah2")),
+                ("filtoffset", ("blah3", "blah3")),
+                ("flash", ("blah4", "blah4")),
+                ("headway", ("blah5", "blah5")),
+                ("hmode", (6, "6")),
+                ("hpoll", (12, "12")),
+                ("jitter", (3.14159, "3.14159")),
+                ("keyid", ("blah6", "blah6")),
+                ("leap", ("blah7", "blah7")),
+                ("offset", (2.71828, "2.71828")),
+                ("pmode", ("blah8", "blah8")),
+                ("ppoll", (5, "5")),
+                ("precision", ("blah9", "blah9")),
+                ("reach", (500, "500")),
+                ("refid", ("FAIL", "FAIL")),
+                ("rec", ("0x00000000.00000000", "0x00000000.00000000")),
+                (
+                    "reftime",
+                    ("0x00001000.00000000", "0x00001000.00000000"),
+                ),
+                ("rootdelay", ("blah10", "blah10")),
+                ("rootdisp", (299792.458, "299792.458")),
+                ("srcadr", ("10.20.30.40", "10.20.30.40")),
+                ("srchost", ("15.25.35.45", "15.25.35.45")),
+                ("scrport", ("blah11", "blah11")),
+                ("stratum", (8, "8")),
+                ("ttl", ("blah12", "blah12")),
+                ("unreach", ("blah13", "blah13")),
+                ("xmt", ("blah14", "blah14")),
+                ("randomness!", ("foo!", "bar!")),
+            )
+        )
         faketimemod = jigs.TimeModuleJig()
         try:
             timetemp = ntp.util.time
@@ -1142,131 +1365,165 @@ class TestPeerSummary(unittest.TestCase):
             # Test, no units, hmode=BCLIENTX, peers
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon     .FAIL.           8 b 6926"
-                             "   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon     .FAIL.           8 b 6926"
+                "   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, no units, hmode=BROADCAST, not multicast
             data["hmode"] = (5, "5")
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon     .FAIL.           8 B 6926"
-                             "   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon     .FAIL.           8 B 6926"
+                "   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, no units, hmode=BROADCAST, not multicast
             data["srcadr"] = ("224.2.3.4", "224.2.3.4")
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon     .FAIL.           8 M 6926"
-                             "   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon     .FAIL.           8 M 6926"
+                "   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, no units, hmode=CLIENT, local refclock
             data["srcadr"] = ("10.20.30.40", "10.20.30.40")
             data["hmode"] = (3, "3")
             data["srchost"] = ("(blah)", "(blah)")
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon     .FAIL.           8 l 6926"
-                             "   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon     .FAIL.           8 l 6926"
+                "   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, no units, hmode=CLIENT, pool
             data["srchost"] = ("15.25.35.45", "15.25.35.45")
             data["refid"] = ("POOL", "POOL")
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon     .POOL.           8 p 6926"
-                             "   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon     .POOL.           8 p 6926"
+                "   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, no units, hmode=CLIENT, manycast client
             data["srcadr"] = ("224.2.3.4", "224.2.3.4")
             data["refid"] = ("FAIL", "FAIL")
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon     .FAIL.           8 a 6926"
-                             "   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon     .FAIL.           8 a 6926"
+                "   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, no units, hmode=CLIENT, unicast
             data["srcadr"] = ("10.20.30.40", "10.20.30.40")
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon     .FAIL.           8 u 6926"
-                             "   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon     .FAIL.           8 u 6926"
+                "   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, no units, hmode=ACTIVE
             data["hmode"] = (1, "1")
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon     .FAIL.           8 s 6926"
-                             "   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon     .FAIL.           8 s 6926"
+                "   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, no units, hmode=PASSIVE
             data["hmode"] = (2, "2")
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon     .FAIL.           8 S 6926"
-                             "   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon     .FAIL.           8 S 6926"
+                "   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, no units, don't show hostnames
             cls.showhostnames = False
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#10.20.30.40     .FAIL.           8 S 6926"
-                             "   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#10.20.30.40     .FAIL.           8 S 6926"
+                "   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, no units, name crop
             cls.showhostnames = True
             cdns_jig_returns = ["clock_canon_blah_jabber_quantum"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon_bla .FAIL.           8 S 6926"
-                             "   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon_bla .FAIL.           8 S 6926"
+                "   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, no units, no name crop
             cls.wideremote = True
             cdns_jig_returns = ["clock_canon_blah_jabber_quantum"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon_blah_jabber_quantum\n"
-                             "                 .FAIL.           8 S"
-                             " 6926   32  764   1.2346   2.7183   3.1416\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon_blah_jabber_quantum\n"
+                "                 .FAIL.           8 S"
+                " 6926   32  764   1.2346   2.7183   3.1416\n",
+            )
             # Test, with units
             cls.showunits = True
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon     .FAIL.           8 S 6926"
-                             "   32  764 1.2346ms 2.7183ms 3.1416ms\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon     .FAIL.           8 S 6926"
+                "   32  764 1.2346ms 2.7183ms 3.1416ms\n",
+            )
             # Test, low precision formatting with units
             lowpdata = data.copy()
             lowpdata["delay"] = (1.234, "1.234")
             cls.showunits = True
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, lowpdata, 12345),
-                             "#clock_canon     .FAIL.           8 S 6926"
-                             "   32  764  1.234ms 2.7183ms 3.1416ms\n")
+            self.assertEqual(
+                cls.summary(0x500, lowpdata, 12345),
+                "#clock_canon     .FAIL.           8 S 6926"
+                "   32  764  1.234ms 2.7183ms 3.1416ms\n",
+            )
             # Test, low precision formatting with units
             cls.showunits = False
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, lowpdata, 12345),
-                             "#clock_canon     .FAIL.           8 S 6926"
-                             "   32  764    1.234    2.718    3.142\n")
+            self.assertEqual(
+                cls.summary(0x500, lowpdata, 12345),
+                "#clock_canon     .FAIL.           8 S 6926"
+                "   32  764    1.234    2.718    3.142\n",
+            )
             # Test, apeers
             cls.showunits = True
             cls.displaymode = "apeers"
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
-            self.assertEqual(cls.summary(0x500, data, 12345),
-                             "#clock_canon     .FAIL.   12345   8 S 6926"
-                             "   32  764 1.2346ms 2.7183ms 3.1416ms\n")
+            self.assertEqual(
+                cls.summary(0x500, data, 12345),
+                "#clock_canon     .FAIL.   12345   8 S 6926"
+                "   32  764 1.2346ms 2.7183ms 3.1416ms\n",
+            )
             # Test rstatus, previous version
             cls.showunits = True
             cls.displaymode = "apeers"
             cdns_jig_returns = ["clock_canon"]
             faketimemod.time_returns = [0xA0000000]
             cls.pktversion = 0
-            self.assertEqual(cls.summary(0x300, data, 12345),
-                             "*clock_canon     .FAIL.   12345   8 S 6926"
-                             "   32  764 1.2346ms 2.7183ms 3.1416ms\n")
+            self.assertEqual(
+                cls.summary(0x300, data, 12345),
+                "*clock_canon     .FAIL.   12345   8 S 6926"
+                "   32  764 1.2346ms 2.7183ms 3.1416ms\n",
+            )
         finally:
             ntp.util.time = timetemp
             ntp.util.canonicalize_dns = cdnstemp
@@ -1293,7 +1550,11 @@ class NtpqRvInfoStats(unittest.TestCase):
         """Test ntp.util.periodize by coqtavoric gavage and scatology."""
         # def periodize(period, clipdigits=0)
         cases = (
-            ((self.periodic, 5), (round(self.periodic, 5), "2D 15:57:38"), "normal"),
+            (
+                (self.periodic, 5),
+                (round(self.periodic, 5), "2D 15:57:38"),
+                "normal",
+            ),
             ((str(self.periodic), 5), (None, "???"), "period is str"),
             (
                 (self.periodic, None),
@@ -1365,7 +1626,7 @@ class NtpqRvInfoStats(unittest.TestCase):
 
 
 def shot_test(classy, hook, cases):
-    """"Run some tests using inputs and outputs from 2.5d iterable.
+    """ "Run some tests using inputs and outputs from 2.5d iterable.
 
     Iterate through the cases iterable, and using a hook function to run
     tests with parameters, result, and a message from the child iterable.
@@ -1401,5 +1662,5 @@ def shot_test(classy, hook, cases):
     st(hook, cases)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

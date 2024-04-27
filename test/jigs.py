@@ -78,7 +78,9 @@ class SocketJig:
             if len(current) > bytecount:
                 ret = current[:bytecount]
                 current = current[bytecount:]
-                self.return_data.insert(0, current)  # push unwanted data
+                self.return_data.insert(
+                    0, current
+                )  # push unwanted data
                 return ret
             else:
                 return current
@@ -132,9 +134,18 @@ class SocketModuleJig:
         self.ghba_calls = []
         self.ghba_returns = []
 
-    def getaddrinfo(self, host, port, family=None, socktype=None,
-                    proto=None, flags=None):
-        self.gai_calls.append((host, port, family, socktype, proto, flags))
+    def getaddrinfo(
+        self,
+        host,
+        port,
+        family=None,
+        socktype=None,
+        proto=None,
+        flags=None,
+    ):
+        self.gai_calls.append(
+            (host, port, family, socktype, proto, flags)
+        )
         if self.gai_error_count > 0:
             self.gai_error_count -= 1
             err = self.gaierror("blah")

@@ -13,23 +13,23 @@ import os.path
 import sys
 import ntp.poly
 
-LIB = 'ntpc'
+LIB = "ntpc"
 
 
 def _fmt():
     """Produce library naming scheme."""
-    if sys.platform.startswith('darwin'):
-        return 'lib%s.dylib'
-    if sys.platform.startswith('win32'):
-        return '%s.dll'
-    if sys.platform.startswith('cygwin'):
-        return 'lib%s.dll'
-    return 'lib%s.so'
+    if sys.platform.startswith("darwin"):
+        return "lib%s.dylib"
+    if sys.platform.startswith("win32"):
+        return "%s.dll"
+    if sys.platform.startswith("cygwin"):
+        return "lib%s.dll"
+    return "lib%s.so"
 
 
 def _importado():
     """Load the ntpc library or throw an OSError trying."""
-    ntpc_paths = []         # places to look
+    ntpc_paths = []  # places to look
 
     j = __file__.split(os.sep)[:-1]
     ntpc_paths.append(os.sep.join(j + [_fmt() % LIB]))
@@ -47,9 +47,14 @@ def _dlo(paths):
         try:
             lib = ctypes.CDLL(ntpc_path, use_errno=True)
             wrap_version = "@NTPSEC_VERSION_EXTENDED@"
-            clib_version = ntp.poly.polystr(ctypes.c_char_p.in_dll(lib, 'version').value)
+            clib_version = ntp.poly.polystr(
+                ctypes.c_char_p.in_dll(lib, "version").value
+            )
             if clib_version != wrap_version:
-                sys.stderr.write("ntp.ntpc wrong version '%s' != '%s'\n" % (clib_version, wrap_version))
+                sys.stderr.write(
+                    "ntp.ntpc wrong version '%s' != '%s'\n"
+                    % (clib_version, wrap_version)
+                )
             return lib
         except OSError:
             pass
@@ -57,15 +62,15 @@ def _dlo(paths):
 
 
 _ntpc = _importado()
-progname = ctypes.c_char_p.in_dll(_ntpc, 'progname')
+progname = ctypes.c_char_p.in_dll(_ntpc, "progname")
 # log_sys = ctypes.c_bool.in_dll(_ntpc, 'syslogit')
 # log_term = ctypes.c_bool.in_dll(_ntpc, 'termlogit')
 # log_pid = ctypes.c_bool.in_dll(_ntpc, 'termlogit_pid')
 # log_time = ctypes.c_bool.in_dll(_ntpc, 'msyslog_include_timestamp')
 
-TYPE_SYS = ctypes.c_int.in_dll(_ntpc, 'SYS_TYPE').value
-TYPE_PEER = ctypes.c_int.in_dll(_ntpc, 'PEER_TYPE').value
-TYPE_CLOCK = ctypes.c_int.in_dll(_ntpc, 'CLOCK_TYPE').value
+TYPE_SYS = ctypes.c_int.in_dll(_ntpc, "SYS_TYPE").value
+TYPE_PEER = ctypes.c_int.in_dll(_ntpc, "PEER_TYPE").value
+TYPE_CLOCK = ctypes.c_int.in_dll(_ntpc, "CLOCK_TYPE").value
 
 
 def checkname(name):
@@ -80,13 +85,20 @@ def mac(data, key, name):
     """Compute HMAC or CMAC from data, key, and algorithm name."""
     resultlen = ctypes.c_size_t()
     result = (ctypes.c_ubyte * 64)()
-    result.value = b'\0' * 64
+    result.value = b"\0" * 64
     _ntpc.do_mac.restype = None
-    _ntpc.do_mac(ntp.poly.polybytes(name),
-                 ntp.poly.polybytes(data), len(data),
-                 ntp.poly.polybytes(key), len(key),
-                 ctypes.byref(result), ctypes.byref(resultlen))
-    return ntp.poly.polybytes(bytearray(result)[:min(resultlen.value, 20)])
+    _ntpc.do_mac(
+        ntp.poly.polybytes(name),
+        ntp.poly.polybytes(data),
+        len(data),
+        ntp.poly.polybytes(key),
+        len(key),
+        ctypes.byref(result),
+        ctypes.byref(resultlen),
+    )
+    return ntp.poly.polybytes(
+        bytearray(result)[: min(resultlen.value, 20)]
+    )
 
 
 def setprogname(in_string):
@@ -101,7 +113,7 @@ def _lfp_wrap(callback, in_string):
     out_value = callback(mid_bytes)
     err = ctypes.get_errno()
     if err == errno.EINVAL:
-        raise ValueError('ill-formed hex date')
+        raise ValueError("ill-formed hex date")
     return out_value
 
 

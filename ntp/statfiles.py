@@ -24,13 +24,13 @@ import time
 
 class NTPStats:
     "Gather statistics for a specified NTP site"
-    SecondsInDay = 24*60*60
-    DefaultPeriod = 7*24*60*60  # default 7 days, 604800 secs
-    peermap = {}    # cached result of peersplit()
+    SecondsInDay = 24 * 60 * 60
+    DefaultPeriod = 7 * 24 * 60 * 60  # default 7 days, 604800 secs
+    peermap = {}  # cached result of peersplit()
     period = None
     starttime = None
     endtime = None
-    sitename = ''
+    sitename = ""
 
     @staticmethod
     def unixize(lines, starttime, endtime):
@@ -84,7 +84,9 @@ class NTPStats:
                 if perc == 100:
                     ret["p100"] = values[length - 1]
                 else:
-                    ret["p" + str(perc)] = values[int(length * (perc/100))]
+                    ret["p" + str(perc)] = values[
+                        int(length * (perc / 100))
+                    ]
         return ret
 
     @staticmethod
@@ -108,10 +110,16 @@ class NTPStats:
                 return hostname
             except socket.herror:
                 pass
-        return key      # Someday, be smarter than this.
+        return key  # Someday, be smarter than this.
 
-    def __init__(self, statsdir, sitename=None,
-                 period=None, starttime=None, endtime=None):
+    def __init__(
+        self,
+        statsdir,
+        sitename=None,
+        period=None,
+        starttime=None,
+        endtime=None,
+    ):
         "Grab content of logfiles, sorted by timestamp."
         if period is None:
             period = NTPStats.DefaultPeriod
@@ -129,13 +137,14 @@ class NTPStats:
         self.endtime = endtime
 
         self.sitename = sitename or os.path.basename(statsdir)
-        if 'ntpstats' == self.sitename:
+        if "ntpstats" == self.sitename:
             # boring, use hostname
             self.sitename = socket.getfqdn()
 
         if not os.path.isdir(statsdir):  # pragma: no cover
-            sys.stderr.write("ntpviz: ERROR: %s is not a directory\n"
-                             % statsdir)
+            sys.stderr.write(
+                "ntpviz: ERROR: %s is not a directory\n" % statsdir
+            )
             raise SystemExit(1)
 
         self.clockstats = []
@@ -145,8 +154,14 @@ class NTPStats:
         self.temps = []
         self.gpsd = []
 
-        for stem in ("clockstats", "peerstats", "loopstats",
-                     "rawstats", "temps", "gpsd"):
+        for stem in (
+            "clockstats",
+            "peerstats",
+            "loopstats",
+            "rawstats",
+            "temps",
+            "gpsd",
+        ):
             lines = self.__load_stem(statsdir, stem)
             processed = self.__process_stem(stem, lines)
             setattr(self, stem, processed)
@@ -162,12 +177,13 @@ class NTPStats:
                 if self.starttime > os.path.getmtime(logpart):
                     continue
                 if logpart.endswith("gz"):
-                    lines += gzip.open(logpart, 'rt').readlines()
+                    lines += gzip.open(logpart, "rt").readlines()
                 else:
-                    lines += open(logpart, 'r').readlines()
+                    lines += open(logpart, "r").readlines()
         except IOError:  # pragma: no cover
-            sys.stderr.write("ntpviz: WARNING: could not read %s\n"
-                             % logpart)
+            sys.stderr.write(
+                "ntpviz: WARNING: could not read %s\n" % logpart
+            )
 
         return lines
 
@@ -194,7 +210,9 @@ class NTPStats:
         else:
             # Morph first fields into Unix time with fractional seconds
             # ut into nice dictionary of dictionary rows
-            lines1 = NTPStats.unixize(lines, self.starttime, self.endtime)
+            lines1 = NTPStats.unixize(
+                lines, self.starttime, self.endtime
+            )
 
         # Sort by datestamp
         # by default, a tuple sort()s on the 1st item, which is a nice
@@ -211,7 +229,7 @@ class NTPStats:
 
         for row in self.peerstats:
             try:
-                ip_address = row[2]     # peerstats field 2, refclock id
+                ip_address = row[2]  # peerstats field 2, refclock id
                 if ip_address not in self.peermap:
                     self.peermap[ip_address] = []
                 self.peermap[ip_address].append(row)
@@ -261,5 +279,6 @@ def iso_to_posix(time_string):
 def posix_to_iso(unix_time):
     "ISO 8601 string in UTC from Unix time."
     return time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(unix_time))
+
 
 # end

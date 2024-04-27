@@ -11,7 +11,7 @@ see http://www.catb.org/esr/faqs/practical-python-porting/ for more information.
 """
 import sys
 
-master_encoding = 'latin-1'
+master_encoding = "latin-1"
 
 # General notes on Python 2/3 compatibility:
 #
@@ -47,7 +47,7 @@ if str is bytes:  # Python 2
 
     def string_escape(s):
         """String_escape/unicode_escape."""
-        return s.decode('string_escape')
+        return s.decode("string_escape")
 
 else:  # Python 3
     import io
@@ -92,7 +92,7 @@ else:  # Python 3
         # have a decode method, so there's no simple way to ask it for the
         # equivalent of decode('string_escape') in Python 2. This function
         # assumes that it will be called with a Python 3 'str' instance
-        return s.encode(master_encoding).decode('unicode_escape')
+        return s.encode(master_encoding).decode("unicode_escape")
 
     def make_std_wrapper(stream):
         """Standard input/output wrapper factory function."""
@@ -101,8 +101,12 @@ else:  # Python 3
         # bytes to Unicode in polystr above
         # line_buffering=True ensures that interactive command sessions
         # work as expected
-        return io.TextIOWrapper(stream.buffer, encoding="utf-8",
-                                newline="\n", line_buffering=True)
+        return io.TextIOWrapper(
+            stream.buffer,
+            encoding="utf-8",
+            newline="\n",
+            line_buffering=True,
+        )
 
     # This is the one situation where we *can* force unicode.
     if "utf-8" != sys.stdout.encoding.lower():

@@ -71,5 +71,5 @@ setup(
         "Project": "https://github.com/jamesb192/ntp-sizzle",
         "TipLink": "https://www.patreon.com/JamesB192",
     },
-    data_files=[("./ntp", ["COPYING", "README.markdown"])]
+    data_files=[("./ntp", ["COPYING", "README.markdown"])],
 )
