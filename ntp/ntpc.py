@@ -13,6 +13,7 @@ import os.path
 import sys
 from cryptography.hazmat.primitives import ciphers, cmac, hashes
 from . import control, magic, poly
+from .control import TYPE_CLOCK, TYPE_PEER, TYPE_SYS
 
 LIB = "ntpc"
 
@@ -68,10 +69,6 @@ progname = ctypes.c_char_p.in_dll(_ntpc, "progname")
 # log_term = ctypes.c_bool.in_dll(_ntpc, 'termlogit')
 # log_pid = ctypes.c_bool.in_dll(_ntpc, 'termlogit_pid')
 # log_time = ctypes.c_bool.in_dll(_ntpc, 'msyslog_include_timestamp')
-
-TYPE_SYS = ctypes.c_int.in_dll(_ntpc, "SYS_TYPE").value
-TYPE_PEER = ctypes.c_int.in_dll(_ntpc, "PEER_TYPE").value
-TYPE_CLOCK = ctypes.c_int.in_dll(_ntpc, "CLOCK_TYPE").value
 
 
 def setprogname(in_string):
@@ -350,7 +347,7 @@ def decode_bitflags(bits, sep2, tab):
 
 
 typical = {
-    control.TYPE_CLOCK: clock_status,
-    control.TYPE_PEER: peer_status,
-    control.TYPE_SYS: sys_status,
+    TYPE_CLOCK: clock_status,
+    TYPE_PEER: peer_status,
+    TYPE_SYS: sys_status,
 }
