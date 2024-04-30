@@ -5,6 +5,7 @@
 
 """Access libntp funtions from Python."""
 from __future__ import absolute_import
+import math
 import re
 import time
 from cryptography.hazmat.primitives import ciphers, cmac, hashes
@@ -64,18 +65,26 @@ def lfp_stamp_to_tval(when, pivot=PIVOT):
     return [sec, ((when & UINT32MAX) * MILLION) >> 32]
 
 
-def step_systime(bigstep, pivot=PIVOT):
+def ftotval(float_value):
+    """Convert float value to `struct timeval`(ish) value."""
+    parts = math.modf(float_value)
+    if parts[0] < 0:
+        parts = (parts[0] + 1, parts[1] - 1)
+    return (parts[0] * MILLION, parts[1])
+
+
+def step_systime(bigstep):
     """Adjust system time by stepping."""
-    tval = lfp_stamp_to_tval(bigstep, pivot)
+    tval = ftotval(bigstep)
     retval = c.step(*tval)
     if retval == 0:
         return True
     return False
 
 
-def adj_systime(bigstep, pivot=PIVOT):
+def adj_systime(adjust_by):
     """Adjust system time by slewing."""
-    tval = lfp_stamp_to_tval(bigstep, pivot)
+    tval = ftotval(adjust_by)
     retval = c.slew(*tval)
     if retval == 0:
         return True
