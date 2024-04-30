@@ -5,136 +5,81 @@
 
 """Access libntp funtions from Python."""
 from __future__ import absolute_import
-import ctypes
-import ctypes.util
-import errno
-import os
-import os.path
-import sys
+import re
+import time
 from cryptography.hazmat.primitives import ciphers, cmac, hashes
-from . import control, magic, poly
+from . import c, control, magic, poly
 from .control import TYPE_CLOCK, TYPE_PEER, TYPE_SYS
+PIVOT = 1712793600
+MILLION = int(1e6)
+BILLION = int(1e9)
+UINT32MAX = (1 << 32) -1
 
-LIB = "ntpc"
-
-
-def _fmt():
-    """Produce library naming scheme."""
-    if sys.platform.startswith("darwin"):
-        return "lib%s.dylib"
-    if sys.platform.startswith("win32"):
-        return "%s.dll"
-    if sys.platform.startswith("cygwin"):
-        return "lib%s.dll"
-    return "lib%s.so"
+def setprogname(_):
+    """Take the name of the script being called and do nothing."""
+    return None
 
 
-def _importado():
-    """Load the ntpc library or throw an OSError trying."""
-    ntpc_paths = []  # places to look
-
-    j = __file__.split(os.sep)[:-1]
-    ntpc_paths.append(os.sep.join(j + [_fmt() % LIB]))
-
-    ntpc_path = ctypes.util.find_library(LIB)
-    if ntpc_path:
-        ntpc_paths.append(ntpc_path)
-
-    return _dlo(ntpc_paths)
-
-
-def _dlo(paths):
-    """Try opening library from a list."""
-    for ntpc_path in paths:
-        try:
-            lib = ctypes.CDLL(ntpc_path, use_errno=True)
-            wrap_version = "@NTPSEC_VERSION_EXTENDED@"
-            clib_version = poly.polystr(
-                ctypes.c_char_p.in_dll(lib, "version").value
-            )
-            if clib_version != wrap_version:
-                sys.stderr.write(
-                    "ntp.ntpc wrong version '%s' != '%s'\n"
-                    % (clib_version, wrap_version)
-                )
-            return lib
-        except OSError:
-            pass
-    raise OSError("Can't find %s library" % LIB)
-
-
-_ntpc = _importado()
-progname = ctypes.c_char_p.in_dll(_ntpc, "progname")
-# log_sys = ctypes.c_bool.in_dll(_ntpc, 'syslogit')
-# log_term = ctypes.c_bool.in_dll(_ntpc, 'termlogit')
-# log_pid = ctypes.c_bool.in_dll(_ntpc, 'termlogit_pid')
-# log_time = ctypes.c_bool.in_dll(_ntpc, 'msyslog_include_timestamp')
-
-
-def setprogname(in_string):
-    """Set program name for logging purposes."""
-    mid_bytes = poly.polybytes(in_string)
-    _setprogname(mid_bytes)
-
-
-def _lfp_wrap(callback, in_string):
-    """NTP l_fp to other Python-style format."""
-    mid_bytes = poly.polybytes(in_string)
-    out_value = callback(mid_bytes)
-    err = ctypes.get_errno()
-    if err == errno.EINVAL:
+def ihextolfp(istring):
+    """Convert an ascii hex string to an l_fp."""
+    pat = r" *(0[xX])?([0-9A-Fa-f]{8}).?([0-9A-Fa-f]{8})[ \n\0]*"
+    hits = re.match(pat, istring)
+    if not hits:
         raise ValueError("ill-formed hex date")
-    return out_value
+    l_fp = int(hits.group(2), 16)
+    l_fp <<= 32
+    l_fp |= int(hits.group(3), 16)
+    return l_fp
 
 
 def prettydate(in_string):
     """Convert a time stamp to something readable."""
-    mid_str = _lfp_wrap(_prettydate, in_string)
-    return poly.polystr(mid_str)
+    lfp = ihextolfp(in_string[2:])
+    timeval = lfp_stamp_to_tval(lfp)
+    rfc = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(timeval[0]))
+    return "%08x.%08x %s.%03dZ" % (
+        (lfp >> 32) & UINT32MAX,
+        lfp & UINT32MAX,
+        rfc,
+        timeval[1] / MILLION,
+    )
 
 
 def lfptofloat(in_string):
     """NTP l_fp to Python-style float time."""
-    return _lfp_wrap(_lfptofloat, in_string)
+    l_fp = ihextolfp(in_string[2:])
+    tval = lfp_stamp_to_tval(l_fp)
+    return tval[0] + (tval[1] / 1e3)
 
 
-def msyslog(level, in_string):
-    """Log send a message to terminal or output."""
-    mid_bytes = poly.polybytes(in_string)
-    _msyslog(level, mid_bytes)
+def lfp_stamp_to_tval(when, pivot=PIVOT):
+    """Convert an l_fp to a unix timeval near pivot time.
+
+    absolute (timeval) conversion. Input is time in NTP epoch, output
+    is in UN*X epoch. The NTP time stamp will be expanded around the
+    pivot time.
+    """
+    l_fps = (when >> 32) & UINT32MAX
+    sec = c.lfp2timet(l_fps, pivot)
+    return [sec, ((when & UINT32MAX) * MILLION) >> 32]
 
 
-# Set return type and argument types of hidden ffi handlers
-_msyslog = _ntpc.msyslog
-_msyslog.restype = None
-_msyslog.argtypes = [ctypes.c_int, ctypes.c_char_p]
+def step_systime(bigstep, pivot=PIVOT):
+    """Adjust system time by stepping."""
+    tval = lfp_stamp_to_tval(bigstep, pivot)
+    retval = c.step(*tval)
+    if retval == 0:
+        return True
+    return False
 
-_setprogname = _ntpc.ntpc_setprogname
-_setprogname.restype = None
-_setprogname.argtypes = [ctypes.c_char_p]
 
-_prettydate = _ntpc.ntpc_prettydate
-_prettydate.restype = ctypes.c_char_p
-_prettydate.argtypes = [ctypes.c_char_p]
-
-_lfptofloat = _ntpc.ntpc_lfptofloat
-_lfptofloat.restype = ctypes.c_double
-_lfptofloat.argtypes = [ctypes.c_char_p]
-
-# Status string display from peer status word.
-_statustoa = _ntpc.statustoa
-_statustoa.restype = ctypes.c_char_p
-_statustoa.argtypes = [ctypes.c_int, ctypes.c_int]
-
-# Adjust system time by slewing.
-adj_systime = _ntpc.ntpc_adj_systime
-adj_systime.restype = ctypes.c_bool
-adj_systime.argtypes = [ctypes.c_double]
-
-# Adjust system time by stepping.
-step_systime = _ntpc.ntpc_step_systime
-step_systime.restype = ctypes.c_bool
-step_systime.argtypes = [ctypes.c_double]
+def adj_systime(bigstep, pivot=PIVOT):
+    """Adjust system time by slewing."""
+    tval = lfp_stamp_to_tval(bigstep, pivot)
+    retval = c.slew(*tval)
+    if retval == 0:
+        return True
+    return False
 
 
 # ---   ===   ***   ===   ---
