@@ -21,15 +21,14 @@ setup(
     ext_modules=[
         Extension(
             name="ntp.c",
-            sources=["ntp_c.c"],
-            extra_compile_args=["-DPYEXT=1"],
+            sources=["py_ext.c"],
         ),
     ],
     install_requires=[
         "cProfile",
         "crptography",
         "curses",
-        "gpsd",
+        "pessiums-gps",
         "psutil",
     ],
     packages=find_packages(
