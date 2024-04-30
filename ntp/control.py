@@ -72,6 +72,15 @@ CTL_PST_SEL_PPS = 7  # o pps.peer
 
 CTL_PEER_MAXEVENTS = 15
 
+def CTL_PEER_STATUS(status, nevnt, evnt): return \
+                ((((status)<<8) & 0xff00) | \
+                (((nevnt)<<4) & 0x00f0) | \
+                ((evnt) & 0x000f))
+
+def CTL_PEER_STATVAL(status): return(((status)>>8) & 0xff)
+def CTL_PEER_NEVNT(status): return      (((status)>>4) & 0xf)
+def CTL_PEER_EVENT(status): return      ((status) & 0xf)
+
 # {En,De}coding of the clock status word
 CTL_CLK_OKAY = 0
 CTL_CLK_NOREPLY = 1

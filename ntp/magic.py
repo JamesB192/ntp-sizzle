@@ -11,6 +11,7 @@ NTPv1 = 1  # Gets special treatment: see receive()
 NTP_PORT = 123  # included for non-unix machines
 NTP_PORTA = "123"  # or unix without /etc/services
 
+NTP_MINPOLL    = 0       # log2 min poll interval (1 s)
 
 # Values for peer.leap, sys_leap
 LEAP_NOWARNING = 0x0  # normal, no leap second warning
@@ -39,6 +40,15 @@ LEN_PKT_NOMAC = 48  # min header length
 # The RFCs carefully avoid specifying this.
 MAX_EXT_LEN = 4096  # maximum length of extension-field data
 
+# Stuff for extracting things from li_vn_mode
+def PKT_MODE(li_vn_mode): return        ((li_vn_mode) & 0x7)
+def PKT_VERSION(li_vn_mode): return     (((li_vn_mode) >> 3) & 0x7)
+def PKT_LEAP(li_vn_mode): return        (((li_vn_mode) >> 6) & 0x3)
+
+# Stuff for putting things back into li_vn_mode in packets and vn_mode
+# in ntp_monitor.c's mon_entry.
+def VN_MODE(v, m): return               ((((v) & 7) << 3) | ((m) & 0x7))
+def PKT_LI_VN_MODE(l, v, m): return ((((l) & 3) << 6) | VN_MODE((v), (m)))
 
 # Event codes. Used for reporting errors/events to the control module
 PEER_EVENT = 0x080  # this is a peer event
