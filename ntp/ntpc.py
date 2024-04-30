@@ -11,8 +11,7 @@ import errno
 import os
 import os.path
 import sys
-from ntp import control, magic
-import ntp.poly
+from . import control, magic, poly
 
 LIB = "ntpc"
 
@@ -48,7 +47,7 @@ def _dlo(paths):
         try:
             lib = ctypes.CDLL(ntpc_path, use_errno=True)
             wrap_version = "@NTPSEC_VERSION_EXTENDED@"
-            clib_version = ntp.poly.polystr(
+            clib_version = poly.polystr(
                 ctypes.c_char_p.in_dll(lib, "version").value
             )
             if clib_version != wrap_version:
@@ -104,13 +103,13 @@ def mac(data, key, name):
 
 def setprogname(in_string):
     """Set program name for logging purposes."""
-    mid_bytes = ntp.poly.polybytes(in_string)
+    mid_bytes = poly.polybytes(in_string)
     _setprogname(mid_bytes)
 
 
 def _lfp_wrap(callback, in_string):
     """NTP l_fp to other Python-style format."""
-    mid_bytes = ntp.poly.polybytes(in_string)
+    mid_bytes = poly.polybytes(in_string)
     out_value = callback(mid_bytes)
     err = ctypes.get_errno()
     if err == errno.EINVAL:
@@ -121,7 +120,7 @@ def _lfp_wrap(callback, in_string):
 def prettydate(in_string):
     """Convert a time stamp to something readable."""
     mid_str = _lfp_wrap(_prettydate, in_string)
-    return ntp.poly.polystr(mid_str)
+    return poly.polystr(mid_str)
 
 
 def lfptofloat(in_string):
@@ -131,7 +130,7 @@ def lfptofloat(in_string):
 
 def msyslog(level, in_string):
     """Log send a message to terminal or output."""
-    mid_bytes = ntp.poly.polybytes(in_string)
+    mid_bytes = poly.polybytes(in_string)
     _msyslog(level, mid_bytes)
 
 
