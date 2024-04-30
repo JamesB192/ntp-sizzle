@@ -13,9 +13,9 @@ int dumbslew(int64_t s, int32_t us) {
     return adjtime(&step, NULL);
 }
 
-int dumbstep(int64_t s, int32_t ns) {
-    struct timespec step = {s, ns};
-    return clock_settime(CLOCK_REALTIME, &step);
+int dumbstep(int64_t s, int32_t us) {
+    struct timeval step = {s, us};
+    return settimeofday(&step, NULL);
 }
 
 /* Convert a timestamp in NTP scale to a 64bit seconds value in the UN*X
