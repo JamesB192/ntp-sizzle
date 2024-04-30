@@ -11,6 +11,7 @@ import errno
 import os
 import os.path
 import sys
+from cryptography.hazmat.primitives import ciphers, cmac, hashes
 from . import control, magic, poly
 
 LIB = "ntpc"
@@ -71,34 +72,6 @@ progname = ctypes.c_char_p.in_dll(_ntpc, "progname")
 TYPE_SYS = ctypes.c_int.in_dll(_ntpc, "SYS_TYPE").value
 TYPE_PEER = ctypes.c_int.in_dll(_ntpc, "PEER_TYPE").value
 TYPE_CLOCK = ctypes.c_int.in_dll(_ntpc, "CLOCK_TYPE").value
-
-
-def checkname(name):
-    """Check if name is a valid algorithm name."""
-    _ntpc.do_checkname.restype = ctypes.c_int
-    mid_bytes = ntp.poly.polybytes(name)
-    _ntpc.do_checkname.argtypes = [ctypes.c_char_p]
-    return _ntpc.do_checkname(mid_bytes)
-
-
-def mac(data, key, name):
-    """Compute HMAC or CMAC from data, key, and algorithm name."""
-    resultlen = ctypes.c_size_t()
-    result = (ctypes.c_ubyte * 64)()
-    result.value = b"\0" * 64
-    _ntpc.do_mac.restype = None
-    _ntpc.do_mac(
-        ntp.poly.polybytes(name),
-        ntp.poly.polybytes(data),
-        len(data),
-        ntp.poly.polybytes(key),
-        len(key),
-        ctypes.byref(result),
-        ctypes.byref(resultlen),
-    )
-    return ntp.poly.polybytes(
-        bytearray(result)[: min(resultlen.value, 20)]
-    )
 
 
 def setprogname(in_string):
@@ -165,6 +138,62 @@ adj_systime.argtypes = [ctypes.c_double]
 step_systime = _ntpc.ntpc_step_systime
 step_systime.restype = ctypes.c_bool
 step_systime.argtypes = [ctypes.c_double]
+
+
+# ---   ===   ***   ===   ---
+
+hash_list = {
+    "md5": hashes.MD5(),
+    "sha1": hashes.SHA1(),
+    "sm3": hashes.SM3(),
+    "shake128": hashes.SHAKE128(16),
+    "shake256": hashes.SHAKE256(32),
+    "sha3-512": hashes.SHA3_512(),
+    "sha3-384": hashes.SHA3_384(),
+    "sha3-256": hashes.SHA3_256(),
+    "sha3-224": hashes.SHA3_224(),
+    "blake2s256": hashes.BLAKE2s(32),
+    "blake2b512": hashes.BLAKE2b(64),
+    "sha512_256": hashes.SHA512_256(),
+    "sha512_224": hashes.SHA512_224(),
+    "sha512": hashes.SHA512(),
+    "sha384": hashes.SHA384(),
+    "sha256": hashes.SHA256(),
+    "sha224": hashes.SHA224(),
+}
+
+algorithms = {
+    "aes": ciphers.algorithms.AES,
+    "aes128": ciphers.algorithms.AES128,
+    "aes192": ciphers.algorithms.AES,
+    "aes256": ciphers.algorithms.AES256,
+    "camellia128": ciphers.algorithms.Camellia,
+    "camellia192": ciphers.algorithms.Camellia,
+    "camellia256": ciphers.algorithms.Camellia,
+    "sm4": ciphers.algorithms.SM4,
+}
+
+
+def checkname(name):
+    """Check if name is a valid algorithm name."""
+    if name.lower() in hash_list:
+        return True
+    return name.lower() in algorithms
+
+
+def mac(data, key, name):
+    """Compute HMAC or CMAC from data, key, and algorithm name."""
+    lname = name.lower()
+    if lname in hash_list:
+        digest = hashes.Hash(hash_list[lname])
+        digest.update(key)
+        digest.update(data)
+        return digest.finalize()[:20]
+    if lname in algorithms:
+        work = cmac.CMAC(algorithms[lname](poly.polybytes(key)))
+        work.update(poly.polybytes(data))
+        return work.finalize()[:20]
+    return b""
 
 
 # ---   ===   ***   ===   ---
