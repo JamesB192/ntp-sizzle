@@ -4,32 +4,32 @@ WARNING: Any files at GitLab, GitHub, or other providers are not official releas
 
 ## General
 
-This module is a Fork of NTPsecs' 'ntp' python module for installs not blessed by NTPsec. It includes some clients interacting with ntpd.
+This package is a Fork of NTPsecs' 'ntp' python package for installs not blessed by NTPsec. It includes some clients interacting with ntpd.
 
 ## Clients
 
-* [`ntpdig(1)` - Simple Network Time Protocol (SNTP) client](https://docs.ntpsec.org/latest/ntpdig.html)
-* `ntpkeygone(8)` - generate keys to secure ntpq and nptdig.
-* [`ntploggps(1)` - log gpsd data for use by ntpviz](https://docs.ntpsec.org/latest/ntploggps.html)
-* [`ntplogtemp(1)` - log system temperature data for use by ntpviz](https://docs.ntpsec.org/latest/ntplogtemp.html)
-* [`ntpmon(1)` - real-time NTP status monitor](https://docs.ntpsec.org/latest/ntpmon.html)
-* [`ntpq(1)` - standard NTP query program](https://docs.ntpsec.org/latest/ntpq.html)
-* [`ntpsnmp(1)` - an AgentX Simple Network Management Protocol sub-agent [_experimental_]](https://docs.ntpsec.org/latest/ntpsnmp.html)
-* [`ntpsweep(1)` - print information about given NTP servers](https://docs.ntpsec.org/latest/ntpsweep.html)
-* [`ntptrace(1)` - trace a chain of NTP servers back to the primary source](https://docs.ntpsec.org/latest/ntptrace.html)
-* [`ntpviz(1)` - make offset, jitter, and other plots from logfiles](https://docs.ntpsec.org/latest/ntpviz.html)
-* [`ntpwait(8)` - wait until ntpd is in synchronized state](https://docs.ntpsec.org/latest/ntpwait.html)
+* [`ntpdig(1)` - Simple Network Time Protocol (SNTP) client](https://github.com/JamesB192/ntp-sizzle/wiki/ntpdig)
+* [`keygone(8)` - generate keys to secure ntpq and nptdig.](https://github.com/JamesB192/ntp-sizzle/wiki/ntpkeygone)
+* [`ntploggps(1)` - log gpsd data for use by ntpviz](https://github.com/JamesB192/ntp-sizzle/wiki/ntploggps)
+* [`ntplogtemp(1)` - log system temperature data for use by ntpviz](https://github.com/JamesB192/ntp-sizzle/wiki/ntplogtemp)
+* [`ntpmon(1)` - real-time NTP status monitor](https://github.com/JamesB192/ntp-sizzle/wiki/ntpmon)
+* [`ntpq(1)` - standard NTP query program](https://github.com/JamesB192/ntp-sizzle/wiki/ntpq)
+* [`ntpsnmp(1)` - an AgentX Simple Network Management Protocol sub-agent [_experimental_]](https://github.com/JamesB192/ntp-sizzle/wiki/ntpsnmp)
+* [`ntpsweep(1)` - print information about given NTP servers](https://github.com/JamesB192/ntp-sizzle/wiki/ntpsweep)
+* [`ntptrace(1)` - trace a chain of NTP servers back to the primary source](https://github.com/JamesB192/ntp-sizzle/wiki/ntptrace)
+* [`ntpviz(1)` - make offset, jitter, and other plots from logfiles](https://github.com/JamesB192/ntp-sizzle/wiki/ntpviz)
+* [`ntpwait(8)` - wait until ntpd is in synchronized state](https://github.com/JamesB192/ntp-sizzle/wiki/ntpwait)
 
 ## Resources and Support
 
 There are none; deal with it. In particular, DON'T clog the NTPsec community support asking for help with this.
 
 ## Credit
-The members of the NTP and NTPsec communities who have worked so hard on the clients, libntp and its' spiritual successor the ntp Python module.
+The members of the NTP and NTPsec communities who have worked so hard on the clients, libntp and its' spiritual successor the ntp Python package.
 
 ## LICENSE
 
-This parent software (The clients and ntp module of NTPsec) is released under the terms and conditions of the BSD-2-Clause License, including a copy in the file COPYING.
+This parent software (The clients and ntp package of NTPsec) is released under the terms and conditions of the BSD-2-Clause License, including a copy in the file COPYING.
 
 The parent software and its bits are Copyrighted by the NTPsec project.
 
