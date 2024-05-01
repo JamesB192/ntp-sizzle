@@ -108,8 +108,8 @@ class TestPylibUtilMethods(unittest.TestCase):
     def test_stdversion(self):
         f = ntp.util.stdversion
 
-        ver = "@NTPSEC_VERSION_EXTENDED@"
-        self.assertEqual(f(), "ntpsec-" + ver)
+        ver = "2024.5.2"
+        self.assertEqual(f(), ver)
 
     def test_rfc3339(self):
         f = ntp.util.rfc3339

@@ -8,7 +8,7 @@ long_description = (this_directory / "README.markdown").read_text()
 
 setup(
     name="ntp-sizzle",
-    version="2024.04.24",
+    version="2024.5.2",
     description="A standalone fork of NTP tools originally from NTPsec",
     author="James Browning",
     author_email="JamesB.fe80@gmail.com",

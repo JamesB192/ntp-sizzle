@@ -2278,7 +2278,7 @@ USAGE: ntpq [-46dphinOV] [-c str] [-D lvl] [host ...]
 """
 
 if __name__ == "__main__":
-    bin_ver = "ntpsec-@NTPSEC_VERSION_EXTENDED@"
+    bin_ver = "2024.5.2"
     ntp.util.stdversioncheck(bin_ver)
     try:
         (options, arguments) = getopt.getopt(

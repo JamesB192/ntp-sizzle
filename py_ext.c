@@ -74,7 +74,7 @@ int64_t ntpcal_ntp_to_time(uint32_t ntp, int64_t pivot) {
 #endif // UNUSED_ARG
 
 
-const char *version = "2024.05.01";
+const char *version = "2024.5.2";
 int   SYS_TYPE = 1;
 int  PEER_TYPE = 2;
 int CLOCK_TYPE = 3;

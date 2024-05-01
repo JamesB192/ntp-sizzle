@@ -270,7 +270,7 @@ parser.add_argument(
     "-V",
     "--version",
     action="version",
-    version="ntplogtemp ntpsec-@NTPSEC_VERSION_EXTENDED@",
+    version="ntplogtemp 2024.5.2",
 )
 args = parser.parse_args()
 
