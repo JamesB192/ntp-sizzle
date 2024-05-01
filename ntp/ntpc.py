@@ -115,12 +115,12 @@ hash_list = {
 
 algorithms = {
     "aes": ciphers.algorithms.AES,
-    "aes128": ciphers.algorithms.AES128,
-    "aes192": ciphers.algorithms.AES,
-    "aes256": ciphers.algorithms.AES256,
-    "camellia128": ciphers.algorithms.Camellia,
-    "camellia192": ciphers.algorithms.Camellia,
-    "camellia256": ciphers.algorithms.Camellia,
+    "aes-128": ciphers.algorithms.AES128,
+    "aes-192": ciphers.algorithms.AES,
+    "aes-256": ciphers.algorithms.AES256,
+    "camellia-128": ciphers.algorithms.Camellia,
+    "camellia-192": ciphers.algorithms.Camellia,
+    "camellia-256": ciphers.algorithms.Camellia,
     "sm4": ciphers.algorithms.SM4,
 }
 
@@ -144,7 +144,7 @@ def mac(data, key, name):
         work = cmac.CMAC(algorithms[lname](poly.polybytes(key)))
         work.update(poly.polybytes(data))
         return work.finalize()[:20]
-    return b""
+    return None
 
 
 # ---   ===   ***   ===   ---
