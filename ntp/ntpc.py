@@ -42,7 +42,7 @@ def prettydate(in_string):
         (lfp >> 32) & UINT32MAX,
         lfp & UINT32MAX,
         rfc,
-        timeval[1] / MILLION,
+        int(timeval[1] / 1e3),
     )
 
 
@@ -50,7 +50,8 @@ def lfptofloat(in_string):
     """NTP l_fp to Python-style float time."""
     l_fp = ihextolfp(in_string[2:])
     tval = lfp_stamp_to_tval(l_fp)
-    return tval[0] + (tval[1] / 1e3)
+    frac = (l_fp & UINT32MAX) / float(1 << 32)
+    return frac + tval[0]
 
 
 def lfp_stamp_to_tval(when, pivot=PIVOT):
@@ -62,7 +63,7 @@ def lfp_stamp_to_tval(when, pivot=PIVOT):
     """
     l_fps = (when >> 32) & UINT32MAX
     sec = c.lfp2timet(l_fps, pivot)
-    return [sec, ((when & UINT32MAX) * MILLION) >> 32]
+    return [sec, (((when & UINT32MAX) * MILLION) >> 32) & UINT32MAX]
 
 
 def ftotval(float_value):
