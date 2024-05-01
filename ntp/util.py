@@ -1014,11 +1014,6 @@ class PeerSummary:
                 + self.__common
                 + "  disp"
             )
-        elif self.displaymode == "rpeers":
-            self.__header = (
-                " st t when poll reach   delay   "
-                + "offset   jitter refid           T remote"
-            )
         else:
             self.__header = (
                 self.__remote
@@ -1254,17 +1249,16 @@ class PeerSummary:
                 clock_name = srcadr
             else:
                 clock_name = ""
-        if self.displaymode != "rpeers":
-            if self.wideremote and len(clock_name) > self.namewidth:
-                line += "%c%s\n" % (c, clock_name)
-                line += " " * (self.namewidth + 2)
-            else:
-                line += "%c%-*.*s " % (
-                    c,
-                    self.namewidth,
-                    self.namewidth,
-                    clock_name[: self.namewidth],
-                )
+        if self.wideremote and len(clock_name) > self.namewidth:
+            line += "%c%s\n" % (c, clock_name)
+            line += " " * (self.namewidth + 2)
+        else:
+            line += "%c%-*.*s " % (
+                c,
+                self.namewidth,
+                self.namewidth,
+                clock_name[: self.namewidth],
+            )
         # Destination address, assoc ID or refid.
         assocwidth = 7 if self.displaymode == "apeers" else 0
         if "." not in dstadr_refid and ":" not in dstadr_refid:
@@ -1276,15 +1270,14 @@ class PeerSummary:
             visible = "..."
         else:
             visible = dstadr_refid
-        if self.displaymode != "rpeers":
-            line += self.high_truncate(visible, self.refidwidth)
-            if self.displaymode == "apeers":
-                line += " " * (
-                    self.refidwidth - len(visible) - assocwidth + 1
-                )
-                line += "%-6d" % (associd)
-            else:
-                line += " " * (self.refidwidth - len(visible))
+        line += self.high_truncate(visible, self.refidwidth)
+        if self.displaymode == "apeers":
+            line += " " * (
+                self.refidwidth - len(visible) - assocwidth + 1
+            )
+            line += "%-6d" % (associd)
+        else:
+            line += " " * (self.refidwidth - len(visible))
         # The rest of the story
         if last_sync is None:
             last_sync = now
