@@ -19,10 +19,10 @@ from __future__ import print_function
 
 import getopt
 import re
-import subprocess
 import sys
 
 try:
+    import ntp.packet
     import ntp.util
 except ImportError as e:
     sys.stderr.write("ntptrace: can't find Python NTP library.\n")
@@ -50,59 +50,26 @@ def get_next_host(peer, host):
     return info["srcadr"]
 
 
-def ntp_read_vars(peer, vars, host):
+def ntp_read_vars(peer, varlist, host):
     obsolete = {"phase": "offset", "rootdispersion": "rootdisp"}
 
-    if not vars:
+    outvars = {}.fromkeys(varlist)
+    do_all = False
+    if not varlist:
         do_all = True
-    else:
-        do_all = False
-    outvars = {}.fromkeys(vars)
 
-    if do_all:
-        outvars["status_line"] = {}
+    session = ntp.packet.ControlSession()
+    session.debug = 0
+    session.logfp = sys.stderr
+    session.openhost(host)
+    midvars = session.readvar(associd=peer, varlist=varlist, raw=True)
 
-    cmd = ["ntpq", "-n", "-c", "rv %s %s" % (peer, ",".join(vars))]
-    if host is not None:
-        cmd.append(host)
-
-    try:
-        # sadly subprocess.check_output() is not in Python 2.6
-        proc = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-        )
-        out = proc.communicate()[0]
-        output = out.decode("utf-8").splitlines()
-    except subprocess.CalledProcessError as e:
-        print("Could not start ntpq: %s" % e.output, file=sys.stderr)
-        raise SystemExit(1)
-    except OSError as e:
-        print("Could not start ntpq: %s" % e.strerror, file=sys.stderr)
-        raise SystemExit(1)
-
-    for line in output:
-        if re.search(r"Connection refused", line):
-            return
-
-        match = re.search(
-            r"^asso?c?id=0 status=(\S{4}) (\S+), (\S+),",
-            line,
-            flags=re.IGNORECASE,
-        )
-        if match:
-            outvars["status_line"]["status"] = match.group(1)
-            outvars["status_line"]["leap"] = match.group(2)
-            outvars["status_line"]["sync"] = match.group(3)
-
-        iterator = re.finditer(r"(\w+)=([^,]+),?\s?", line)
-        for match in iterator:
-            key = match.group(1)
-            val = match.group(2)
-            val = re.sub(r'^"([^"]+)"$', r"\1", val)
-            if key in obsolete:
-                key = obsolete[key]
-            if do_all or key in outvars:
-                outvars[key] = val
+    for key, in midvars:
+        val = midvars[key][0]
+        if key in obsolete:
+            key = obsolete[key]
+        if do_all or key in outvars:
+            outvars[key] = val
 
     return outvars
 
@@ -190,15 +157,12 @@ while True:
         ),
         end="",
     )
-    if int(info["stratum"]) == 1:
+    stratum = int(info["stratum"])
+    if 1 == stratum:
         print(", refid '%s'" % info["refid"], end="")
     print()
 
-    if (
-        int(info["stratum"]) == 0
-        or int(info["stratum"]) == 1
-        or int(info["stratum"]) == 16
-    ):
+    if stratum in (0, 1, 16):
         break
 
     if re.search(r"^127\.127\.\d{1,3}\.\d{1,3}$", info["refid"]):
