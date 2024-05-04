@@ -20,6 +20,12 @@ This package is a Fork of NTPsecs' 'ntp' python package for installs not blessed
 * [`ntpviz(1)` - make offset, jitter, and other plots from logfiles](https://github.com/JamesB192/ntp-sizzle/wiki/ntpviz)
 * [`ntpwait(8)` - wait until ntpd is in synchronized state](https://github.com/JamesB192/ntp-sizzle/wiki/ntpwait)
 
+## Buyer beware
+
+* [`argparse`](https://pypi.org/project/argparse/) is required for `ntpkeygone`, `ntploggps`, `ntplogtemp`, and `ntpviz` (except Python 2.7+)
+* [`psutil`](https://pypi.org/project/psutil/) are required for `ntpviz`s `-D9` and `-n` respectively (except Python 2.7, 3.6+)
+* `secrets` is required for `ntpkeygone` (Python 3.6+ only)
+
 ## Resources and Support
 
 There are none; deal with it. In particular, DON'T clog the NTPsec community support asking for help with this.
