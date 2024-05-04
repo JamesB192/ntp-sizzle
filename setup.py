@@ -1,7 +1,10 @@
 """Build a PyPI package containing library and scripts for NTPsec use."""
 
 from pathlib import Path
-from setuptools import Extension, find_packages, setup
+try:
+    from setuptools import Extension, setup
+except ImportError:  # No setuptools in Python 2
+    from distutils.core import Extension, setup
 
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.markdown").read_text()
@@ -25,17 +28,9 @@ setup(
         ),
     ],
     install_requires=[
-        "cProfile",
         "crptography",
-        "curses",
-        "pessiums-gps",
-        "psutil",
     ],
-    packages=find_packages(
-        where=".",  # '.' by default
-        include=["ntp*"],  # ['*'] by default
-        # exclude=["ntp.tests"],  # empty by default
-    ),
+    packages=["ntp"],
     scripts=[
         "scripts/ntpkeygone",
         "scripts/ntpdig",
