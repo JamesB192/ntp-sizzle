@@ -132,7 +132,7 @@ parser.add_argument(
     "-V",
     "--version",
     action="version",
-    version="ntploggps 2024.5.2",
+    version="ntploggps 2024.5.10",
 )
 
 args = parser.parse_args()

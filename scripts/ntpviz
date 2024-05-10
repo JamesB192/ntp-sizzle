@@ -1584,7 +1584,7 @@ AADRxQAAxBEAAA==
 """
 
 if __name__ == "__main__":
-    bin_ver = "2024.5.2"
+    bin_ver = "2024.5.10"
     ntp.util.stdversioncheck(bin_ver)
 
     parser = MyArgumentParser(

@@ -134,7 +134,7 @@ def safeargcast(arg, castfunc, errtext, usage):
 
 def stdversion():
     "Returns the NTPsec version string in a standard format"
-    return "2024.5.2"
+    return "2024.5.10"
 
 
 def stdversioncheck(foreign):

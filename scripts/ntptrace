@@ -90,7 +90,7 @@ hyphen and the flag character."""
     + "\n"
 )
 
-bin_ver = "2024.5.2"
+bin_ver = "2024.5.10"
 ntp.util.stdversioncheck(bin_ver)
 
 try:
